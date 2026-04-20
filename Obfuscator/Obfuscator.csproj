@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+        <IsPackable>true</IsPackable>
+        <PackageId>Squalor.Obfuscator</PackageId>
+        <Title>Squalor Obfuscator</Title>
+        <Description>CSV generation, reversible obfuscation, and deobfuscation utilities for .NET.</Description>
+        <PackageTags>csv;obfuscation;privacy;dotnet;data</PackageTags>
+        <PackageLicenseExpression>MPL-2.0</PackageLicenseExpression>
+        <PackageReadmeFile>PackageReadme.md</PackageReadmeFile>
+        <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);CS1591</NoWarn>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="CsvHelper" Version="33.1.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="PackageReadme.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+</Project>

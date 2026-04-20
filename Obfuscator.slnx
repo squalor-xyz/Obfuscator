@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Obfuscator.Cli/Obfuscator.Cli.csproj" />
+  <Project Path="Obfuscator.Tests/Obfuscator.Tests.csproj" />
+  <Project Path="Obfuscator/Obfuscator.csproj" />
+</Solution>

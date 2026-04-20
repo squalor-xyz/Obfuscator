@@ -1,0 +1,62 @@
+{
+  "rowMode": "fixed",
+  "nRows": 1000,
+  "seed": 12345,
+  "columns": [
+    {
+      "name": "SampleId",
+      "dataType": "bigint",
+      "totalRangeMin": 100000,
+      "totalRangeMax": 999999,
+      "percentageInIdealRange": 100
+    },
+    {
+      "name": "TemperatureC",
+      "units": "C",
+      "dataType": "double",
+      "idealRangeMin": 18.0,
+      "idealRangeMax": 26.0,
+      "totalRangeMin": -10.0,
+      "totalRangeMax": 50.0,
+      "percentageInIdealRange": 85
+    },
+    {
+      "name": "PressurePsi",
+      "units": "psi",
+      "dataType": "double",
+      "tracksWith": [ "TemperatureC" ],
+      "totalRangeMin": 15.0,
+      "totalRangeMax": 250.0,
+      "percentageInIdealRange": 75
+    },
+    {
+      "name": "Efficiency",
+      "units": "%",
+      "dataType": "double",
+      "tracksInverselyWith": [ "TemperatureC" ],
+      "idealRangeMin": 80.0,
+      "idealRangeMax": 97.5,
+      "totalRangeMin": 20.0,
+      "totalRangeMax": 100.0
+    },
+    {
+      "name": "IsActive",
+      "dataType": "boolean",
+      "truePercentage": 90.0
+    },
+    {
+      "name": "CreatedUtc",
+      "dataType": "datetime",
+      "dateMinUtc": "2025-01-01T00:00:00Z",
+      "dateMaxUtc": "2026-01-01T00:00:00Z",
+      "dateFormat": "O"
+    },
+    {
+      "name": "Region",
+      "dataType": "string",
+      "randomString": true,
+      "stringPrefix": "REG_",
+      "randomStringLength": 6
+    }
+  ]
+}

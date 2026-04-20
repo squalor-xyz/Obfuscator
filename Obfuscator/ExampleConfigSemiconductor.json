@@ -1,0 +1,115 @@
+{
+  "rowMode": "sweep",
+  "nRows": 10000,
+  "seed": 12345,
+  "sweepAxes": [
+    { "name": "Temp(degC)" },
+    { "name": "Vcc(V)" },
+    { "name": "Frequency(MHz)" },
+    { "name": "Pout(dBm)" }
+  ],
+  "columns": [
+    {
+      "name": "stimulusGrp(id)",
+      "dataType": "bigint",
+      "totalRangeMin": 1,
+      "totalRangeMax": 999999,
+      "generatedIdMode": "outer-group",
+      "info": "One ID per Temp/Vcc/Frequency stimulus group."
+    },
+    {
+      "name": "sweep(id)",
+      "dataType": "bigint",
+      "totalRangeMin": 1,
+      "totalRangeMax": 999999,
+      "generatedIdMode": "inner-step",
+      "info": "1-based sweep index over the innermost Pout(dBm) axis. Resets for each stimulus group."
+    },
+    {
+      "name": "SN",
+      "dataType": "string",
+      "staticValue": "sqFoo-001"
+    },
+    {
+      "name": "Date(date)",
+      "dataType": "date",
+      "dateMinUtc": "2026-01-01T00:00:00Z",
+      "dateMaxUtc": "2026-12-31T00:00:00Z",
+      "dateFormat": "yyyy-MM-dd"
+    },
+    {
+      "name": "Teststand",
+      "dataType": "string",
+      "staticValue": "sqBench-001"
+    },
+    {
+      "name": "Temp(degC)",
+      "dataType": "double",
+      "totalRangeMin": -40.0,
+      "totalRangeMax": 85.0,
+      "values": [ "-40.0", "25.0", "85.0" ]
+    },
+    {
+      "name": "Vcc(V)",
+      "dataType": "double",
+      "totalRangeMin": 3.3,
+      "totalRangeMax": 5.0,
+      "values": [ "3.3", "4.2", "5.0" ]
+    },
+    {
+      "name": "Frequency(MHz)",
+      "dataType": "double",
+      "totalRangeMin": 2400.0,
+      "totalRangeMax": 2500.0,
+      "values": [ "2400", "2450", "2500" ]
+    },
+    {
+      "name": "Pout(dBm)",
+      "dataType": "double",
+      "totalRangeMin": 0.0,
+      "totalRangeMax": 10.0,
+      "values": [ "0", "5", "10" ],
+      "info": "Inner sweep axis. The Pout sweep restarts for each Frequency/Vcc/Temp combination."
+    },
+    {
+      "name": "Pin(dBm)",
+      "dataType": "double",
+      "totalRangeMin": -25.0,
+      "totalRangeMax": 15.0,
+      "tracksWith": [ "Pout(dBm)" ],
+      "goodDirection": "n/a",
+      "info": "Typically rises with requested output power."
+    },
+    {
+      "name": "Gain(dB)",
+      "dataType": "double",
+      "totalRangeMin": 5.0,
+      "totalRangeMax": 35.0,
+      "idealRangeMin": 18.0,
+      "idealRangeMax": 28.0,
+      "tracksWith": [ "Pout(dBm)" ],
+      "goodDirection": "positive",
+      "info": "Increases with Pout until compression, then incremental gain falls off."
+    },
+    {
+      "name": "I_Total(A)",
+      "dataType": "double",
+      "totalRangeMin": 0.0,
+      "totalRangeMax": 10.0,
+      "tracksWith": [ "Pout(dBm)" ],
+      "goodDirection": "positive",
+      "info": "Total supply current generally rises with output power."
+    },
+    {
+      "name": "EVM(dB)",
+      "dataType": "double",
+      "totalRangeMin": -60.0,
+      "totalRangeMax": 0.0,
+      "idealRangeMin": -55.0,
+      "idealRangeMax": -35.0,
+      "tracksWith": [ "Pout(dBm)" ],
+      "goodDirection": "negative",
+      "info": "More negative is better. EVM often worsens as output power approaches compression."
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackAsTool>true</PackAsTool>
+    <PackageId>Squalor.Obfuscator.Cli</PackageId>
+    <Title>Squalor Obfuscator CLI</Title>
+    <Description>CLI entry point for Squalor.Obfuscator.</Description>
+    <PackageLicenseExpression>MPL-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>PackageReadme.md</PackageReadmeFile>
+    <PackageTags>csv;obfuscation;privacy;dotnet-tool;cli</PackageTags>
+    <ToolCommandName>obfuscator</ToolCommandName>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Obfuscator\Obfuscator.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="PackageReadme.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>
