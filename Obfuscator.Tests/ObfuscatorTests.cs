@@ -402,8 +402,7 @@ public sealed class ObfuscatorTests : IDisposable
         _obfuscator.ObfuscateCsv(inputPath, obfuscatedPath, manifestPath);
 
         var manifestText = File.ReadAllText(manifestPath, Encoding.UTF8);
-        var newline = Environment.NewLine;
-        var header = $"OBF_PLAIN_V2{newline}";
+        var header = "OBF_PLAIN_V2\n";
         Assert.StartsWith(header, manifestText, StringComparison.Ordinal);
 
         var manifest = JsonSerializer.Deserialize<ObfuscationManifest>(manifestText[header.Length..])
@@ -589,6 +588,50 @@ public sealed class ObfuscatorTests : IDisposable
         _obfuscator.GenerateCsv(config, outputPath2);
 
         Assert.Equal(File.ReadAllText(outputPath1, Encoding.UTF8), File.ReadAllText(outputPath2, Encoding.UTF8));
+    }
+
+    [Fact]
+    public void GenerateCsv_WithIdealRangeAndSeed_IsDeterministic()
+    {
+        var outputPath1 = Path.Combine(_tempDir, "ideal-1.csv");
+        var outputPath2 = Path.Combine(_tempDir, "ideal-2.csv");
+        var config = new DataGenConfig
+        {
+            RowMode = "fixed",
+            NRows = 40,
+            Seed = 123,
+            Columns =
+            [
+                new ColumnGenerationSpec
+                {
+                    Name = "Gain",
+                    DataType = "double",
+                    TotalRangeMin = 5,
+                    TotalRangeMax = 35,
+                    IdealRangeMin = 18,
+                    IdealRangeMax = 28
+                }
+            ]
+        };
+
+        _obfuscator.GenerateCsv(config, outputPath1);
+        _obfuscator.GenerateCsv(config, outputPath2);
+
+        Assert.Equal(File.ReadAllText(outputPath1, Encoding.UTF8), File.ReadAllText(outputPath2, Encoding.UTF8));
+    }
+
+    [Fact]
+    public void GenerateCsv_SemiconductorExampleConfig_IsDeterministic()
+    {
+        var configPath = Path.Combine(AppContext.BaseDirectory, "ExampleConfigSemiconductor.json");
+        Assert.True(File.Exists(configPath), configPath);
+        var outputPath1 = Path.Combine(_tempDir, "semi-1.csv");
+        var outputPath2 = Path.Combine(_tempDir, "semi-2.csv");
+
+        _obfuscator.GenerateCsvFromConfig(configPath, outputPath1);
+        _obfuscator.GenerateCsvFromConfig(configPath, outputPath2);
+
+        Assert.Equal(File.ReadAllBytes(outputPath1), File.ReadAllBytes(outputPath2));
     }
 
     [Fact]

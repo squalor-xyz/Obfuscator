@@ -20,5 +20,8 @@
     <ProjectReference Include="..\Obfuscator.Cli\Obfuscator.Cli.csproj" />
     <ProjectReference Include="..\Obfuscator\Obfuscator.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Obfuscator\ExampleConfigSemiconductor.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 
 </Project>

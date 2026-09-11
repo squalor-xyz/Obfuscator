@@ -207,7 +207,7 @@ internal sealed class DataGenerator
         return values.Count == 0 ? null : values.Average();
     }
 
-    private static double Denormalize(ColumnGenerationSpec col, double normalized)
+    private double Denormalize(ColumnGenerationSpec col, double normalized)
     {
         var totalMin = col.TotalRangeMin ?? 0.0;
         var totalMax = col.TotalRangeMax ?? 1.0;
@@ -223,7 +223,7 @@ internal sealed class DataGenerator
                 return Lerp(iMin, iMax, normalized / IdealRangeCoverage);
 
             var outerN = (normalized - IdealRangeCoverage) / OuterRangeCoverage;
-            return Random.Shared.NextDouble() < 0.5
+            return _random.NextDouble() < 0.5
                 ? Lerp(totalMin, iMin, outerN)
                 : Lerp(iMax, totalMax, outerN);
         }
