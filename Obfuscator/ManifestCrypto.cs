@@ -9,6 +9,7 @@ internal static class ManifestCrypto
 {
     private const string PlainHeader = "OBF_PLAIN_V2";
     private const string AesHeader = "OBF_AES_V2";
+    private const string GpgHeader = "OBF_GPG_V2";
     private const string HeaderSeparator = "\n";
     private static readonly UTF8Encoding Utf8NoBom = new(false);
 
@@ -34,11 +35,13 @@ internal static class ManifestCrypto
 
     public static string ReadManifest(string path, string? passphrase)
     {
-        if (LooksLikeBinary(path))
-            return GpgDecryptToString(path);
+        var bytes = File.ReadAllBytes(path);
+        var text = Encoding.UTF8.GetString(bytes).TrimStart('\uFEFF');
 
-        var text = File.ReadAllText(path, Encoding.UTF8);
-        text = text.TrimStart('\uFEFF');
+        if (TryReadHeaderPayload(text, GpgHeader, out var gpgPayload))
+            text = GpgDecryptArmored(gpgPayload).TrimStart('\uFEFF');
+        else if (LooksLikeOpenPgp(bytes))
+            text = GpgDecryptToString(path).TrimStart('\uFEFF');
 
         if (TryReadHeaderPayload(text, PlainHeader, out var plainPayload))
             return plainPayload;
@@ -51,7 +54,7 @@ internal static class ManifestCrypto
             return DecryptAes(aesPayload, passphrase);
         }
 
-        return text;
+        throw new InvalidOperationException($"Unrecognized manifest format: {path}");
     }
 
     private static string EncryptAes(string plaintext, string passphrase)
@@ -81,6 +84,8 @@ internal static class ManifestCrypto
     private static string DecryptAes(string base64, string passphrase)
     {
         var bytes = Convert.FromBase64String(base64);
+        if (bytes.Length < 33)
+            throw new InvalidOperationException("Truncated AES manifest payload.");
         var salt = bytes[..16];
         var iv = bytes[16..32];
         var cipher = bytes[32..];
@@ -111,16 +116,14 @@ internal static class ManifestCrypto
         return key;
     }
 
-    private static bool LooksLikeBinary(string path)
+    private static bool LooksLikeOpenPgp(byte[] bytes)
     {
-        using var fs = File.OpenRead(path);
-        var buffer = new byte[Math.Min(16, (int)fs.Length)];
-        fs.ReadExactly(buffer);
-
-        if (buffer.Length >= 3 && buffer[0] == 0xEF && buffer[1] == 0xBB && buffer[2] == 0xBF)
+        var i = 0;
+        if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF)
+            i = 3;
+        if (i >= bytes.Length)
             return false;
-
-        return buffer.Any(b => b == 0);
+        return (bytes[i] & 0x80) != 0;
     }
 
     private static bool TryReadHeaderPayload(string text, string header, out string payload)
@@ -155,7 +158,6 @@ internal static class ManifestCrypto
     private static void GpgEncryptInPlace(string path, IReadOnlyList<string> recipients)
     {
         var output = path + ".gpg";
-
         var psi = new ProcessStartInfo
         {
             FileName = "gpg",
@@ -163,48 +165,43 @@ internal static class ManifestCrypto
             RedirectStandardOutput = true,
             UseShellExecute = false
         };
-
         psi.ArgumentList.Add("--yes");
         psi.ArgumentList.Add("--batch");
         psi.ArgumentList.Add("--trust-model");
         psi.ArgumentList.Add("always");
+        psi.ArgumentList.Add("--armor");
         psi.ArgumentList.Add("--encrypt");
-
         foreach (var r in recipients)
         {
             psi.ArgumentList.Add("--recipient");
             psi.ArgumentList.Add(r);
         }
-
         psi.ArgumentList.Add("--output");
         psi.ArgumentList.Add(output);
         psi.ArgumentList.Add(path);
 
-        Process? process;
+        var (exit, stdout, stderr) = RunGpg(psi);
+        if (exit != 0)
+            throw new InvalidOperationException($"gpg encrypt failed.{Environment.NewLine}{stdout}{Environment.NewLine}{stderr}");
+
+        var armored = File.ReadAllText(output, Utf8NoBom);
+        File.Delete(output);
+        File.WriteAllText(path, $"{GpgHeader}{HeaderSeparator}{armored}", Utf8NoBom);
+    }
+
+    private static string GpgDecryptArmored(string armored)
+    {
+        var temp = Path.Combine(Path.GetTempPath(), "obf-gpg-" + Guid.NewGuid().ToString("N") + ".asc");
         try
         {
-            process = Process.Start(psi);
+            File.WriteAllText(temp, armored, Utf8NoBom);
+            return GpgDecryptToString(temp);
         }
-        catch (Win32Exception ex)
+        finally
         {
-            throw new InvalidOperationException("Failed to start gpg. Make sure GPG is installed and available on PATH.", ex);
+            if (File.Exists(temp))
+                File.Delete(temp);
         }
-
-        if (process is null)
-            throw new InvalidOperationException("Failed to start gpg. Make sure GPG is installed and available on PATH.");
-
-        using (process)
-        {
-            var stdout = process.StandardOutput.ReadToEnd();
-            var stderr = process.StandardError.ReadToEnd();
-            process.WaitForExit();
-
-            if (process.ExitCode != 0)
-                throw new InvalidOperationException($"gpg encrypt failed. Make sure GPG is installed and available on PATH.{Environment.NewLine}{stdout}{Environment.NewLine}{stderr}");
-        }
-
-        File.Delete(path);
-        File.Move(output, path);
     }
 
     private static string GpgDecryptToString(string path)
@@ -216,11 +213,21 @@ internal static class ManifestCrypto
             RedirectStandardError = true,
             UseShellExecute = false
         };
-
         psi.ArgumentList.Add("--yes");
         psi.ArgumentList.Add("--batch");
         psi.ArgumentList.Add("--decrypt");
         psi.ArgumentList.Add(path);
+
+        var (exit, stdout, stderr) = RunGpg(psi);
+        if (exit != 0)
+            throw new InvalidOperationException($"gpg decrypt failed.{Environment.NewLine}{stderr}");
+        return stdout;
+    }
+
+    private static (int Exit, string Stdout, string Stderr) RunGpg(ProcessStartInfo psi)
+    {
+        psi.StandardOutputEncoding = Utf8NoBom;
+        psi.StandardErrorEncoding = Utf8NoBom;
 
         Process? process;
         try
@@ -237,14 +244,11 @@ internal static class ManifestCrypto
 
         using (process)
         {
-            var stdout = process.StandardOutput.ReadToEnd();
-            var stderr = process.StandardError.ReadToEnd();
+            var stdoutTask = process.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
+            Task.WaitAll(stdoutTask, stderrTask);
             process.WaitForExit();
-
-            if (process.ExitCode != 0)
-                throw new InvalidOperationException($"gpg decrypt failed. Make sure GPG is installed and available on PATH.{Environment.NewLine}{stderr}");
-
-            return stdout;
+            return (process.ExitCode, stdoutTask.Result, stderrTask.Result);
         }
     }
 }

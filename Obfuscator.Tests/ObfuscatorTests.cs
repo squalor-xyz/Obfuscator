@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Squalor.Obfuscator;
@@ -634,6 +635,91 @@ public sealed class ObfuscatorTests : IDisposable
         Assert.Equal(File.ReadAllBytes(outputPath1), File.ReadAllBytes(outputPath2));
     }
 
+    [SkippableFact]
+    public void Manifest_GpgRoundTrip_RestoresOriginal()
+    {
+        Skip.If(!GpgAvailable(), "gpg is not on PATH");
+
+        var gnupg = Path.Combine(Path.GetTempPath(), "r9g" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(gnupg);
+        var previous = Environment.GetEnvironmentVariable("GNUPGHOME");
+        Environment.SetEnvironmentVariable("GNUPGHOME", gnupg);
+        try
+        {
+            if (!OperatingSystem.IsWindows())
+                File.SetUnixFileMode(
+                    gnupg,
+                    UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            GenerateTestGpgKey("r9-test@example.invalid", gnupg);
+
+            var inputPath = Path.Combine(_tempDir, "gpg-input.csv");
+            var obfuscatedPath = Path.Combine(_tempDir, "gpg-obfuscated.csv");
+            var restoredPath = Path.Combine(_tempDir, "gpg-restored.csv");
+            var manifestPath = Path.Combine(_tempDir, "gpg.obf");
+            File.WriteAllLines(inputPath, ["CustomerId,Region", "ALPHA,west"], Encoding.UTF8);
+
+            _obfuscator.ObfuscateCsv(
+                inputPath,
+                obfuscatedPath,
+                manifestPath,
+                new ObfuscationOptions { GpgRecipients = ["r9-test@example.invalid"] });
+
+            var header = File.ReadAllText(manifestPath, Encoding.UTF8);
+            Assert.StartsWith("OBF_GPG_V2\n", header, StringComparison.Ordinal);
+
+            _obfuscator.DeobfuscateCsv(obfuscatedPath, manifestPath, restoredPath);
+            Assert.Equal(
+                File.ReadAllLines(inputPath, Encoding.UTF8),
+                File.ReadAllLines(restoredPath, Encoding.UTF8));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("GNUPGHOME", previous);
+            try
+            {
+                if (Directory.Exists(gnupg))
+                    Directory.Delete(gnupg, true);
+            }
+            catch (IOException)
+            {
+            }
+        }
+    }
+
+    [Fact]
+    public void Manifest_UnrecognizedContent_ThrowsWithFileName()
+    {
+        var obfuscatedPath = Path.Combine(_tempDir, "unrec-obfuscated.csv");
+        var restoredPath = Path.Combine(_tempDir, "unrec-restored.csv");
+        var manifestPath = Path.Combine(_tempDir, "unrec.obf");
+        File.WriteAllText(obfuscatedPath, "CustomerId\nALPHA\n", Encoding.UTF8);
+        File.WriteAllText(manifestPath, "hello", Encoding.UTF8);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _obfuscator.DeobfuscateCsv(obfuscatedPath, manifestPath, restoredPath));
+        Assert.Contains("Unrecognized manifest format", ex.Message, StringComparison.Ordinal);
+        Assert.Contains(manifestPath, ex.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("JSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Manifest_TruncatedAesPayload_ThrowsClearly()
+    {
+        var obfuscatedPath = Path.Combine(_tempDir, "trunc-obfuscated.csv");
+        var restoredPath = Path.Combine(_tempDir, "trunc-restored.csv");
+        var manifestPath = Path.Combine(_tempDir, "trunc.obf");
+        File.WriteAllText(obfuscatedPath, "CustomerId\nALPHA\n", Encoding.UTF8);
+        File.WriteAllText(
+            manifestPath,
+            "OBF_AES_V2\n" + Convert.ToBase64String(new byte[8]),
+            Encoding.UTF8);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _obfuscator.DeobfuscateCsv(obfuscatedPath, manifestPath, restoredPath, passphrase: "secret"));
+        Assert.IsNotType<ArgumentOutOfRangeException>(ex.InnerException);
+        Assert.Contains("AES", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
     public void CliGenerate_WithoutCreateOutputDirFlag_ThrowsHelpfulMessage()
     {
@@ -704,5 +790,59 @@ public sealed class ObfuscatorTests : IDisposable
     {
         if (Directory.Exists(_tempDir))
             Directory.Delete(_tempDir, recursive: true);
+    }
+
+    private static bool GpgAvailable()
+    {
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "gpg",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false
+            };
+            psi.ArgumentList.Add("--version");
+            using var p = Process.Start(psi);
+            if (p is null)
+                return false;
+            p.WaitForExit();
+            return p.ExitCode == 0;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static void GenerateTestGpgKey(string uid, string homedir)
+    {
+        var psi = new ProcessStartInfo
+        {
+            FileName = "gpg",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false
+        };
+        psi.ArgumentList.Add("--homedir");
+        psi.ArgumentList.Add(homedir);
+        psi.ArgumentList.Add("--batch");
+        psi.ArgumentList.Add("--yes");
+        psi.ArgumentList.Add("--pinentry-mode");
+        psi.ArgumentList.Add("loopback");
+        psi.ArgumentList.Add("--passphrase");
+        psi.ArgumentList.Add("");
+        psi.ArgumentList.Add("--quick-generate-key");
+        psi.ArgumentList.Add(uid);
+        psi.ArgumentList.Add("default");
+        psi.ArgumentList.Add("default");
+        psi.ArgumentList.Add("never");
+        using var p = Process.Start(psi) ?? throw new InvalidOperationException("failed to start gpg");
+        var stdout = p.StandardOutput.ReadToEnd();
+        var stderr = p.StandardError.ReadToEnd();
+        p.WaitForExit();
+        if (p.ExitCode != 0)
+            throw new InvalidOperationException($"gpg keygen failed with exit {p.ExitCode}{Environment.NewLine}{stdout}{Environment.NewLine}{stderr}");
     }
 }
