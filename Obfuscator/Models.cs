@@ -161,8 +161,6 @@ public sealed class ObfuscationOptions
 
     // String columns can use explicit mapping, deterministic tokens, or auto mode based on DeterministicKey.
     public StringObfuscationMode StringMode { get; set; } = StringObfuscationMode.Auto;
-
-    public bool EncryptManifestWithAes => !string.IsNullOrWhiteSpace(Passphrase);
 }
 
 public enum StringObfuscationMode
@@ -179,8 +177,7 @@ public enum ObfuscatedColumnKind
     Boolean,
     Integer,
     Floating,
-    DateTime,
-    Unknown
+    DateTime
 }
 
 public sealed class ObfuscationManifest
