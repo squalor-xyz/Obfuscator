@@ -211,4 +211,4 @@ If you later add `<VersionPrefix>` to the `.csproj` files, that becomes the defa
 
 ## License
 
-This repository is licensed under the Mozilla Public License 2.0 (`MPL-2.0`).
+This repository is licensed under the Mozilla Public License 2.0 (`MPL-2.0`). CsvHelper 33.1.0 is `MS-PL OR Apache-2.0`; this project elects Apache-2.0 (see [NOTICE](NOTICE)).
