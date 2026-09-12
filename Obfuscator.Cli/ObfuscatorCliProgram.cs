@@ -61,8 +61,8 @@ internal static class ObfuscatorCliProgram
             options: new ObfuscationOptions
             {
                 Seed = ParseNullableInt(GetSingle(options, "--seed"), "--seed"),
-                Passphrase = GetSingle(options, "--passphrase"),
-                DeterministicKey = GetSingle(options, "--deterministic-key"),
+                Passphrase = ResolvePassphrase(options),
+                DeterministicKey = ResolveDeterministicKey(options),
                 PreserveBlanks = ParseBool(GetSingle(options, "--preserve-blanks"), defaultValue: true),
                 UseIncludeListAsAllowList = options.ContainsKey("--allow-list"),
                 StringMode = ParseStringMode(GetSingle(options, "--string-mode")),
@@ -89,8 +89,8 @@ internal static class ObfuscatorCliProgram
             obfuscatedCsvPath: RequireSingle(options, "--input"),
             obfPath: RequireSingle(options, "--manifest"),
             outputCsvPath: output,
-            passphrase: GetSingle(options, "--passphrase"),
-            deterministicKey: GetSingle(options, "--deterministic-key"),
+            passphrase: ResolvePassphrase(options),
+            deterministicKey: ResolveDeterministicKey(options),
             allowMismatchedSource: options.ContainsKey("--allow-mismatched-source"));
 
         Console.WriteLine($"Restored CSV: {output}");
@@ -105,6 +105,7 @@ internal static class ObfuscatorCliProgram
         "--manifest",
         "--seed",
         "--passphrase",
+        "--passphrase-file",
         "--deterministic-key",
         "--string-mode",
         "--include",
@@ -143,6 +144,29 @@ internal static class ObfuscatorCliProgram
         }
 
         return result;
+    }
+
+    private static string? ResolvePassphrase(Dictionary<string, List<string>> options)
+    {
+        var flagged = GetSingle(options, "--passphrase");
+        if (!string.IsNullOrEmpty(flagged))
+            return flagged;
+        var file = GetSingle(options, "--passphrase-file");
+        if (!string.IsNullOrEmpty(file))
+            return File.ReadAllText(file).TrimEnd('\r', '\n');
+        if (options.ContainsKey("--passphrase-stdin"))
+            return Console.In.ReadToEnd().TrimEnd('\r', '\n');
+        var env = Environment.GetEnvironmentVariable("OBFUSCATOR_PASSPHRASE");
+        return string.IsNullOrEmpty(env) ? null : env;
+    }
+
+    private static string? ResolveDeterministicKey(Dictionary<string, List<string>> options)
+    {
+        var flagged = GetSingle(options, "--deterministic-key");
+        if (!string.IsNullOrEmpty(flagged))
+            return flagged;
+        var env = Environment.GetEnvironmentVariable("OBFUSCATOR_DETERMINISTIC_KEY");
+        return string.IsNullOrEmpty(env) ? null : env;
     }
 
     private static string RequireSingle(Dictionary<string, List<string>> options, string name)
@@ -250,7 +274,9 @@ internal static class ObfuscatorCliProgram
         Console.WriteLine("  --exclude <colA,colB>");
         Console.WriteLine("  --allow-list");
         Console.WriteLine("  --seed <int>");
-        Console.WriteLine("  --passphrase <secret>");
+        Console.WriteLine("  --passphrase <secret>   (insecure: visible in process lists)");
+        Console.WriteLine("  --passphrase-file <path>");
+        Console.WriteLine("  --passphrase-stdin");
         Console.WriteLine("  --gpg-recipient <recipient>");
         Console.WriteLine("  --preserve-blanks <true|false>");
         Console.WriteLine("  --strict");

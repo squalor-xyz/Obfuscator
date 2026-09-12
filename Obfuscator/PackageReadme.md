@@ -28,7 +28,8 @@ obfuscator.ObfuscateCsv(
     obfPath: "real.obf",
     options: new ObfuscationOptions
     {
-        DeterministicKey = "your-stable-secret-key",
+        DeterministicKey = Environment.GetEnvironmentVariable("OBFUSCATOR_DETERMINISTIC_KEY"),
+        Passphrase = Environment.GetEnvironmentVariable("OBFUSCATOR_PASSPHRASE"),
         StringMode = StringObfuscationMode.DeterministicToken
     });
 ```

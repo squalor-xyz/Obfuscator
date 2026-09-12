@@ -17,6 +17,7 @@ internal sealed class ObfuscationEngine
     private const int DateShiftRangeWidthDays = DateShiftRangeHalfWidthDays * 2;
     private readonly Random _random;
     private readonly string? _deterministicKey;
+    private byte[]? _masterKey;
 
     public ObfuscationEngine(int? seed = null, string? deterministicKey = null)
     {
@@ -67,9 +68,11 @@ internal sealed class ObfuscationEngine
         var manifest = JsonSerializer.Deserialize<ObfuscationManifest>(manifestJson)
             ?? throw new InvalidOperationException("Failed to deserialize manifest.");
 
+        BindCrypto(manifest);
+
         var expectedHash = ComputeIntegrityHash(manifest);
         if (!string.Equals(expectedHash, manifest.IntegrityHashSha256, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Manifest integrity check failed.");
+            throw new InvalidOperationException("Manifest checksum mismatch (file may be corrupted or edited).");
 
         var actualName = Path.GetFileName(obfuscatedCsvPath);
         if (!allowMismatchedSource
@@ -97,8 +100,10 @@ internal sealed class ObfuscationEngine
         {
             SourceFileName = Path.GetFileName(inputCsvPath),
             ObfuscatedFileName = Path.GetFileName(outputCsvPath),
-            PreserveBlanks = options.PreserveBlanks
+            PreserveBlanks = options.PreserveBlanks,
+            Salt = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16))
         };
+        BindCrypto(manifest);
 
         // Type inference is sample-based for speed. Mapping-mode string strategies
         // are filled in from a full scan later because they need the full distinct value set.
@@ -500,27 +505,17 @@ internal sealed class ObfuscationEngine
         {
             map[original] = _deterministicKey is null
                 ? "OBF_" + Guid.NewGuid().ToString("N")
-                : "OBF_" + HashUtility.Sha256Hex($"{_deterministicKey}|{header}|{original}")[..24];
+                : "OBF_" + Convert.ToHexString(Expand($"{header}|map|{original}", 12));
         }
 
         return map;
     }
 
     private byte[] DeriveDeterministicTokenKey(string header)
-    {
-        if (_deterministicKey is null)
-            throw new InvalidOperationException($"Column '{header}' requires a deterministic key for string tokenization.");
-
-        return SHA256.HashData(Encoding.UTF8.GetBytes($"{_deterministicKey}|{header}|token-key"));
-    }
+        => Expand($"{header}|token-key", 32);
 
     private byte[] DeriveDeterministicTokenIv(string header)
-    {
-        if (_deterministicKey is null)
-            throw new InvalidOperationException($"Column '{header}' requires a deterministic key for string tokenization.");
-
-        return SHA256.HashData(Encoding.UTF8.GetBytes($"{_deterministicKey}|{header}|token-iv"))[..DeterministicTokenIvLengthBytes];
-    }
+        => Expand($"{header}|token-iv", DeterministicTokenIvLengthBytes);
 
     private static string Base64UrlEncode(byte[] bytes)
         => Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
@@ -537,7 +532,7 @@ internal sealed class ObfuscationEngine
         if (_deterministicKey is null)
             return GenerateRandomScale();
 
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes($"{_deterministicKey}|{header}|scale"));
+        var bytes = Expand($"{header}|scale", 8);
         var u = BitConverter.ToUInt32(bytes, 0) / (double)uint.MaxValue;
         var sign = (bytes[4] & 1) == 0 ? -1.0 : 1.0;
         var magnitude = 1.5 + (u * 8.5);
@@ -550,7 +545,7 @@ internal sealed class ObfuscationEngine
         if (_deterministicKey is null)
             return (_random.NextDouble() * (2.0 * bound)) - bound;
 
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes($"{_deterministicKey}|{header}|shift"));
+        var bytes = Expand($"{header}|shift", 8);
         var u = BitConverter.ToUInt32(bytes, 0) / (double)uint.MaxValue;
         return (u * (2.0 * bound)) - bound;
     }
@@ -584,7 +579,7 @@ internal sealed class ObfuscationEngine
         if (_deterministicKey is null)
             return TimeSpan.FromDays(_random.Next(-DateShiftRangeHalfWidthDays, DateShiftRangeHalfWidthDays)).Ticks;
 
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes($"{_deterministicKey}|{header}|dateShift"));
+        var bytes = Expand($"{header}|dateShift", 8);
         var u = BitConverter.ToUInt32(bytes, 0) / (double)uint.MaxValue;
         var days = (int)Math.Round((u * DateShiftRangeWidthDays) - DateShiftRangeHalfWidthDays);
         return TimeSpan.FromDays(days).Ticks;
@@ -595,8 +590,32 @@ internal sealed class ObfuscationEngine
         if (_deterministicKey is null)
             return _random.Next(0, 2) == 1;
 
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes($"{_deterministicKey}|{header}|{purpose}"));
+        var bytes = Expand($"{header}|{purpose}", 8);
         return (bytes[0] & 1) == 1;
+    }
+
+    private void BindCrypto(ObfuscationManifest manifest)
+    {
+        _masterKey = null;
+        if (_deterministicKey is null)
+            return;
+        if (string.IsNullOrEmpty(manifest.Salt))
+            throw new InvalidOperationException("Manifest has no salt; re-obfuscate with a current build.");
+        _masterKey = Rfc2898DeriveBytes.Pbkdf2(
+            _deterministicKey,
+            Convert.FromBase64String(manifest.Salt),
+            600_000,
+            HashAlgorithmName.SHA256,
+            32);
+    }
+
+    private byte[] Expand(string info, int length)
+    {
+        if (_deterministicKey is null)
+            throw new InvalidOperationException($"Column requires a deterministic key for '{info}'.");
+        if (_masterKey is null)
+            throw new InvalidOperationException("Deterministic key is not bound to a manifest salt.");
+        return HKDF.Expand(HashAlgorithmName.SHA256, _masterKey, length, Encoding.UTF8.GetBytes(info));
     }
 
     private double GenerateRandomScale()
@@ -623,6 +642,7 @@ internal sealed class ObfuscationEngine
             ObfuscatedFileName = manifest.ObfuscatedFileName,
             PreserveBlanks = manifest.PreserveBlanks,
             UnparsedValueCounts = manifest.UnparsedValueCounts,
+            Salt = manifest.Salt,
             IntegrityHashSha256 = string.Empty,
             Columns = manifest.Columns
         };

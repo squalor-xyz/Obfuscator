@@ -9,7 +9,11 @@ internal static class ManifestCrypto
 {
     private const string PlainHeader = "OBF_PLAIN_V2";
     private const string AesHeader = "OBF_AES_V2";
+    private const string AesGcmHeader = "OBF_AESGCM_V3";
     private const string GpgHeader = "OBF_GPG_V2";
+    private const int GcmNonceSize = 12;
+    private const int GcmTagSize = 16;
+    private const int Pbkdf2V3Iterations = 600_000;
     private const string HeaderSeparator = "\n";
     private static readonly UTF8Encoding Utf8NoBom = new(false);
 
@@ -23,7 +27,7 @@ internal static class ManifestCrypto
             throw new ArgumentException("Passphrase is blank. Omit it or supply a value.", nameof(passphrase));
 
         var payload = !string.IsNullOrWhiteSpace(passphrase)
-            ? $"{AesHeader}{HeaderSeparator}{EncryptAes(json, passphrase!)}"
+            ? $"{AesGcmHeader}{HeaderSeparator}{EncryptAesGcm(json, passphrase!)}"
             : $"{PlainHeader}{HeaderSeparator}{json}";
 
         if (gpgRecipients is { Count: > 0 })
@@ -59,6 +63,13 @@ internal static class ManifestCrypto
         if (TryReadHeaderPayload(text, PlainHeader, out var plainPayload))
             return plainPayload;
 
+        if (TryReadHeaderPayload(text, AesGcmHeader, out var gcmPayload))
+        {
+            if (string.IsNullOrWhiteSpace(passphrase))
+                throw new InvalidOperationException("Manifest is AES-encrypted. Passphrase required.");
+            return DecryptAesGcm(gcmPayload, passphrase);
+        }
+
         if (TryReadHeaderPayload(text, AesHeader, out var aesPayload))
         {
             if (string.IsNullOrWhiteSpace(passphrase))
@@ -70,7 +81,7 @@ internal static class ManifestCrypto
         throw new InvalidOperationException($"Unrecognized manifest format: {path}");
     }
 
-    private static string EncryptAes(string plaintext, string passphrase)
+    internal static string EncryptAes(string plaintext, string passphrase)
     {
         using var aes = Aes.Create();
         aes.KeySize = 256;
@@ -92,6 +103,50 @@ internal static class ManifestCrypto
         }
 
         return Convert.ToBase64String(ms.ToArray());
+    }
+
+    private static string EncryptAesGcm(string plaintext, string passphrase)
+    {
+        var salt = RandomNumberGenerator.GetBytes(16);
+        var nonce = RandomNumberGenerator.GetBytes(GcmNonceSize);
+        var key = DeriveKey(passphrase, salt, Pbkdf2V3Iterations);
+        var plain = Encoding.UTF8.GetBytes(plaintext);
+        var cipher = new byte[plain.Length];
+        var tag = new byte[GcmTagSize];
+        using (var gcm = new AesGcm(key, GcmTagSize))
+            gcm.Encrypt(nonce, plain, cipher, tag);
+
+        var packed = new byte[salt.Length + nonce.Length + cipher.Length + tag.Length];
+        salt.CopyTo(packed, 0);
+        nonce.CopyTo(packed, salt.Length);
+        cipher.CopyTo(packed, salt.Length + nonce.Length);
+        tag.CopyTo(packed, salt.Length + nonce.Length + cipher.Length);
+        return Convert.ToBase64String(packed);
+    }
+
+    private static string DecryptAesGcm(string base64, string passphrase)
+    {
+        var bytes = Convert.FromBase64String(base64);
+        var min = 16 + GcmNonceSize + GcmTagSize + 1;
+        if (bytes.Length < min)
+            throw new InvalidOperationException("Truncated AES-GCM manifest payload.");
+        var salt = bytes[..16];
+        var nonce = bytes[16..(16 + GcmNonceSize)];
+        var tag = bytes[^GcmTagSize..];
+        var cipher = bytes[(16 + GcmNonceSize)..^GcmTagSize];
+        var key = DeriveKey(passphrase, salt, Pbkdf2V3Iterations);
+        var plain = new byte[cipher.Length];
+        try
+        {
+            using var gcm = new AesGcm(key, GcmTagSize);
+            gcm.Decrypt(nonce, cipher, tag, plain);
+        }
+        catch (CryptographicException ex)
+        {
+            throw new InvalidOperationException("AES-GCM authentication failed.", ex);
+        }
+
+        return Encoding.UTF8.GetString(plain);
     }
 
     private static string DecryptAes(string base64, string passphrase)

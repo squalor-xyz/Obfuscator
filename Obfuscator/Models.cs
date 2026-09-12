@@ -195,7 +195,10 @@ public sealed class ObfuscationManifest
 
     public Dictionary<string, int> UnparsedValueCounts { get; set; } = new();
 
-    // Hash of the manifest contents (excluding this field) so deobfuscation can reject tampered manifests.
+    // Random salt for PBKDF2/HKDF of the deterministic key. Not secret.
+    public string Salt { get; set; } = string.Empty;
+
+    // Unkeyed checksum of the manifest (excluding this field). Detects accidental edits, not an attacker.
     public string IntegrityHashSha256 { get; set; } = string.Empty;
 
     // One spec per CSV column describing how it was transformed.

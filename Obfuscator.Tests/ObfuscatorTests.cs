@@ -229,6 +229,148 @@ public sealed class ObfuscatorTests : IDisposable
     }
 
     [Fact]
+    public void DeterministicKey_DerivationUsesManifestSalt()
+    {
+        var inputPath = Path.Combine(_tempDir, "salt-input.csv");
+        File.WriteAllLines(inputPath, ["CustomerId", "ALPHA", "ALPHA"], Encoding.UTF8);
+        var options = new ObfuscationOptions
+        {
+            DeterministicKey = "unit-test-key",
+            StringMode = StringObfuscationMode.DeterministicToken
+        };
+
+        _obfuscator.ObfuscateCsv(inputPath, Path.Combine(_tempDir, "salt-a.csv"), Path.Combine(_tempDir, "salt-a.obf"), options);
+        _obfuscator.ObfuscateCsv(inputPath, Path.Combine(_tempDir, "salt-b.csv"), Path.Combine(_tempDir, "salt-b.obf"), options);
+
+        var tokenA = File.ReadAllLines(Path.Combine(_tempDir, "salt-a.csv"), Encoding.UTF8)[1];
+        var tokenB = File.ReadAllLines(Path.Combine(_tempDir, "salt-b.csv"), Encoding.UTF8)[1];
+        Assert.NotEqual(tokenA, tokenB);
+    }
+
+    [Fact]
+    public void DeterministicKey_SameKeyAndSalt_ProducesJoinableTokens()
+    {
+        var inputPath = Path.Combine(_tempDir, "join-input.csv");
+        File.WriteAllLines(inputPath, ["CustomerId", "ALPHA", "ALPHA", "BETA"], Encoding.UTF8);
+
+        _obfuscator.ObfuscateCsv(
+            inputPath,
+            Path.Combine(_tempDir, "join-out.csv"),
+            Path.Combine(_tempDir, "join.obf"),
+            new ObfuscationOptions
+            {
+                DeterministicKey = "unit-test-key",
+                StringMode = StringObfuscationMode.DeterministicToken
+            });
+
+        var lines = File.ReadAllLines(Path.Combine(_tempDir, "join-out.csv"), Encoding.UTF8);
+        Assert.Equal(lines[1], lines[2]);
+        Assert.NotEqual(lines[1], lines[3]);
+    }
+
+    [Fact]
+    public void Manifest_AesGcm_TamperedCiphertext_ThrowsAuthenticationFailure()
+    {
+        var inputPath = Path.Combine(_tempDir, "gcm-input.csv");
+        var obfuscatedPath = Path.Combine(_tempDir, "gcm-obfuscated.csv");
+        var restoredPath = Path.Combine(_tempDir, "gcm-restored.csv");
+        var manifestPath = Path.Combine(_tempDir, "gcm.obf");
+        File.WriteAllLines(inputPath, ["CustomerId", "ALPHA"], Encoding.UTF8);
+
+        _obfuscator.ObfuscateCsv(
+            inputPath,
+            obfuscatedPath,
+            manifestPath,
+            new ObfuscationOptions { Passphrase = "secret" });
+
+        var text = File.ReadAllText(manifestPath, Encoding.UTF8);
+        Assert.StartsWith("OBF_AESGCM_V3\n", text, StringComparison.Ordinal);
+        var packed = Convert.FromBase64String(text["OBF_AESGCM_V3\n".Length..]);
+        packed[packed.Length / 2] ^= 0x01;
+        File.WriteAllText(manifestPath, "OBF_AESGCM_V3\n" + Convert.ToBase64String(packed), Encoding.UTF8);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _obfuscator.DeobfuscateCsv(obfuscatedPath, manifestPath, restoredPath, passphrase: "secret"));
+        Assert.DoesNotContain("JSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("AES-GCM", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Manifest_V2_StillReadable()
+    {
+        var inputPath = Path.Combine(_tempDir, "v2-input.csv");
+        var obfuscatedPath = Path.Combine(_tempDir, "v2-obfuscated.csv");
+        var restoredPath = Path.Combine(_tempDir, "v2-restored.csv");
+        var manifestPath = Path.Combine(_tempDir, "v2.obf");
+        File.WriteAllLines(inputPath, ["CustomerId", "ALPHA"], Encoding.UTF8);
+
+        _obfuscator.ObfuscateCsv(inputPath, obfuscatedPath, manifestPath);
+        var plain = File.ReadAllText(manifestPath, Encoding.UTF8);
+        Assert.StartsWith("OBF_PLAIN_V2\n", plain, StringComparison.Ordinal);
+        var json = plain["OBF_PLAIN_V2\n".Length..];
+        var v2 = "OBF_AES_V2\n" + ManifestCrypto.EncryptAes(json, "legacy");
+        File.WriteAllText(manifestPath, v2, Encoding.UTF8);
+
+        _obfuscator.DeobfuscateCsv(obfuscatedPath, manifestPath, restoredPath, passphrase: "legacy");
+        Assert.Equal("ALPHA", File.ReadAllLines(restoredPath, Encoding.UTF8)[1]);
+    }
+
+    [Fact]
+    public void Cli_PassphraseFromEnvironment_Works()
+    {
+        var inputPath = Path.Combine(_tempDir, "env-input.csv");
+        var obfuscatedPath = Path.Combine(_tempDir, "env-obfuscated.csv");
+        var manifestPath = Path.Combine(_tempDir, "env.obf");
+        File.WriteAllLines(inputPath, ["CustomerId", "ALPHA"], Encoding.UTF8);
+        var previous = Environment.GetEnvironmentVariable("OBFUSCATOR_PASSPHRASE");
+        Environment.SetEnvironmentVariable("OBFUSCATOR_PASSPHRASE", "from-env");
+        try
+        {
+            var exit = ObfuscatorCliProgram.Run(
+            [
+                "obfuscate",
+                "--input", inputPath,
+                "--output", obfuscatedPath,
+                "--manifest", manifestPath
+            ]);
+            Assert.Equal(0, exit);
+            Assert.StartsWith("OBF_AESGCM_V3\n", File.ReadAllText(manifestPath, Encoding.UTF8), StringComparison.Ordinal);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("OBFUSCATOR_PASSPHRASE", previous);
+        }
+    }
+
+    [Fact]
+    public void Cli_PassphraseFromStdin_Works()
+    {
+        var inputPath = Path.Combine(_tempDir, "stdin-input.csv");
+        var obfuscatedPath = Path.Combine(_tempDir, "stdin-obfuscated.csv");
+        var manifestPath = Path.Combine(_tempDir, "stdin.obf");
+        File.WriteAllLines(inputPath, ["CustomerId", "ALPHA"], Encoding.UTF8);
+        var original = Console.In;
+        Console.SetIn(new StringReader("from-stdin\n"));
+        try
+        {
+            var exit = ObfuscatorCliProgram.Run(
+            [
+                "obfuscate",
+                "--input", inputPath,
+                "--output", obfuscatedPath,
+                "--manifest", manifestPath,
+                "--passphrase-stdin"
+            ]);
+            Assert.Equal(0, exit);
+            Assert.StartsWith("OBF_AESGCM_V3\n", File.ReadAllText(manifestPath, Encoding.UTF8), StringComparison.Ordinal);
+        }
+        finally
+        {
+            Console.SetIn(original);
+        }
+    }
+
+    [Fact]
     public void Deobfuscate_DeterministicTokenModeWithoutKey_Throws()
     {
         var inputPath = Path.Combine(_tempDir, "missing-key-input.csv");
@@ -418,7 +560,7 @@ public sealed class ObfuscatorTests : IDisposable
         var ex = Assert.Throws<InvalidOperationException>(() =>
             _obfuscator.DeobfuscateCsv(obfuscatedPath, manifestPath, restoredPath));
 
-        Assert.Contains("integrity check failed", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("checksum mismatch", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -636,6 +778,16 @@ public sealed class ObfuscatorTests : IDisposable
         Assert.Equal(File.ReadAllBytes(outputPath1), File.ReadAllBytes(outputPath2));
     }
 
+    [Fact]
+    public void GenerateCsv_SemiconductorExampleConfig_MatchesCommittedFixture()
+    {
+        var configPath = Path.Combine(AppContext.BaseDirectory, "ExampleConfigSemiconductor.json");
+        var goldenPath = Path.Combine(AppContext.BaseDirectory, "ExampleConfigSemiconductor.golden.csv");
+        var outputPath = Path.Combine(_tempDir, "semi-golden.csv");
+        _obfuscator.GenerateCsvFromConfig(configPath, outputPath);
+        Assert.Equal(File.ReadAllBytes(goldenPath), File.ReadAllBytes(outputPath));
+    }
+
     [SkippableFact]
     public void Manifest_GpgRoundTrip_RestoresOriginal()
     {
@@ -755,7 +907,7 @@ public sealed class ObfuscatorTests : IDisposable
             new ObfuscationOptions { Passphrase = "secret" });
 
         var text = File.ReadAllText(manifestPath, Encoding.UTF8);
-        Assert.StartsWith("OBF_AES_V2\n", text, StringComparison.Ordinal);
+        Assert.StartsWith("OBF_AESGCM_V3\n", text, StringComparison.Ordinal);
         Assert.DoesNotContain("ALPHA", text, StringComparison.Ordinal);
         Assert.DoesNotContain("west", text, StringComparison.Ordinal);
     }

@@ -54,30 +54,34 @@ obfuscator generate \
   --output semi.csv
 ```
 
-Obfuscate and restore a CSV:
+Obfuscate and restore a CSV. Prefer env vars or a file for secrets (`--passphrase` on the command line is visible in process lists):
 
 ```bash
+export OBFUSCATOR_PASSPHRASE
+export OBFUSCATOR_DETERMINISTIC_KEY
 obfuscator obfuscate \
   --input real.csv \
   --output real.obfuscated.csv \
   --manifest real.obf \
   --create-output-dir \
-  --deterministic-key your-stable-secret-key \
-  --passphrase strong-passphrase
+  --string-mode deterministic-token
 
 obfuscator deobfuscate \
   --input real.obfuscated.csv \
   --manifest real.obf \
   --output real.restored.csv \
-  --create-output-dir \
-  --deterministic-key your-stable-secret-key \
-  --passphrase strong-passphrase
+  --create-output-dir
 ```
+
+`--passphrase-file` and `--passphrase-stdin` are also accepted. `--passphrase` still works and is insecure.
 
 Manifest notes:
 
-- plain and AES-encrypted manifests use a stable text header, so a manifest written on one OS can be read on another
+- plain, AES-CBC (`OBF_AES_V2`), and AES-GCM (`OBF_AESGCM_V3`) manifests use a stable text header, so a manifest written on one OS can be read on another
+- new passphrase-protected writes use AES-GCM; V2 CBC files remain readable
 - `--gpg-recipient` support is optional and requires `gpg` to be installed and available on `PATH`
+- **The manifest is the plaintext.** Mapping mode stores the full original-to-token map. An unencrypted `.obf` next to the obfuscated CSV is not protection.
+- Deterministic tokens reveal value equality and frequency. CBC with a fixed per-column IV also leaks shared block prefixes (lot/week/wafer grouping on fixed-width serials). AES-SIV would keep determinism without prefix leakage; it is not implemented yet.
 
 ## Data generation modes
 

@@ -46,10 +46,10 @@ obfuscator obfuscate \
   --output real.obfuscated.csv \
   --manifest real.obf \
   --create-output-dir \
-  --deterministic-key your-stable-secret-key \
-  --string-mode deterministic-token \
-  --passphrase strong-passphrase
+  --string-mode deterministic-token
 ```
+
+Prefer `OBFUSCATOR_PASSPHRASE` / `OBFUSCATOR_DETERMINISTIC_KEY`, `--passphrase-file`, or `--passphrase-stdin`. `--passphrase` on the command line is visible in process lists.
 
 Restore an obfuscated CSV:
 
@@ -58,9 +58,7 @@ obfuscator deobfuscate \
   --input real.obfuscated.csv \
   --manifest real.obf \
   --output real.restored.csv \
-  --create-output-dir \
-  --deterministic-key your-stable-secret-key \
-  --passphrase strong-passphrase
+  --create-output-dir
 ```
 
 Supported commands:
@@ -76,7 +74,7 @@ Useful obfuscation options:
 - `--include <colA,colB>` and `--exclude <colA,colB>`
 - `--allow-list` means only included columns are obfuscated.
 - `--seed <int>` makes non-keyed transforms reproducible.
-- `--passphrase <secret>` AES-encrypts the manifest.
+- `--passphrase-file` / `--passphrase-stdin` / `OBFUSCATOR_PASSPHRASE` encrypt the manifest with AES-GCM. `--passphrase` still works and is insecure.
 - `--gpg-recipient <recipient>` can be repeated to GPG-encrypt the manifest in place.
 - `--preserve-blanks true|false`
 - `--create-output-dir` creates missing parent directories for `--output` and `--manifest`
@@ -182,9 +180,9 @@ var manifest = obfuscator.ObfuscateCsv(
     obfPath: "real.obf",
     options: new ObfuscationOptions
     {
-        DeterministicKey = "your-stable-secret-key",
+        DeterministicKey = Environment.GetEnvironmentVariable("OBFUSCATOR_DETERMINISTIC_KEY"),
         StringMode = StringObfuscationMode.DeterministicToken,
-        Passphrase = "strong-passphrase",
+        Passphrase = Environment.GetEnvironmentVariable("OBFUSCATOR_PASSPHRASE"),
         IncludeColumns = new List<string> { "CustomerId", "Revenue", "CreatedUtc", "Region" },
         ExcludeColumns = new List<string> { "NonSensitiveFlag" }
     });
@@ -193,8 +191,8 @@ obfuscator.DeobfuscateCsv(
     obfuscatedCsvPath: "real.obfuscated.csv",
     obfPath: "real.obf",
     outputCsvPath: "real.restored.csv",
-    passphrase: "strong-passphrase",
-    deterministicKey: "your-stable-secret-key");
+    passphrase: Environment.GetEnvironmentVariable("OBFUSCATOR_PASSPHRASE"),
+    deterministicKey: Environment.GetEnvironmentVariable("OBFUSCATOR_DETERMINISTIC_KEY"));
 ```
 
 ## Notes
