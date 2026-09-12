@@ -155,6 +155,10 @@ public sealed class ObfuscationOptions
     // If true, only columns explicitly included are obfuscated.
     public bool UseIncludeListAsAllowList { get; set; }
 
+    // When true, a value that does not parse as the inferred column kind throws instead of
+    // falling back to the string strategy.
+    public bool Strict { get; set; }
+
     // String columns can use explicit mapping, deterministic tokens, or auto mode based on DeterministicKey.
     public StringObfuscationMode StringMode { get; set; } = StringObfuscationMode.Auto;
 
@@ -186,6 +190,10 @@ public sealed class ObfuscationManifest
     public DateTimeOffset CreatedUtc { get; set; } = DateTimeOffset.UtcNow;
     public string SourceFileName { get; set; } = string.Empty;
     public string ObfuscatedFileName { get; set; } = string.Empty;
+
+    public bool PreserveBlanks { get; set; } = true;
+
+    public Dictionary<string, int> UnparsedValueCounts { get; set; } = new();
 
     // Hash of the manifest contents (excluding this field) so deobfuscation can reject tampered manifests.
     public string IntegrityHashSha256 { get; set; } = string.Empty;

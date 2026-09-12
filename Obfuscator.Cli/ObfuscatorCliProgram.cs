@@ -68,7 +68,8 @@ internal static class ObfuscatorCliProgram
                 StringMode = ParseStringMode(GetSingle(options, "--string-mode")),
                 IncludeColumns = GetMany(options, "--include"),
                 ExcludeColumns = GetMany(options, "--exclude"),
-                GpgRecipients = GetMany(options, "--gpg-recipient")
+                GpgRecipients = GetMany(options, "--gpg-recipient"),
+                Strict = options.ContainsKey("--strict")
             });
 
         Console.WriteLine($"Obfuscated CSV: {output}");
@@ -89,7 +90,8 @@ internal static class ObfuscatorCliProgram
             obfPath: RequireSingle(options, "--manifest"),
             outputCsvPath: output,
             passphrase: GetSingle(options, "--passphrase"),
-            deterministicKey: GetSingle(options, "--deterministic-key"));
+            deterministicKey: GetSingle(options, "--deterministic-key"),
+            allowMismatchedSource: options.ContainsKey("--allow-mismatched-source"));
 
         Console.WriteLine($"Restored CSV: {output}");
         return 0;
@@ -251,10 +253,12 @@ internal static class ObfuscatorCliProgram
         Console.WriteLine("  --passphrase <secret>");
         Console.WriteLine("  --gpg-recipient <recipient>");
         Console.WriteLine("  --preserve-blanks <true|false>");
+        Console.WriteLine("  --strict");
         Console.WriteLine();
         Console.WriteLine("Deobfuscate options:");
         Console.WriteLine("  --passphrase <secret>");
         Console.WriteLine("  --deterministic-key <secret>");
+        Console.WriteLine("  --allow-mismatched-source");
     }
 
     private static void PrintBanner()

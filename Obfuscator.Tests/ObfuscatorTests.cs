@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using Squalor.Obfuscator;
@@ -851,6 +852,158 @@ public sealed class ObfuscatorTests : IDisposable
     }
 
     [Fact]
+    public void Obfuscate_ValueContradictingInferredKind_IsNotPassedThrough()
+    {
+        var inputPath = Path.Combine(_tempDir, "mixed-kind-input.csv");
+        var obfuscatedPath = Path.Combine(_tempDir, "mixed-kind-obfuscated.csv");
+        var manifestPath = Path.Combine(_tempDir, "mixed-kind.obf");
+        WriteMixedKindCsv(inputPath);
+
+        _obfuscator.ObfuscateCsv(inputPath, obfuscatedPath, manifestPath);
+
+        var text = File.ReadAllText(obfuscatedPath, Encoding.UTF8);
+        Assert.DoesNotContain("LOT-SECRET-ABC", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Obfuscate_MixedTypeColumn_ReportsCount()
+    {
+        var inputPath = Path.Combine(_tempDir, "mixed-count-input.csv");
+        var obfuscatedPath = Path.Combine(_tempDir, "mixed-count-obfuscated.csv");
+        var manifestPath = Path.Combine(_tempDir, "mixed-count.obf");
+        WriteMixedKindCsv(inputPath);
+
+        var manifest = _obfuscator.ObfuscateCsv(inputPath, obfuscatedPath, manifestPath);
+        Assert.True(manifest.UnparsedValueCounts.TryGetValue("Serial", out var n) && n > 0, "Serial unparsed count");
+
+        var strictPath = Path.Combine(_tempDir, "mixed-strict-obfuscated.csv");
+        var strictManifest = Path.Combine(_tempDir, "mixed-strict.obf");
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _obfuscator.ObfuscateCsv(
+                inputPath,
+                strictPath,
+                strictManifest,
+                new ObfuscationOptions { Strict = true }));
+        Assert.Contains("Serial", ex.Message, StringComparison.Ordinal);
+        Assert.False(File.Exists(strictPath));
+    }
+
+    [Fact]
+    public void Obfuscate_BlankLinesPreserved()
+    {
+        var inputPath = Path.Combine(_tempDir, "blank-line-input.csv");
+        var obfuscatedPath = Path.Combine(_tempDir, "blank-line-obfuscated.csv");
+        var manifestPath = Path.Combine(_tempDir, "blank-line.obf");
+        File.WriteAllText(inputPath, "A,B\n1,2\n\n3,4\n", Encoding.UTF8);
+        var inputLines = File.ReadAllLines(inputPath, Encoding.UTF8).Length;
+
+        _obfuscator.ObfuscateCsv(inputPath, obfuscatedPath, manifestPath);
+
+        Assert.Equal(inputLines, File.ReadAllLines(obfuscatedPath, Encoding.UTF8).Length);
+    }
+
+    [Fact]
+    public void Obfuscate_DateAtMaxValue_DoesNotThrow()
+    {
+        var inputPath = Path.Combine(_tempDir, "date-max-input.csv");
+        var obfuscatedPath = Path.Combine(_tempDir, "date-max-obfuscated.csv");
+        var manifestPath = Path.Combine(_tempDir, "date-max.obf");
+        File.WriteAllLines(inputPath, ["Expires", "9999-12-31"], Encoding.UTF8);
+
+        _obfuscator.ObfuscateCsv(inputPath, obfuscatedPath, manifestPath);
+        Assert.True(File.Exists(obfuscatedPath));
+        Assert.True(new FileInfo(obfuscatedPath).Length > 0);
+    }
+
+    [Fact]
+    public void Obfuscate_PartialFailure_DeletesOutput()
+    {
+        var inputPath = Path.Combine(_tempDir, "partial-input.csv");
+        var obfuscatedPath = Path.Combine(_tempDir, "partial-obfuscated.csv");
+        var manifestPath = Path.Combine(_tempDir, "partial.obf");
+        File.WriteAllLines(inputPath, ["N", "1", "9007199254740993"], Encoding.UTF8);
+
+        Assert.ThrowsAny<Exception>(() =>
+            _obfuscator.ObfuscateCsv(inputPath, obfuscatedPath, manifestPath));
+        Assert.False(File.Exists(obfuscatedPath), obfuscatedPath);
+    }
+
+    [Fact]
+    public void Obfuscate_SmallDoubleValues_RoundTripWithinTolerance()
+    {
+        // A linear map over double cannot be bit-exact; 1e-9 relative (or 1e-12 abs) is the contract.
+        var inputPath = Path.Combine(_tempDir, "dbl-input.csv");
+        var obfuscatedPath = Path.Combine(_tempDir, "dbl-obfuscated.csv");
+        var restoredPath = Path.Combine(_tempDir, "dbl-restored.csv");
+        var manifestPath = Path.Combine(_tempDir, "dbl.obf");
+        File.WriteAllLines(inputPath, ["Meas", "3.3"], Encoding.UTF8);
+
+        _obfuscator.ObfuscateCsv(inputPath, obfuscatedPath, manifestPath);
+        _obfuscator.DeobfuscateCsv(obfuscatedPath, manifestPath, restoredPath);
+
+        var restored = File.ReadAllLines(restoredPath, Encoding.UTF8)[1];
+        var x = double.Parse(restored, CultureInfo.InvariantCulture);
+        var err = Math.Abs(x - 3.3);
+        Assert.True(err <= 1e-12 || err / 3.3 <= 1e-9, $"restored {x}, abs err {err}");
+        Assert.DoesNotContain("Infinity", File.ReadAllText(obfuscatedPath, Encoding.UTF8), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Obfuscate_IntegerZero_RestoresAsZero()
+    {
+        var inputPath = Path.Combine(_tempDir, "zero-input.csv");
+        var obfuscatedPath = Path.Combine(_tempDir, "zero-obfuscated.csv");
+        var restoredPath = Path.Combine(_tempDir, "zero-restored.csv");
+        var manifestPath = Path.Combine(_tempDir, "zero.obf");
+        File.WriteAllLines(inputPath, ["N", "0"], Encoding.UTF8);
+
+        _obfuscator.ObfuscateCsv(inputPath, obfuscatedPath, manifestPath);
+        _obfuscator.DeobfuscateCsv(obfuscatedPath, manifestPath, restoredPath);
+
+        Assert.Equal("0", File.ReadAllLines(restoredPath, Encoding.UTF8)[1]);
+    }
+
+    [Fact]
+    public void Obfuscate_CaseDuplicateColumns_ThrowsClearly()
+    {
+        var inputPath = Path.Combine(_tempDir, "dup-input.csv");
+        var obfuscatedPath = Path.Combine(_tempDir, "dup-obfuscated.csv");
+        var manifestPath = Path.Combine(_tempDir, "dup.obf");
+        File.WriteAllLines(inputPath, ["Lot,lot", "A,B"], Encoding.UTF8);
+
+        var ex = Assert.ThrowsAny<Exception>(() =>
+            _obfuscator.ObfuscateCsv(inputPath, obfuscatedPath, manifestPath));
+        Assert.Contains("Lot", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("lot", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("same key", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Deobfuscate_ManifestFromDifferentFile_ThrowsUnlessOverridden()
+    {
+        var inputA = Path.Combine(_tempDir, "src-a.csv");
+        var outA = Path.Combine(_tempDir, "out-a.csv");
+        var manA = Path.Combine(_tempDir, "a.obf");
+        var inputB = Path.Combine(_tempDir, "src-b.csv");
+        var outB = Path.Combine(_tempDir, "out-b.csv");
+        var manB = Path.Combine(_tempDir, "b.obf");
+        var restored = Path.Combine(_tempDir, "restored-mismatch.csv");
+        File.WriteAllLines(inputA, ["N", "1"], Encoding.UTF8);
+        File.WriteAllLines(inputB, ["N", "2"], Encoding.UTF8);
+
+        _obfuscator.ObfuscateCsv(inputA, outA, manA);
+        _obfuscator.ObfuscateCsv(inputB, outB, manB);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _obfuscator.DeobfuscateCsv(outB, manA, restored));
+        Assert.Contains("out-b.csv", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("out-a.csv", ex.Message, StringComparison.Ordinal);
+
+        _obfuscator.DeobfuscateCsv(outB, manA, restored, allowMismatchedSource: true);
+        Assert.True(File.Exists(restored));
+    }
+
+    [Fact]
     public void CliGenerate_WithoutCreateOutputDirFlag_ThrowsHelpfulMessage()
     {
         var configPath = WriteConfig(
@@ -920,6 +1073,15 @@ public sealed class ObfuscatorTests : IDisposable
     {
         if (Directory.Exists(_tempDir))
             Directory.Delete(_tempDir, recursive: true);
+    }
+
+    private static void WriteMixedKindCsv(string path)
+    {
+        using var writer = new StreamWriter(path, false, new UTF8Encoding(false));
+        writer.WriteLine("Serial,Val");
+        for (var i = 1; i <= 250; i++)
+            writer.WriteLine($"10000{i},1.5");
+        writer.WriteLine("LOT-SECRET-ABC,1.5");
     }
 
     private static bool GpgAvailable()

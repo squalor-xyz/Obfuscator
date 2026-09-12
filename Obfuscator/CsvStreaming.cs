@@ -20,35 +20,44 @@ internal static class CsvStreaming
         string outputPath,
         Func<string[], IDictionary<string, string>, IDictionary<string, string>> transformRow)
     {
-        using var reader = new StreamReader(inputPath);
-        using var writer = new StreamWriter(outputPath, false, new System.Text.UTF8Encoding(false));
-
-        using var csvReader = CreateReader(reader);
-        using var csvWriter = CreateWriter(writer);
-
-        csvReader.Read();
-        csvReader.ReadHeader();
-        var headers = csvReader.HeaderRecord ?? Array.Empty<string>();
-
-        foreach (var h in headers)
-            csvWriter.WriteField(h);
-        csvWriter.NextRecord();
-
-        while (csvReader.Read())
+        try
         {
-            var inputRow = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            using var reader = new StreamReader(inputPath);
+            using var writer = new StreamWriter(outputPath, false, new System.Text.UTF8Encoding(false));
+
+            using var csvReader = CreateReader(reader);
+            using var csvWriter = CreateWriter(writer);
+
+            csvReader.Read();
+            csvReader.ReadHeader();
+            var headers = csvReader.HeaderRecord ?? Array.Empty<string>();
+
             foreach (var h in headers)
-                inputRow[h] = csvReader.GetField(h) ?? string.Empty;
-
-            var outputRow = transformRow(headers, inputRow);
-
-            foreach (var h in headers)
-            {
-                outputRow.TryGetValue(h, out var value);
-                csvWriter.WriteField(value ?? string.Empty);
-            }
-
+                csvWriter.WriteField(h);
             csvWriter.NextRecord();
+
+            while (csvReader.Read())
+            {
+                var inputRow = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var h in headers)
+                    inputRow[h] = csvReader.GetField(h) ?? string.Empty;
+
+                var outputRow = transformRow(headers, inputRow);
+
+                foreach (var h in headers)
+                {
+                    outputRow.TryGetValue(h, out var value);
+                    csvWriter.WriteField(value ?? string.Empty);
+                }
+
+                csvWriter.NextRecord();
+            }
+        }
+        catch
+        {
+            if (File.Exists(outputPath))
+                File.Delete(outputPath);
+            throw;
         }
     }
 
@@ -79,7 +88,8 @@ internal static class CsvStreaming
             DetectDelimiter = true,
             BadDataFound = null,
             MissingFieldFound = null,
-            HeaderValidated = null
+            HeaderValidated = null,
+            IgnoreBlankLines = false
         };
 
         return new CsvReader(reader, config);

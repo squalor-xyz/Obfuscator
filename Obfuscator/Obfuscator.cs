@@ -68,7 +68,8 @@ public sealed class Obfuscator
         string obfPath,
         string outputCsvPath,
         string? passphrase = null,
-        string? deterministicKey = null)
+        string? deterministicKey = null,
+        bool allowMismatchedSource = false)
     {
         if (!File.Exists(obfuscatedCsvPath))
             throw new FileNotFoundException("Obfuscated CSV file not found.", obfuscatedCsvPath);
@@ -77,7 +78,7 @@ public sealed class Obfuscator
             throw new FileNotFoundException("Obfuscation manifest file not found.", obfPath);
 
         var engine = new ObfuscationEngine(deterministicKey: deterministicKey);
-        engine.Deobfuscate(obfuscatedCsvPath, obfPath, outputCsvPath, passphrase);
+        engine.Deobfuscate(obfuscatedCsvPath, obfPath, outputCsvPath, passphrase, allowMismatchedSource);
     }
 
     private static void ValidateConfig(DataGenConfig config)

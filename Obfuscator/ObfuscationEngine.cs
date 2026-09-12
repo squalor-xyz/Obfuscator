@@ -8,7 +8,8 @@ namespace Squalor.Obfuscator;
 internal sealed class ObfuscationEngine
 {
     private const string DeterministicTokenPrefix = "OBF_TKN_";
-    private const int KindInferenceSampleSize = 100;
+    private const int KindInferenceSampleSize = 250;
+    private const long IntegerSafeMagnitude = 1L << 53;
     private const int DeterministicTokenIvLengthBytes = 16;
     private const double ShiftRangeHalfWidth = 100000.0;
     private const double ShiftRangeWidth = ShiftRangeHalfWidth * 2.0;
@@ -30,8 +31,15 @@ internal sealed class ObfuscationEngine
         ObfuscationOptions options)
     {
         var headers = CsvStreaming.ReadHeaders(inputCsvPath);
+        ValidateUniqueHeaders(headers);
 
         var manifest = BuildManifest(inputCsvPath, outputCsvPath, headers, options);
+        if (options.Strict && manifest.UnparsedValueCounts.Count > 0)
+        {
+            var named = string.Join(", ", manifest.UnparsedValueCounts.Keys);
+            throw new InvalidOperationException(
+                $"Strict mode: values did not match the inferred kind in column(s): {named}.");
+        }
 
         CsvStreaming.TransformCsv(
             inputCsvPath,
@@ -52,7 +60,8 @@ internal sealed class ObfuscationEngine
         string obfuscatedCsvPath,
         string manifestPath,
         string outputCsvPath,
-        string? passphrase)
+        string? passphrase,
+        bool allowMismatchedSource = false)
     {
         var manifestJson = ManifestCrypto.ReadManifest(manifestPath, passphrase);
         var manifest = JsonSerializer.Deserialize<ObfuscationManifest>(manifestJson)
@@ -61,6 +70,15 @@ internal sealed class ObfuscationEngine
         var expectedHash = ComputeIntegrityHash(manifest);
         if (!string.Equals(expectedHash, manifest.IntegrityHashSha256, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Manifest integrity check failed.");
+
+        var actualName = Path.GetFileName(obfuscatedCsvPath);
+        if (!allowMismatchedSource
+            && !string.IsNullOrEmpty(manifest.ObfuscatedFileName)
+            && !actualName.Equals(manifest.ObfuscatedFileName, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"Manifest was produced for '{manifest.ObfuscatedFileName}', not '{actualName}'. Pass allowMismatchedSource to override.");
+        }
 
         CsvStreaming.TransformCsv(
             obfuscatedCsvPath,
@@ -78,7 +96,8 @@ internal sealed class ObfuscationEngine
         var manifest = new ObfuscationManifest
         {
             SourceFileName = Path.GetFileName(inputCsvPath),
-            ObfuscatedFileName = Path.GetFileName(outputCsvPath)
+            ObfuscatedFileName = Path.GetFileName(outputCsvPath),
+            PreserveBlanks = options.PreserveBlanks
         };
 
         // Type inference is sample-based for speed. Mapping-mode string strategies
@@ -117,6 +136,8 @@ internal sealed class ObfuscationEngine
         if (!spec.IsObfuscated)
             return spec;
 
+        spec.StringMode = ResolveStringMode(options);
+
         switch (kind)
         {
             case ObfuscatedColumnKind.Boolean:
@@ -125,23 +146,19 @@ internal sealed class ObfuscationEngine
 
             case ObfuscatedColumnKind.Integer:
                 spec.Scale = GetDeterministicScale(header);
-                spec.Shift = GetDeterministicShift(header);
+                spec.Shift = GetDeterministicShift(header, ObservedAbsMax(values, integer: true));
                 spec.NumericTypeHint = "integer";
                 break;
 
             case ObfuscatedColumnKind.Floating:
                 spec.Scale = GetDeterministicScale(header);
-                spec.Shift = GetDeterministicShift(header);
+                spec.Shift = GetDeterministicShift(header, ObservedAbsMax(values, integer: false));
                 spec.NumericTypeHint = "floating";
                 break;
 
             case ObfuscatedColumnKind.DateTime:
                 spec.DateShiftTicks = GetDeterministicDateShiftTicks(header);
                 spec.DateFormat = GuessDateFormat(values);
-                break;
-
-            case ObfuscatedColumnKind.String:
-                spec.StringMode = ResolveStringMode(options);
                 break;
         }
 
@@ -160,34 +177,64 @@ internal sealed class ObfuscationEngine
 
     private void PopulateStringStrategies(string inputCsvPath, ObfuscationManifest manifest)
     {
-        var mappedSpecs = manifest.Columns
-            .Where(spec => spec.IsObfuscated &&
-                           spec.Kind == ObfuscatedColumnKind.String &&
-                           spec.StringMode == StringObfuscationMode.Mapping)
+        var obfuscated = manifest.Columns.Where(s => s.IsObfuscated).ToList();
+        var mappedSpecs = obfuscated
+            .Where(spec => spec.StringMode == StringObfuscationMode.Mapping)
             .ToList();
 
-        if (mappedSpecs.Count == 0)
-            return;
-
-        // Mapping mode has to see the whole file so the manifest can restore every distinct string value.
         var distinctValuesByColumn = mappedSpecs.ToDictionary(
             spec => spec.Name,
             _ => new HashSet<string>(StringComparer.Ordinal),
             StringComparer.OrdinalIgnoreCase);
 
+        var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var row in CsvStreaming.ReadRows(inputCsvPath))
         {
-            foreach (var spec in mappedSpecs)
+            foreach (var spec in obfuscated)
             {
                 if (!row.TryGetValue(spec.Name, out var value) || string.IsNullOrWhiteSpace(value))
                     continue;
 
-                distinctValuesByColumn[spec.Name].Add(value);
+                var parses = ParsesAsKind(value, spec.Kind);
+                if (!parses)
+                    counts[spec.Name] = counts.GetValueOrDefault(spec.Name) + 1;
+
+                if (spec.StringMode != StringObfuscationMode.Mapping)
+                    continue;
+                if (spec.Kind == ObfuscatedColumnKind.String || !parses)
+                    distinctValuesByColumn[spec.Name].Add(value);
             }
         }
 
+        manifest.UnparsedValueCounts = counts;
+
         foreach (var spec in mappedSpecs)
             spec.StringMap = BuildStringMap(spec.Name, distinctValuesByColumn[spec.Name]);
+    }
+
+    private static bool ParsesAsKind(string value, ObfuscatedColumnKind kind)
+    {
+        return kind switch
+        {
+            ObfuscatedColumnKind.Boolean => ParsingUtility.TryParseBoolean(value, out _),
+            ObfuscatedColumnKind.Integer => ParsingUtility.TryParseInteger(value, out _),
+            ObfuscatedColumnKind.Floating => ParsingUtility.TryParseFloating(value, out _),
+            ObfuscatedColumnKind.DateTime => ParsingUtility.TryParseDateTime(value, out _),
+            ObfuscatedColumnKind.String => true,
+            _ => true
+        };
+    }
+
+    private static void ValidateUniqueHeaders(IReadOnlyList<string> headers)
+    {
+        var dupes = headers
+            .GroupBy(h => h, StringComparer.OrdinalIgnoreCase)
+            .Where(g => g.Count() > 1)
+            .Select(g => string.Join(", ", g.Distinct(StringComparer.Ordinal)))
+            .ToList();
+        if (dupes.Count > 0)
+            throw new InvalidOperationException("Duplicate column names: " + string.Join("; ", dupes));
     }
 
     private bool ShouldObfuscate(string columnName, ObfuscationOptions options)
@@ -221,7 +268,7 @@ internal sealed class ObfuscationEngine
             value ??= string.Empty;
 
             // PreserveBlanks leaves empty cells alone even on obfuscated columns.
-            if (!spec.IsObfuscated || (string.IsNullOrWhiteSpace(value) && options.PreserveBlanks))
+            if (!spec.IsObfuscated || (string.IsNullOrWhiteSpace(value) && manifest.PreserveBlanks))
             {
                 result[spec.Name] = value;
                 continue;
@@ -244,7 +291,7 @@ internal sealed class ObfuscationEngine
             row.TryGetValue(spec.Name, out var value);
             value ??= string.Empty;
 
-            if (!spec.IsObfuscated || string.IsNullOrWhiteSpace(value))
+            if (!spec.IsObfuscated || (string.IsNullOrWhiteSpace(value) && manifest.PreserveBlanks))
             {
                 result[spec.Name] = value;
                 continue;
@@ -293,62 +340,85 @@ internal sealed class ObfuscationEngine
         };
     }
 
-    private static string ObfuscateBoolean(string value, ColumnObfuscationSpec spec)
+    private string ObfuscateBoolean(string value, ColumnObfuscationSpec spec)
     {
-        if (!bool.TryParse(value, out var b)) return value;
+        if (!bool.TryParse(value, out var b))
+            return ObfuscateString(value, spec);
         return (spec.InvertBoolean ? !b : b) ? "true" : "false";
     }
 
-    private static string DeobfuscateBoolean(string value, ColumnObfuscationSpec spec)
+    private string DeobfuscateBoolean(string value, ColumnObfuscationSpec spec)
     {
-        if (!bool.TryParse(value, out var b)) return value;
+        if (!bool.TryParse(value, out var b))
+            return DeobfuscateString(value, spec);
         return (spec.InvertBoolean ? !b : b) ? "true" : "false";
     }
 
-    private static string ObfuscateInteger(string value, ColumnObfuscationSpec spec)
+    private string ObfuscateInteger(string value, ColumnObfuscationSpec spec)
     {
-        if (!long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n)) return value;
+        if (!long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n))
+            return ObfuscateString(value, spec);
+        if (Math.Abs(n) > IntegerSafeMagnitude)
+            throw new InvalidOperationException(
+                $"Column '{spec.Name}' value '{value}' exceeds the 2^53 integer range that can round-trip through double.");
         var y = (n * spec.Scale) + spec.Shift;
-        return Math.Round(y).ToString(CultureInfo.InvariantCulture);
+        if (!double.IsFinite(y))
+            throw new InvalidOperationException($"Column '{spec.Name}' obfuscation produced a non-finite value.");
+        return ((long)Math.Round(y)).ToString(CultureInfo.InvariantCulture);
     }
 
-    private static string DeobfuscateInteger(string value, ColumnObfuscationSpec spec)
+    private string DeobfuscateInteger(string value, ColumnObfuscationSpec spec)
     {
-        if (!double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var n)) return value;
+        if (!double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var n))
+            return DeobfuscateString(value, spec);
         var x = (n - spec.Shift) / spec.Scale;
-        return Math.Round(x).ToString(CultureInfo.InvariantCulture);
+        return ((long)Math.Round(x)).ToString(CultureInfo.InvariantCulture);
     }
 
-    private static string ObfuscateFloating(string value, ColumnObfuscationSpec spec)
+    private string ObfuscateFloating(string value, ColumnObfuscationSpec spec)
     {
-        if (!double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var n)) return value;
+        if (!double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var n))
+            return ObfuscateString(value, spec);
         var y = (n * spec.Scale) + spec.Shift;
+        if (!double.IsFinite(y))
+            throw new InvalidOperationException($"Column '{spec.Name}' obfuscation produced a non-finite value.");
         return y.ToString("G17", CultureInfo.InvariantCulture);
     }
 
-    private static string DeobfuscateFloating(string value, ColumnObfuscationSpec spec)
+    private string DeobfuscateFloating(string value, ColumnObfuscationSpec spec)
     {
-        if (!double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var n)) return value;
+        if (!double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var n))
+            return DeobfuscateString(value, spec);
         var x = (n - spec.Shift) / spec.Scale;
+        if (!double.IsFinite(x))
+            throw new InvalidOperationException($"Column '{spec.Name}' deobfuscation produced a non-finite value.");
         return x.ToString("G17", CultureInfo.InvariantCulture);
     }
 
-    private static string ObfuscateDateTime(string value, ColumnObfuscationSpec spec)
+    private string ObfuscateDateTime(string value, ColumnObfuscationSpec spec)
     {
         if (!DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var dt))
-            return value;
+            return ObfuscateString(value, spec);
 
-        var shifted = dt.AddTicks(spec.DateShiftTicks);
-        return shifted.ToString(spec.DateFormat ?? "O", CultureInfo.InvariantCulture);
+        return ShiftDate(dt, spec.DateShiftTicks).ToString(spec.DateFormat ?? "O", CultureInfo.InvariantCulture);
     }
 
-    private static string DeobfuscateDateTime(string value, ColumnObfuscationSpec spec)
+    private string DeobfuscateDateTime(string value, ColumnObfuscationSpec spec)
     {
         if (!DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var dt))
-            return value;
+            return DeobfuscateString(value, spec);
 
-        var shifted = dt.AddTicks(-spec.DateShiftTicks);
-        return shifted.ToString(spec.DateFormat ?? "O", CultureInfo.InvariantCulture);
+        return ShiftDate(dt, -spec.DateShiftTicks).ToString(spec.DateFormat ?? "O", CultureInfo.InvariantCulture);
+    }
+
+    private static DateTimeOffset ShiftDate(DateTimeOffset dt, long ticks)
+    {
+        var target = dt.UtcTicks + ticks;
+        if (target > DateTimeOffset.MaxValue.UtcTicks)
+            return DateTimeOffset.MaxValue;
+        if (target < DateTimeOffset.MinValue.UtcTicks)
+            return DateTimeOffset.MinValue;
+        return new DateTimeOffset(target, TimeSpan.Zero);
     }
 
     private string ObfuscateString(string value, ColumnObfuscationSpec spec)
@@ -474,14 +544,39 @@ internal sealed class ObfuscationEngine
         return sign * magnitude;
     }
 
-    private double GetDeterministicShift(string header)
+    private double GetDeterministicShift(string header, double observedAbsMax)
     {
+        var bound = 10.0 * Math.Max(observedAbsMax, 1e-6);
         if (_deterministicKey is null)
-            return (_random.NextDouble() * ShiftRangeWidth) - ShiftRangeHalfWidth;
+            return (_random.NextDouble() * (2.0 * bound)) - bound;
 
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes($"{_deterministicKey}|{header}|shift"));
         var u = BitConverter.ToUInt32(bytes, 0) / (double)uint.MaxValue;
-        return (u * ShiftRangeWidth) - ShiftRangeHalfWidth;
+        return (u * (2.0 * bound)) - bound;
+    }
+
+    private static double ObservedAbsMax(IReadOnlyList<string> values, bool integer)
+    {
+        var max = 0.0;
+        foreach (var raw in values)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+                continue;
+            if (integer)
+            {
+                if (!ParsingUtility.TryParseInteger(raw, out var n))
+                    continue;
+                max = Math.Max(max, Math.Abs((double)n));
+            }
+            else
+            {
+                if (!ParsingUtility.TryParseFloating(raw, out var n) || !double.IsFinite(n))
+                    continue;
+                max = Math.Max(max, Math.Abs(n));
+            }
+        }
+
+        return max;
     }
 
     private long GetDeterministicDateShiftTicks(string header)
@@ -526,6 +621,8 @@ internal sealed class ObfuscationEngine
             CreatedUtc = manifest.CreatedUtc,
             SourceFileName = manifest.SourceFileName,
             ObfuscatedFileName = manifest.ObfuscatedFileName,
+            PreserveBlanks = manifest.PreserveBlanks,
+            UnparsedValueCounts = manifest.UnparsedValueCounts,
             IntegrityHashSha256 = string.Empty,
             Columns = manifest.Columns
         };
