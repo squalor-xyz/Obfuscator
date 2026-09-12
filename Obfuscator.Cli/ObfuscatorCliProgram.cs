@@ -95,6 +95,22 @@ internal static class ObfuscatorCliProgram
         return 0;
     }
 
+    private static readonly HashSet<string> ValueOptions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "--config",
+        "--output",
+        "--input",
+        "--manifest",
+        "--seed",
+        "--passphrase",
+        "--deterministic-key",
+        "--string-mode",
+        "--include",
+        "--exclude",
+        "--gpg-recipient",
+        "--preserve-blanks",
+    };
+
     private static Dictionary<string, List<string>> ParseOptions(string[] args)
     {
         var result = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
@@ -111,9 +127,11 @@ internal static class ObfuscatorCliProgram
                 result[token] = values;
             }
 
-            // Flags are stored with an empty string value so presence checks work the same as normal options.
-            if (i + 1 < args.Length && !args[i + 1].StartsWith("--", StringComparison.Ordinal))
+            var takesValue = ValueOptions.Contains(token);
+            if (takesValue)
             {
+                if (i + 1 >= args.Length || args[i + 1].StartsWith("--", StringComparison.Ordinal))
+                    throw new InvalidOperationException($"{token} requires a value.");
                 values.Add(args[++i]);
             }
             else

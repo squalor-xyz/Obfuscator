@@ -721,6 +721,136 @@ public sealed class ObfuscatorTests : IDisposable
     }
 
     [Fact]
+    public void Obfuscate_WhitespacePassphrase_Throws()
+    {
+        var inputPath = Path.Combine(_tempDir, "ws-input.csv");
+        var obfuscatedPath = Path.Combine(_tempDir, "ws-obfuscated.csv");
+        var manifestPath = Path.Combine(_tempDir, "ws.obf");
+        File.WriteAllLines(inputPath, ["CustomerId,Region", "ALPHA,west"], Encoding.UTF8);
+
+        Assert.ThrowsAny<Exception>(() =>
+            _obfuscator.ObfuscateCsv(
+                inputPath,
+                obfuscatedPath,
+                manifestPath,
+                new ObfuscationOptions { Passphrase = "   " }));
+
+        if (File.Exists(manifestPath))
+            Assert.DoesNotContain("OBF_PLAIN_V2", File.ReadAllText(manifestPath, Encoding.UTF8), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Obfuscate_AesPassphrase_ManifestIsEncrypted()
+    {
+        var inputPath = Path.Combine(_tempDir, "aes-input.csv");
+        var obfuscatedPath = Path.Combine(_tempDir, "aes-obfuscated.csv");
+        var manifestPath = Path.Combine(_tempDir, "aes.obf");
+        File.WriteAllLines(inputPath, ["CustomerId,Region", "ALPHA,west"], Encoding.UTF8);
+
+        _obfuscator.ObfuscateCsv(
+            inputPath,
+            obfuscatedPath,
+            manifestPath,
+            new ObfuscationOptions { Passphrase = "secret" });
+
+        var text = File.ReadAllText(manifestPath, Encoding.UTF8);
+        Assert.StartsWith("OBF_AES_V2\n", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("ALPHA", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("west", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Obfuscate_AesRoundTrip_RestoresOriginal()
+    {
+        var inputPath = Path.Combine(_tempDir, "aes-rt-input.csv");
+        var obfuscatedPath = Path.Combine(_tempDir, "aes-rt-obfuscated.csv");
+        var restoredPath = Path.Combine(_tempDir, "aes-rt-restored.csv");
+        var manifestPath = Path.Combine(_tempDir, "aes-rt.obf");
+        File.WriteAllLines(inputPath, ["CustomerId,Region", "ALPHA,west"], Encoding.UTF8);
+
+        _obfuscator.ObfuscateCsv(
+            inputPath,
+            obfuscatedPath,
+            manifestPath,
+            new ObfuscationOptions { Passphrase = "secret" });
+        _obfuscator.DeobfuscateCsv(obfuscatedPath, manifestPath, restoredPath, passphrase: "secret");
+
+        Assert.Equal(
+            File.ReadAllLines(inputPath, Encoding.UTF8),
+            File.ReadAllLines(restoredPath, Encoding.UTF8));
+    }
+
+    [Fact]
+    public void Obfuscate_WrongPassphrase_Throws()
+    {
+        var inputPath = Path.Combine(_tempDir, "aes-bad-input.csv");
+        var obfuscatedPath = Path.Combine(_tempDir, "aes-bad-obfuscated.csv");
+        var restoredPath = Path.Combine(_tempDir, "aes-bad-restored.csv");
+        var manifestPath = Path.Combine(_tempDir, "aes-bad.obf");
+        File.WriteAllLines(inputPath, ["CustomerId,Region", "ALPHA,west"], Encoding.UTF8);
+
+        _obfuscator.ObfuscateCsv(
+            inputPath,
+            obfuscatedPath,
+            manifestPath,
+            new ObfuscationOptions { Passphrase = "secret" });
+
+        Assert.ThrowsAny<Exception>(() =>
+            _obfuscator.DeobfuscateCsv(obfuscatedPath, manifestPath, restoredPath, passphrase: "wrong"));
+    }
+
+    [SkippableFact]
+    public void Obfuscate_GpgFailure_LeavesNoFileAtTargetPath()
+    {
+        Skip.If(!GpgAvailable(), "gpg is not on PATH");
+
+        var inputPath = Path.Combine(_tempDir, "gpg-fail-input.csv");
+        var obfuscatedPath = Path.Combine(_tempDir, "gpg-fail-obfuscated.csv");
+        var manifestPath = Path.Combine(_tempDir, "gpg-fail.obf");
+        File.WriteAllLines(inputPath, ["CustomerId,Region", "ALPHA,west"], Encoding.UTF8);
+
+        Assert.ThrowsAny<Exception>(() =>
+            _obfuscator.ObfuscateCsv(
+                inputPath,
+                obfuscatedPath,
+                manifestPath,
+                new ObfuscationOptions { GpgRecipients = ["nobody@invalid"] }));
+
+        Assert.False(File.Exists(manifestPath), manifestPath);
+    }
+
+    [Fact]
+    public void Cli_PassphraseFollowedByAnotherFlag_Fails()
+    {
+        var inputPath = Path.Combine(_tempDir, "cli-pp-input.csv");
+        var obfuscatedPath = Path.Combine(_tempDir, "cli-pp-obfuscated.csv");
+        var manifestPath = Path.Combine(_tempDir, "cli-pp.obf");
+        File.WriteAllLines(inputPath, ["CustomerId,Region", "ALPHA,west"], Encoding.UTF8);
+
+        using var stderr = new StringWriter();
+        var originalError = Console.Error;
+        Console.SetError(stderr);
+        try
+        {
+            var exit = ObfuscatorCliProgram.Run(
+            [
+                "obfuscate",
+                "--input", inputPath,
+                "--output", obfuscatedPath,
+                "--manifest", manifestPath,
+                "--passphrase",
+                "--create-output-dir"
+            ]);
+            Assert.NotEqual(0, exit);
+            Assert.Contains("--passphrase", stderr.ToString(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            Console.SetError(originalError);
+        }
+    }
+
+    [Fact]
     public void CliGenerate_WithoutCreateOutputDirFlag_ThrowsHelpfulMessage()
     {
         var configPath = WriteConfig(

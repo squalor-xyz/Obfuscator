@@ -19,18 +19,31 @@ internal static class ManifestCrypto
         string? passphrase,
         IReadOnlyList<string>? gpgRecipients)
     {
-        if (!string.IsNullOrWhiteSpace(passphrase))
-        {
-            var encrypted = EncryptAes(json, passphrase);
-            File.WriteAllText(path, $"{AesHeader}{HeaderSeparator}{encrypted}", Utf8NoBom);
-        }
-        else
-        {
-            File.WriteAllText(path, $"{PlainHeader}{HeaderSeparator}{json}", Utf8NoBom);
-        }
+        if (passphrase is not null && string.IsNullOrWhiteSpace(passphrase))
+            throw new ArgumentException("Passphrase is blank. Omit it or supply a value.", nameof(passphrase));
+
+        var payload = !string.IsNullOrWhiteSpace(passphrase)
+            ? $"{AesHeader}{HeaderSeparator}{EncryptAes(json, passphrase!)}"
+            : $"{PlainHeader}{HeaderSeparator}{json}";
 
         if (gpgRecipients is { Count: > 0 })
-            GpgEncryptInPlace(path, gpgRecipients);
+        {
+            var tmp = path + ".tmp";
+            try
+            {
+                File.WriteAllText(tmp, payload, Utf8NoBom);
+                GpgEncryptTo(tmp, path, gpgRecipients);
+            }
+            finally
+            {
+                if (File.Exists(tmp))
+                    File.Delete(tmp);
+            }
+
+            return;
+        }
+
+        File.WriteAllText(path, payload, Utf8NoBom);
     }
 
     public static string ReadManifest(string path, string? passphrase)
@@ -155,9 +168,9 @@ internal static class ManifestCrypto
         return false;
     }
 
-    private static void GpgEncryptInPlace(string path, IReadOnlyList<string> recipients)
+    private static void GpgEncryptTo(string sourcePath, string destPath, IReadOnlyList<string> recipients)
     {
-        var output = path + ".gpg";
+        var output = destPath + ".gpg";
         var psi = new ProcessStartInfo
         {
             FileName = "gpg",
@@ -178,15 +191,22 @@ internal static class ManifestCrypto
         }
         psi.ArgumentList.Add("--output");
         psi.ArgumentList.Add(output);
-        psi.ArgumentList.Add(path);
+        psi.ArgumentList.Add(sourcePath);
 
-        var (exit, stdout, stderr) = RunGpg(psi);
-        if (exit != 0)
-            throw new InvalidOperationException($"gpg encrypt failed.{Environment.NewLine}{stdout}{Environment.NewLine}{stderr}");
+        try
+        {
+            var (exit, stdout, stderr) = RunGpg(psi);
+            if (exit != 0)
+                throw new InvalidOperationException($"gpg encrypt failed.{Environment.NewLine}{stdout}{Environment.NewLine}{stderr}");
 
-        var armored = File.ReadAllText(output, Utf8NoBom);
-        File.Delete(output);
-        File.WriteAllText(path, $"{GpgHeader}{HeaderSeparator}{armored}", Utf8NoBom);
+            var armored = File.ReadAllText(output, Utf8NoBom);
+            File.WriteAllText(destPath, $"{GpgHeader}{HeaderSeparator}{armored}", Utf8NoBom);
+        }
+        finally
+        {
+            if (File.Exists(output))
+                File.Delete(output);
+        }
     }
 
     private static string GpgDecryptArmored(string armored)
