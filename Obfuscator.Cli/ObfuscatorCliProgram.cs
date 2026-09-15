@@ -44,7 +44,7 @@ internal static class ObfuscatorCliProgram
         EnsureOutputDirectoryExists(output, options.ContainsKey("--create-output-dir"));
 
         var obfuscator = new Obfuscator();
-        obfuscator.GenerateCsvFromConfig(config, output);
+        obfuscator.GenerateCsvFromConfig(config, output, force: options.ContainsKey("--force"));
         Console.WriteLine($"Generated CSV: {output}");
         return 0;
     }
@@ -74,7 +74,8 @@ internal static class ObfuscatorCliProgram
                 IncludeColumns = GetMany(options, "--include"),
                 ExcludeColumns = GetMany(options, "--exclude"),
                 GpgRecipients = GetMany(options, "--gpg-recipient"),
-                Strict = options.ContainsKey("--strict")
+                Strict = options.ContainsKey("--strict"),
+                Force = options.ContainsKey("--force")
             });
 
         Console.WriteLine($"Obfuscated CSV: {output}");
@@ -96,7 +97,8 @@ internal static class ObfuscatorCliProgram
             outputCsvPath: output,
             passphrase: ResolvePassphrase(options),
             deterministicKey: ResolveDeterministicKey(options),
-            allowMismatchedSource: options.ContainsKey("--allow-mismatched-source"));
+            allowMismatchedSource: options.ContainsKey("--allow-mismatched-source"),
+            force: options.ContainsKey("--force"));
 
         Console.WriteLine($"Restored CSV: {output}");
         return 0;
@@ -264,13 +266,15 @@ internal static class ObfuscatorCliProgram
     {
         PrintBanner();
         Console.WriteLine("Usage:");
-        Console.WriteLine("  obfuscator generate --config <file.json> --output <file.csv> [--create-output-dir]");
+        Console.WriteLine("  obfuscator generate --config <file.json> --output <file.csv> [--create-output-dir] [--force]");
         Console.WriteLine("  obfuscator obfuscate --input <file.csv> --output <file.csv> --manifest <file.obf> [options]");
         Console.WriteLine("  obfuscator deobfuscate --input <file.csv> --manifest <file.obf> --output <file.csv> [options]");
         Console.WriteLine();
         Console.WriteLine("Output options:");
         Console.WriteLine("  --create-output-dir");
         Console.WriteLine("      Create missing parent directories for --output and --manifest paths.");
+        Console.WriteLine("  --force");
+        Console.WriteLine("      Overwrite an existing --output or --manifest file. Refused without this flag.");
         Console.WriteLine();
         Console.WriteLine("Obfuscate options:");
         Console.WriteLine("  --deterministic-key <secret>");

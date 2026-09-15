@@ -5,6 +5,7 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 */
 using System.Diagnostics;
 using System.Globalization;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Squalor.Obfuscator;
@@ -1070,6 +1071,125 @@ public sealed class ObfuscatorTests : IDisposable
         _obfuscator.ObfuscateCsv(inputPath, obfuscatedPath, manifestPath);
         Assert.True(File.Exists(obfuscatedPath));
         Assert.True(new FileInfo(obfuscatedPath).Length > 0);
+    }
+
+    [Fact]
+    public void TransformCsv_InputEqualsOutput_Throws()
+    {
+        var csv = Path.Combine(_tempDir, "same-path.csv");
+        File.WriteAllText(csv, "Name\nAlice\n", Encoding.UTF8);
+        var before = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(csv)));
+        var manifest = Path.Combine(_tempDir, "same-path.obf");
+
+        Assert.ThrowsAny<Exception>(() => _obfuscator.ObfuscateCsv(csv, csv, manifest));
+
+        Assert.True(File.Exists(csv));
+        var after = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(csv)));
+        Assert.Equal(before, after);
+    }
+
+    [Fact]
+    public void TransformCsv_InputEqualsOutput_DifferentCasing_Throws()
+    {
+        var csv = Path.Combine(_tempDir, "rel-path.csv");
+        File.WriteAllText(csv, "Name\nAlice\n", Encoding.UTF8);
+        var dotted = Path.Combine(_tempDir, ".", "rel-path.csv");
+        var before = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(csv)));
+        var manifest = Path.Combine(_tempDir, "rel-path.obf");
+
+        Assert.ThrowsAny<Exception>(() => _obfuscator.ObfuscateCsv(csv, dotted, manifest));
+
+        Assert.True(File.Exists(csv));
+        Assert.Equal(before, Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(csv))));
+    }
+
+    [Fact]
+    public void Obfuscate_ExistingOutput_WithoutForce_ThrowsAndPreservesFile()
+    {
+        var input = Path.Combine(_tempDir, "keep-in.csv");
+        var output = Path.Combine(_tempDir, "keep-out.csv");
+        var manifest = Path.Combine(_tempDir, "keep.obf");
+        File.WriteAllText(input, "Name\nAlice\n", Encoding.UTF8);
+        var payload = Encoding.UTF8.GetBytes("KEEP-EXISTING-OUTPUT");
+        File.WriteAllBytes(output, payload);
+        var before = Convert.ToHexString(SHA256.HashData(payload));
+
+        Assert.ThrowsAny<Exception>(() => _obfuscator.ObfuscateCsv(input, output, manifest));
+
+        Assert.Equal(before, Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(output))));
+    }
+
+    [Fact]
+    public void Obfuscate_ExistingOutput_WithForce_Overwrites()
+    {
+        var input = Path.Combine(_tempDir, "force-in.csv");
+        var output = Path.Combine(_tempDir, "force-out.csv");
+        var manifest = Path.Combine(_tempDir, "force.obf");
+        File.WriteAllText(input, "Name\nAlice\n", Encoding.UTF8);
+        File.WriteAllText(output, "KEEP-EXISTING-OUTPUT", Encoding.UTF8);
+
+        _obfuscator.ObfuscateCsv(input, output, manifest, new ObfuscationOptions { Force = true });
+
+        Assert.True(File.Exists(output));
+        var text = File.ReadAllText(output, Encoding.UTF8);
+        Assert.DoesNotContain("KEEP-EXISTING-OUTPUT", text, StringComparison.Ordinal);
+        Assert.Contains("Name", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Obfuscate_PartialFailure_PreservesPreExistingOutput()
+    {
+        var input = Path.Combine(_tempDir, "preexist-input.csv");
+        var output = Path.Combine(_tempDir, "preexist-obfuscated.csv");
+        var manifest = Path.Combine(_tempDir, "preexist.obf");
+        File.WriteAllLines(input, ["N", "1", "9007199254740993"], Encoding.UTF8);
+        var payload = Encoding.UTF8.GetBytes("KEEP-EXISTING-OUTPUT");
+        File.WriteAllBytes(output, payload);
+        var before = Convert.ToHexString(SHA256.HashData(payload));
+
+        Assert.ThrowsAny<Exception>(() =>
+            _obfuscator.ObfuscateCsv(input, output, manifest, new ObfuscationOptions { Force = true }));
+
+        Assert.True(File.Exists(output));
+        Assert.Equal(before, Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(output))));
+    }
+
+    [Fact]
+    public void Obfuscate_SemicolonDelimitedInput_RoundTripsDelimiter()
+    {
+        var input = Path.Combine(_tempDir, "semi-in.csv");
+        var obfuscated = Path.Combine(_tempDir, "semi-obf.csv");
+        var restored = Path.Combine(_tempDir, "semi-out.csv");
+        var manifest = Path.Combine(_tempDir, "semi.obf");
+        File.WriteAllText(input, "Name;City\nalice;boston\n", Encoding.UTF8);
+
+        var written = _obfuscator.ObfuscateCsv(input, obfuscated, manifest);
+        Assert.Equal(";", written.Delimiter);
+        Assert.StartsWith("Name;City", File.ReadAllText(obfuscated, Encoding.UTF8), StringComparison.Ordinal);
+        Assert.DoesNotContain("Name,City", File.ReadAllText(obfuscated, Encoding.UTF8), StringComparison.Ordinal);
+
+        _obfuscator.DeobfuscateCsv(obfuscated, manifest, restored);
+
+        var restoredText = File.ReadAllText(restored, Encoding.UTF8);
+        Assert.Contains(';', restoredText);
+        Assert.DoesNotContain("alice,boston", restoredText, StringComparison.Ordinal);
+        Assert.Contains("alice;boston", restoredText, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Manifest_ExistingFile_WithoutForce_Throws()
+    {
+        var input = Path.Combine(_tempDir, "man-in.csv");
+        var output = Path.Combine(_tempDir, "man-out.csv");
+        var manifest = Path.Combine(_tempDir, "man.obf");
+        File.WriteAllText(input, "Name\nAlice\n", Encoding.UTF8);
+        var payload = Encoding.UTF8.GetBytes("KEEP-EXISTING-MANIFEST");
+        File.WriteAllBytes(manifest, payload);
+        var before = Convert.ToHexString(SHA256.HashData(payload));
+
+        Assert.ThrowsAny<Exception>(() => _obfuscator.ObfuscateCsv(input, output, manifest));
+
+        Assert.Equal(before, Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(manifest))));
     }
 
     [Fact]

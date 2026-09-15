@@ -20,22 +20,37 @@ internal static class CsvStreaming
         return csv.HeaderRecord ?? Array.Empty<string>();
     }
 
+    public static string DetectDelimiter(string path)
+    {
+        using var reader = new StreamReader(path);
+        using var csv = CreateReader(reader);
+        csv.Read();
+        csv.ReadHeader();
+        return csv.Parser.Delimiter;
+    }
+
     public static void TransformCsv(
         string inputPath,
         string outputPath,
-        Func<string[], IDictionary<string, string>, IDictionary<string, string>> transformRow)
+        Func<string[], IDictionary<string, string>, IDictionary<string, string>> transformRow,
+        bool force = false,
+        string? outputDelimiter = null)
     {
-        try
+        if (FileWrite.SamePath(inputPath, outputPath))
+            throw new InvalidOperationException("Output path is the input path. Pass -o explicitly.");
+
+        FileWrite.RefuseOverwriteUnlessForce(outputPath, force);
+        FileWrite.WriteAtomically(outputPath, tmp =>
         {
             using var reader = new StreamReader(inputPath);
-            using var writer = new StreamWriter(outputPath, false, new System.Text.UTF8Encoding(false));
+            using var writer = new StreamWriter(tmp, false, new System.Text.UTF8Encoding(false));
 
             using var csvReader = CreateReader(reader);
-            using var csvWriter = CreateWriter(writer);
-
             csvReader.Read();
             csvReader.ReadHeader();
             var headers = csvReader.HeaderRecord ?? Array.Empty<string>();
+            var delimiter = string.IsNullOrEmpty(outputDelimiter) ? csvReader.Parser.Delimiter : outputDelimiter;
+            using var csvWriter = CreateWriter(writer, delimiter);
 
             foreach (var h in headers)
                 csvWriter.WriteField(h);
@@ -57,13 +72,7 @@ internal static class CsvStreaming
 
                 csvWriter.NextRecord();
             }
-        }
-        catch
-        {
-            if (File.Exists(outputPath))
-                File.Delete(outputPath);
-            throw;
-        }
+        });
     }
 
     public static IEnumerable<IDictionary<string, string>> ReadRows(string path)
@@ -100,9 +109,12 @@ internal static class CsvStreaming
         return new CsvReader(reader, config);
     }
 
-    private static CsvWriter CreateWriter(TextWriter writer)
+    private static CsvWriter CreateWriter(TextWriter writer, string delimiter)
     {
-        var config = new CsvConfiguration(CultureInfo.InvariantCulture);
+        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        {
+            Delimiter = string.IsNullOrEmpty(delimiter) ? "," : delimiter
+        };
         return new CsvWriter(writer, config);
     }
 }

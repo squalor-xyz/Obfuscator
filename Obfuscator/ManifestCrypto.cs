@@ -26,10 +26,13 @@ internal static class ManifestCrypto
         string path,
         string json,
         string? passphrase,
-        IReadOnlyList<string>? gpgRecipients)
+        IReadOnlyList<string>? gpgRecipients,
+        bool force = false)
     {
         if (passphrase is not null && string.IsNullOrWhiteSpace(passphrase))
             throw new ArgumentException("Passphrase is blank. Omit it or supply a value.", nameof(passphrase));
+
+        FileWrite.RefuseOverwriteUnlessForce(path, force);
 
         var payload = !string.IsNullOrWhiteSpace(passphrase)
             ? $"{AesGcmHeader}{HeaderSeparator}{EncryptAesGcm(json, passphrase!)}"
@@ -37,7 +40,7 @@ internal static class ManifestCrypto
 
         if (gpgRecipients is { Count: > 0 })
         {
-            var tmp = path + ".tmp";
+            var tmp = path + ".plain.tmp";
             try
             {
                 File.WriteAllText(tmp, payload, Utf8NoBom);
@@ -52,7 +55,7 @@ internal static class ManifestCrypto
             return;
         }
 
-        File.WriteAllText(path, payload, Utf8NoBom);
+        FileWrite.WriteAtomically(path, destTmp => File.WriteAllText(destTmp, payload, Utf8NoBom));
     }
 
     public static string ReadManifest(string path, string? passphrase)
@@ -260,7 +263,8 @@ internal static class ManifestCrypto
                 throw new InvalidOperationException($"gpg encrypt failed.{Environment.NewLine}{stdout}{Environment.NewLine}{stderr}");
 
             var armored = File.ReadAllText(output, Utf8NoBom);
-            File.WriteAllText(destPath, $"{GpgHeader}{HeaderSeparator}{armored}", Utf8NoBom);
+            FileWrite.WriteAtomically(destPath, destTmp =>
+                File.WriteAllText(destTmp, $"{GpgHeader}{HeaderSeparator}{armored}", Utf8NoBom));
         }
         finally
         {

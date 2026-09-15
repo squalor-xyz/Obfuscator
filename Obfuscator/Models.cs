@@ -164,6 +164,9 @@ public sealed class ObfuscationOptions
     // falling back to the string strategy.
     public bool Strict { get; set; }
 
+    // When true, overwrite an existing output CSV or manifest. Default refuses.
+    public bool Force { get; set; }
+
     // String columns can use explicit mapping, deterministic tokens, or auto mode based on DeterministicKey.
     public StringObfuscationMode StringMode { get; set; } = StringObfuscationMode.Auto;
 }
@@ -194,6 +197,11 @@ public sealed class ObfuscationManifest
     public string ObfuscatedFileName { get; set; } = string.Empty;
 
     public bool PreserveBlanks { get; set; } = true;
+
+    // CSV field delimiter detected on obfuscate; deobfuscate writes the same one.
+    // Null on pre-S14 manifests means comma. Omitted from integrity JSON when null so old checksums still verify.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Delimiter { get; set; }
 
     public Dictionary<string, int> UnparsedValueCounts { get; set; } = new();
 

@@ -75,6 +75,8 @@ obfuscator deobfuscate \
 
 `--passphrase-file` and `--passphrase-stdin` are also accepted. `--passphrase` still works and is insecure.
 
+Existing `--output` and `--manifest` files are refused unless you pass `--force`. Input and output must be different paths (`Path.GetFullPath`, ordinal). Writes go to `path.tmp` then `File.Move`. The input CSV delimiter is stored on the manifest and restored on deobfuscate.
+
 Manifest notes:
 
 - plain, AES-CBC (`OBF_AES_V2`), and AES-GCM (`OBF_AESGCM_V3`) manifests use a stable text header, so a manifest written on one OS can be read on another

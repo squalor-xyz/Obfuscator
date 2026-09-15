@@ -36,6 +36,12 @@ internal sealed class ObfuscationEngine
         string manifestPath,
         ObfuscationOptions options)
     {
+        if (FileWrite.SamePath(inputCsvPath, outputCsvPath))
+            throw new InvalidOperationException("Output path is the input path. Pass -o explicitly.");
+
+        FileWrite.RefuseOverwriteUnlessForce(outputCsvPath, options.Force);
+        FileWrite.RefuseOverwriteUnlessForce(manifestPath, options.Force);
+
         var headers = CsvStreaming.ReadHeaders(inputCsvPath);
         ValidateUniqueHeaders(headers);
 
@@ -50,14 +56,16 @@ internal sealed class ObfuscationEngine
         CsvStreaming.TransformCsv(
             inputCsvPath,
             outputCsvPath,
-            (_, row) => TransformRowObfuscate(row, manifest, options));
+            (_, row) => TransformRowObfuscate(row, manifest, options),
+            options.Force,
+            manifest.Delimiter);
 
         // Hash the manifest after all derived strategy data is populated so deobfuscation
         // can reject tampering before applying reversible transforms.
         manifest.IntegrityHashSha256 = ComputeIntegrityHash(manifest);
 
         var json = JsonSerializer.Serialize(manifest, new JsonSerializerOptions { WriteIndented = true });
-        ManifestCrypto.WriteManifest(manifestPath, json, options.Passphrase, options.GpgRecipients);
+        ManifestCrypto.WriteManifest(manifestPath, json, options.Passphrase, options.GpgRecipients, options.Force);
 
         return manifest;
     }
@@ -67,7 +75,8 @@ internal sealed class ObfuscationEngine
         string manifestPath,
         string outputCsvPath,
         string? passphrase,
-        bool allowMismatchedSource = false)
+        bool allowMismatchedSource = false,
+        bool force = false)
     {
         var manifestJson = ManifestCrypto.ReadManifest(manifestPath, passphrase);
         var manifest = JsonSerializer.Deserialize<ObfuscationManifest>(manifestJson)
@@ -91,7 +100,9 @@ internal sealed class ObfuscationEngine
         CsvStreaming.TransformCsv(
             obfuscatedCsvPath,
             outputCsvPath,
-            (_, row) => TransformRowDeobfuscate(row, manifest));
+            (_, row) => TransformRowDeobfuscate(row, manifest),
+            force,
+            string.IsNullOrEmpty(manifest.Delimiter) ? "," : manifest.Delimiter);
     }
 
     private ObfuscationManifest BuildManifest(
@@ -106,6 +117,7 @@ internal sealed class ObfuscationEngine
             SourceFileName = Path.GetFileName(inputCsvPath),
             ObfuscatedFileName = Path.GetFileName(outputCsvPath),
             PreserveBlanks = options.PreserveBlanks,
+            Delimiter = CsvStreaming.DetectDelimiter(inputCsvPath),
             Salt = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16))
         };
         BindCrypto(manifest);

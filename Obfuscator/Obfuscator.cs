@@ -25,32 +25,36 @@ public sealed class Obfuscator
         return config;
     }
 
-    public void GenerateCsvFromConfig(string jsonFilePath, string outputCsvPath)
+    public void GenerateCsvFromConfig(string jsonFilePath, string outputCsvPath, bool force = false)
     {
         var config = GetDataGenParametersFromConfig(jsonFilePath);
-        GenerateCsv(config, outputCsvPath);
+        GenerateCsv(config, outputCsvPath, force);
     }
 
-    public void GenerateCsv(DataGenConfig config, string outputCsvPath)
+    public void GenerateCsv(DataGenConfig config, string outputCsvPath, bool force = false)
     {
         ValidateConfig(config);
 
         var generator = new DataGenerator(config.Seed);
 
-        using var writer = new StreamWriter(outputCsvPath, false, new UTF8Encoding(false));
-        using var csv = new CsvHelper.CsvWriter(writer, System.Globalization.CultureInfo.InvariantCulture);
-
-        foreach (var col in config.Columns)
-            csv.WriteField(col.Name);
-        csv.NextRecord();
-
-        foreach (var row in generator.GenerateRows(config))
+        FileWrite.RefuseOverwriteUnlessForce(outputCsvPath, force);
+        FileWrite.WriteAtomically(outputCsvPath, tmp =>
         {
-            foreach (var col in config.Columns)
-                csv.WriteField(row.TryGetValue(col.Name, out var v) ? v : string.Empty);
+            using var writer = new StreamWriter(tmp, false, new UTF8Encoding(false));
+            using var csv = new CsvHelper.CsvWriter(writer, System.Globalization.CultureInfo.InvariantCulture);
 
+            foreach (var col in config.Columns)
+                csv.WriteField(col.Name);
             csv.NextRecord();
-        }
+
+            foreach (var row in generator.GenerateRows(config))
+            {
+                foreach (var col in config.Columns)
+                    csv.WriteField(row.TryGetValue(col.Name, out var v) ? v : string.Empty);
+
+                csv.NextRecord();
+            }
+        });
     }
 
     public ObfuscationManifest ObfuscateCsv(
@@ -74,7 +78,8 @@ public sealed class Obfuscator
         string outputCsvPath,
         string? passphrase = null,
         string? deterministicKey = null,
-        bool allowMismatchedSource = false)
+        bool allowMismatchedSource = false,
+        bool force = false)
     {
         if (!File.Exists(obfuscatedCsvPath))
             throw new FileNotFoundException("Obfuscated CSV file not found.", obfuscatedCsvPath);
@@ -83,7 +88,7 @@ public sealed class Obfuscator
             throw new FileNotFoundException("Obfuscation manifest file not found.", obfPath);
 
         var engine = new ObfuscationEngine(deterministicKey: deterministicKey);
-        engine.Deobfuscate(obfuscatedCsvPath, obfPath, outputCsvPath, passphrase, allowMismatchedSource);
+        engine.Deobfuscate(obfuscatedCsvPath, obfPath, outputCsvPath, passphrase, allowMismatchedSource, force);
     }
 
     private static void ValidateConfig(DataGenConfig config)
