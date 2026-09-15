@@ -1032,7 +1032,8 @@ public sealed class ObfuscatorTests : IDisposable
         WriteMixedKindCsv(inputPath);
 
         var manifest = _obfuscator.ObfuscateCsv(inputPath, obfuscatedPath, manifestPath);
-        Assert.True(manifest.UnparsedValueCounts.TryGetValue("Serial", out var n) && n > 0, "Serial unparsed count");
+        Assert.True(manifest.UnparsedValueCounts.TryGetValue("Serial", out var n), "Serial unparsed count");
+        Assert.Equal(1, n);
 
         var strictPath = Path.Combine(_tempDir, "mixed-strict-obfuscated.csv");
         var strictManifest = Path.Combine(_tempDir, "mixed-strict.obf");
@@ -1053,11 +1054,12 @@ public sealed class ObfuscatorTests : IDisposable
         var obfuscatedPath = Path.Combine(_tempDir, "blank-line-obfuscated.csv");
         var manifestPath = Path.Combine(_tempDir, "blank-line.obf");
         File.WriteAllText(inputPath, "A,B\n1,2\n\n3,4\n", Encoding.UTF8);
-        var inputLines = File.ReadAllLines(inputPath, Encoding.UTF8).Length;
 
         _obfuscator.ObfuscateCsv(inputPath, obfuscatedPath, manifestPath);
 
-        Assert.Equal(inputLines, File.ReadAllLines(obfuscatedPath, Encoding.UTF8).Length);
+        var obfuscatedLines = File.ReadAllLines(obfuscatedPath, Encoding.UTF8);
+        Assert.Equal(4, obfuscatedLines.Length);
+        Assert.Equal(",", obfuscatedLines[2]);
     }
 
     [Fact]
@@ -1068,9 +1070,33 @@ public sealed class ObfuscatorTests : IDisposable
         var manifestPath = Path.Combine(_tempDir, "date-max.obf");
         File.WriteAllLines(inputPath, ["Expires", "9999-12-31"], Encoding.UTF8);
 
-        _obfuscator.ObfuscateCsv(inputPath, obfuscatedPath, manifestPath);
-        Assert.True(File.Exists(obfuscatedPath));
-        Assert.True(new FileInfo(obfuscatedPath).Length > 0);
+        var manifest = _obfuscator.ObfuscateCsv(inputPath, obfuscatedPath, manifestPath);
+        var spec = Assert.Single(manifest.Columns);
+        var orig = DateTimeOffset.Parse("9999-12-31", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
+        var target = orig.UtcTicks + spec.DateShiftTicks;
+        DateTimeOffset expected;
+        if (target > DateTimeOffset.MaxValue.UtcTicks)
+            expected = DateTimeOffset.MaxValue;
+        else if (target < DateTimeOffset.MinValue.UtcTicks)
+            expected = DateTimeOffset.MinValue;
+        else
+            expected = new DateTimeOffset(target, TimeSpan.Zero);
+        var format = spec.DateFormat ?? "O";
+        var obfuscated = File.ReadAllLines(obfuscatedPath, Encoding.UTF8)[1];
+        Assert.Equal(expected.ToString(format, CultureInfo.InvariantCulture), obfuscated);
+
+        var restoredPath = Path.Combine(_tempDir, "date-max-restored.csv");
+        _obfuscator.DeobfuscateCsv(obfuscatedPath, manifestPath, restoredPath);
+        var backTicks = expected.UtcTicks - spec.DateShiftTicks;
+        DateTimeOffset restoredExpected;
+        if (backTicks > DateTimeOffset.MaxValue.UtcTicks)
+            restoredExpected = DateTimeOffset.MaxValue;
+        else if (backTicks < DateTimeOffset.MinValue.UtcTicks)
+            restoredExpected = DateTimeOffset.MinValue;
+        else
+            restoredExpected = new DateTimeOffset(backTicks, TimeSpan.Zero);
+        var restored = File.ReadAllLines(restoredPath, Encoding.UTF8)[1];
+        Assert.Equal(restoredExpected.ToString(format, CultureInfo.InvariantCulture), restored);
     }
 
     [Fact]
