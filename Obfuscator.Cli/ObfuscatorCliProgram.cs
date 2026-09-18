@@ -130,7 +130,7 @@ internal static class ObfuscatorCliProgram
         {
             var token = args[i];
             if (!token.StartsWith("--", StringComparison.Ordinal))
-                throw new InvalidOperationException($"Unexpected token '{token}'. Options must start with '--'.");
+                throw new InvalidOperationException("Unexpected option. Options must start with '--'.");
 
             if (!result.TryGetValue(token, out var values))
             {

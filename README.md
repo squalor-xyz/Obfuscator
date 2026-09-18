@@ -79,8 +79,8 @@ Existing `--output` and `--manifest` files are refused unless you pass `--force`
 
 Manifest notes:
 
-- plain, AES-CBC (`OBF_AES_V2`), and AES-GCM (`OBF_AESGCM_V3`) manifests use a stable text header, so a manifest written on one OS can be read on another
-- new passphrase-protected writes use AES-GCM; V2 CBC files remain readable
+- plain (`OBF_PLAIN_V2`) and AES-GCM (`OBF_AESGCM_V3`) manifests use a stable text header, so a manifest written on one OS can be read on another
+- new passphrase-protected writes use AES-GCM. `OBF_AES_V2` (CBC) is unsupported; re-obfuscate to GCM. `OBF_GPG_V2` is unchanged.
 - `--gpg-recipient` support is optional and requires `gpg` to be installed and available on `PATH`
 - **The manifest is the plaintext.** Mapping mode stores the full original-to-token map. An unencrypted `.obf` next to the obfuscated CSV is not protection.
 - Deterministic tokens (`DeterministicKey`) are the same for a repeated value **within one run**. Each obfuscate run mints a new manifest salt, so the same key does **not** produce the same token across two files. Joinability requires the salt from that file's manifest. Deterministic tokens still reveal value equality and frequency inside one file. CBC with a fixed per-column IV also leaks shared block prefixes (lot/week/wafer grouping on fixed-width serials). AES-SIV would keep determinism without prefix leakage; it is not implemented yet.

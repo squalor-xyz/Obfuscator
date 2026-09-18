@@ -303,7 +303,7 @@ public sealed class ObfuscatorTests : IDisposable
     }
 
     [Fact]
-    public void Manifest_V2_StillReadable()
+    public void Manifest_AesCbcV2_IsUnsupported()
     {
         var inputPath = Path.Combine(_tempDir, "v2-input.csv");
         var obfuscatedPath = Path.Combine(_tempDir, "v2-obfuscated.csv");
@@ -312,14 +312,13 @@ public sealed class ObfuscatorTests : IDisposable
         File.WriteAllLines(inputPath, ["CustomerId", "ALPHA"], Encoding.UTF8);
 
         _obfuscator.ObfuscateCsv(inputPath, obfuscatedPath, manifestPath);
-        var plain = File.ReadAllText(manifestPath, Encoding.UTF8);
-        Assert.StartsWith("OBF_PLAIN_V2\n", plain, StringComparison.Ordinal);
-        var json = plain["OBF_PLAIN_V2\n".Length..];
-        var v2 = "OBF_AES_V2\n" + ManifestCrypto.EncryptAes(json, "legacy");
-        File.WriteAllText(manifestPath, v2, Encoding.UTF8);
+        File.WriteAllText(manifestPath, "OBF_AES_V2\n" + Convert.ToBase64String(new byte[40]), Encoding.UTF8);
 
-        _obfuscator.DeobfuscateCsv(obfuscatedPath, manifestPath, restoredPath, passphrase: "legacy");
-        Assert.Equal("ALPHA", File.ReadAllLines(restoredPath, Encoding.UTF8)[1]);
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _obfuscator.DeobfuscateCsv(obfuscatedPath, manifestPath, restoredPath, passphrase: "legacy"));
+        Assert.Contains("OBF_AES_V2", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("unsupported", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.False(File.Exists(restoredPath));
     }
 
     [Fact]
@@ -938,7 +937,7 @@ public sealed class ObfuscatorTests : IDisposable
         File.WriteAllText(obfuscatedPath, "CustomerId\nALPHA\n", Encoding.UTF8);
         File.WriteAllText(
             manifestPath,
-            "OBF_AES_V2\n" + Convert.ToBase64String(new byte[8]),
+            "OBF_AESGCM_V3\n" + Convert.ToBase64String(new byte[8]),
             Encoding.UTF8);
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
@@ -1070,6 +1069,26 @@ public sealed class ObfuscatorTests : IDisposable
             ]);
             Assert.NotEqual(0, exit);
             Assert.Contains("--passphrase", stderr.ToString(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            Console.SetError(originalError);
+        }
+    }
+
+    [Fact]
+    public void Cli_UnexpectedBareToken_DoesNotEchoToken()
+    {
+        using var stderr = new StringWriter();
+        var originalError = Console.Error;
+        Console.SetError(stderr);
+        try
+        {
+            var exit = ObfuscatorCliProgram.Run(["obfuscate", "not-a-flag"]);
+            Assert.Equal(1, exit);
+            var text = stderr.ToString();
+            Assert.DoesNotContain("not-a-flag", text, StringComparison.Ordinal);
+            Assert.Contains("Options must start with '--'", text, StringComparison.Ordinal);
         }
         finally
         {

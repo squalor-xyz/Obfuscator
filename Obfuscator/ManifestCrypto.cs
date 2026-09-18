@@ -41,7 +41,7 @@ internal static class ManifestCrypto
 
         if (gpgRecipients is { Count: > 0 })
         {
-            var tmp = path + ".plain.tmp";
+            var tmp = Path.Combine(Path.GetTempPath(), "obf-plain-" + Guid.NewGuid().ToString("N") + ".tmp");
             try
             {
                 File.WriteAllText(tmp, payload, Utf8NoBom);
@@ -79,39 +79,11 @@ internal static class ManifestCrypto
             return DecryptAesGcm(gcmPayload, passphrase);
         }
 
-        if (TryReadHeaderPayload(text, AesHeader, out var aesPayload))
-        {
-            if (string.IsNullOrWhiteSpace(passphrase))
-                throw new InvalidOperationException("Manifest is AES-encrypted. Passphrase required.");
-
-            return DecryptAes(aesPayload, passphrase);
-        }
+        if (TryReadHeaderPayload(text, AesHeader, out _))
+            throw new InvalidOperationException(
+                "OBF_AES_V2 is unsupported. Re-obfuscate with a passphrase so the manifest is AES-GCM.");
 
         throw new InvalidOperationException($"Unrecognized manifest format: {path}");
-    }
-
-    internal static string EncryptAes(string plaintext, string passphrase)
-    {
-        using var aes = Aes.Create();
-        aes.KeySize = 256;
-        aes.Mode = CipherMode.CBC;
-        aes.Padding = PaddingMode.PKCS7;
-        aes.GenerateIV();
-
-        var salt = RandomNumberGenerator.GetBytes(16);
-        aes.Key = DeriveKey(passphrase, salt, 150_000);
-
-        using var ms = new MemoryStream();
-        ms.Write(salt);
-        ms.Write(aes.IV);
-
-        using (var cs = new CryptoStream(ms, aes.CreateEncryptor(), CryptoStreamMode.Write))
-        using (var sw = new StreamWriter(cs, Encoding.UTF8))
-        {
-            sw.Write(plaintext);
-        }
-
-        return Convert.ToBase64String(ms.ToArray());
     }
 
     private static string EncryptAesGcm(string plaintext, string passphrase)
@@ -119,18 +91,25 @@ internal static class ManifestCrypto
         var salt = RandomNumberGenerator.GetBytes(16);
         var nonce = RandomNumberGenerator.GetBytes(GcmNonceSize);
         var key = DeriveKey(passphrase, salt, Pbkdf2V3Iterations);
-        var plain = Encoding.UTF8.GetBytes(plaintext);
-        var cipher = new byte[plain.Length];
-        var tag = new byte[GcmTagSize];
-        using (var gcm = new AesGcm(key, GcmTagSize))
-            gcm.Encrypt(nonce, plain, cipher, tag);
+        try
+        {
+            var plain = Encoding.UTF8.GetBytes(plaintext);
+            var cipher = new byte[plain.Length];
+            var tag = new byte[GcmTagSize];
+            using (var gcm = new AesGcm(key, GcmTagSize))
+                gcm.Encrypt(nonce, plain, cipher, tag);
 
-        var packed = new byte[salt.Length + nonce.Length + cipher.Length + tag.Length];
-        salt.CopyTo(packed, 0);
-        nonce.CopyTo(packed, salt.Length);
-        cipher.CopyTo(packed, salt.Length + nonce.Length);
-        tag.CopyTo(packed, salt.Length + nonce.Length + cipher.Length);
-        return Convert.ToBase64String(packed);
+            var packed = new byte[salt.Length + nonce.Length + cipher.Length + tag.Length];
+            salt.CopyTo(packed, 0);
+            nonce.CopyTo(packed, salt.Length);
+            cipher.CopyTo(packed, salt.Length + nonce.Length);
+            tag.CopyTo(packed, salt.Length + nonce.Length + cipher.Length);
+            return Convert.ToBase64String(packed);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(key);
+        }
     }
 
     private static string DecryptAesGcm(string base64, string passphrase)
@@ -154,31 +133,12 @@ internal static class ManifestCrypto
         {
             throw new InvalidOperationException("AES-GCM authentication failed.", ex);
         }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(key);
+        }
 
         return Encoding.UTF8.GetString(plain);
-    }
-
-    private static string DecryptAes(string base64, string passphrase)
-    {
-        var bytes = Convert.FromBase64String(base64);
-        if (bytes.Length < 33)
-            throw new InvalidOperationException("Truncated AES manifest payload.");
-        var salt = bytes[..16];
-        var iv = bytes[16..32];
-        var cipher = bytes[32..];
-
-        using var aes = Aes.Create();
-        aes.KeySize = 256;
-        aes.Mode = CipherMode.CBC;
-        aes.Padding = PaddingMode.PKCS7;
-
-        aes.Key = DeriveKey(passphrase, salt, 150_000);
-        aes.IV = iv;
-
-        using var ms = new MemoryStream(cipher);
-        using var cs = new CryptoStream(ms, aes.CreateDecryptor(), CryptoStreamMode.Read);
-        using var sr = new StreamReader(cs, Encoding.UTF8);
-        return sr.ReadToEnd();
     }
 
     private static byte[] DeriveKey(string passphrase, byte[] salt, int iterations)
@@ -259,9 +219,9 @@ internal static class ManifestCrypto
 
         try
         {
-            var (exit, stdout, stderr) = RunGpg(psi);
+            var (exit, _, _) = RunGpg(psi);
             if (exit != 0)
-                throw new InvalidOperationException($"gpg encrypt failed.{Environment.NewLine}{stdout}{Environment.NewLine}{stderr}");
+                throw new InvalidOperationException("gpg encrypt failed.");
 
             var armored = File.ReadAllText(output, Utf8NoBom);
             FileWrite.WriteAtomically(destPath, destTmp =>
@@ -303,9 +263,9 @@ internal static class ManifestCrypto
         psi.ArgumentList.Add("--decrypt");
         psi.ArgumentList.Add(path);
 
-        var (exit, stdout, stderr) = RunGpg(psi);
+        var (exit, stdout, _) = RunGpg(psi);
         if (exit != 0)
-            throw new InvalidOperationException($"gpg decrypt failed.{Environment.NewLine}{stderr}");
+            throw new InvalidOperationException("gpg decrypt failed.");
         return stdout;
     }
 
@@ -331,8 +291,20 @@ internal static class ManifestCrypto
         {
             var stdoutTask = process.StandardOutput.ReadToEndAsync();
             var stderrTask = process.StandardError.ReadToEndAsync();
+            if (!process.WaitForExit(30_000))
+            {
+                try
+                {
+                    process.Kill(entireProcessTree: true);
+                }
+                catch (InvalidOperationException)
+                {
+                }
+
+                throw new InvalidOperationException("gpg timed out.");
+            }
+
             Task.WaitAll(stdoutTask, stderrTask);
-            process.WaitForExit();
             return (process.ExitCode, stdoutTask.Result, stderrTask.Result);
         }
     }
