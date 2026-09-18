@@ -12,6 +12,8 @@ jobs:
   release:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
 
     steps:
       - name: Check out source
@@ -63,3 +65,9 @@ jobs:
           files: |
             artifacts/nuget/*.nupkg
             artifacts/nuget/*.snupkg
+
+      - name: Publish nuget.org
+        if: env.NUGET_API_KEY != ''
+        run: |
+          dotnet nuget push artifacts/nuget/*.nupkg --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          dotnet nuget push artifacts/nuget/*.snupkg --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate

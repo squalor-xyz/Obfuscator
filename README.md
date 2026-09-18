@@ -22,15 +22,12 @@ There are no other native dependencies.
 
 ## Install
 
-Library package:
+Packages are **not on nuget.org** until a `v*` tag (ancestor of `main`) runs with the `NUGET_API_KEY` secret. That workflow always packs and attaches nupkgs to the GitHub Release.
+
+When nuget.org has a version:
 
 ```bash
 dotnet add package Squalor.Obfuscator
-```
-
-CLI package:
-
-```bash
 dotnet tool install --global Squalor.Obfuscator.Cli
 obfuscator --help
 ```
