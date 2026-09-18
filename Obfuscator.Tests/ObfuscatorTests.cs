@@ -861,6 +861,22 @@ public sealed class ObfuscatorTests : IDisposable
         Assert.Equal(File.ReadAllBytes(goldenPath), File.ReadAllBytes(outputPath));
     }
 
+    [Fact]
+    public void DemoConfig_Generate_HasFacetColumnAndMoreThanGoldenRows()
+    {
+        var configPath = Path.Combine(AppContext.BaseDirectory, "ExampleConfigSemiconductorDemo.json");
+        Assert.True(File.Exists(configPath), configPath);
+        var outputPath = Path.Combine(_tempDir, "semi-demo.csv");
+        _obfuscator.GenerateCsvFromConfig(configPath, outputPath);
+        var lines = File.ReadAllLines(outputPath);
+        Assert.True(lines.Length > 1, "expected a header plus data rows");
+        var header = lines[0];
+        Assert.Contains("Site", header, StringComparison.Ordinal);
+        var dataRows = lines.Length - 1;
+        Assert.NotEqual(81, dataRows);
+        Assert.True(dataRows > 81, "demo sample must have more rows than the frozen 81-row golden");
+    }
+
     [SkippableFact]
     public void Manifest_GpgRoundTrip_RestoresOriginal()
     {

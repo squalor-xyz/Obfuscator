@@ -173,6 +173,7 @@ var obfuscator = new Obfuscator();
 obfuscator.GenerateCsvFromConfig("ExampleConfig.json", "fake.csv");
 
 obfuscator.GenerateCsvFromConfig("ExampleConfigSemiconductor.json", "semi.csv");
+obfuscator.GenerateCsvFromConfig("ExampleConfigSemiconductorDemo.json", "semi-demo.csv");
 
 var manifest = obfuscator.ObfuscateCsv(
     inputCsvPath: "real.csv",

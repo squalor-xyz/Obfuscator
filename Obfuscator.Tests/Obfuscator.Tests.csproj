@@ -24,6 +24,7 @@
   <ItemGroup>
     <None Include="..\Obfuscator\ExampleConfigSemiconductor.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\Obfuscator\ExampleConfigSemiconductor.golden.csv" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Obfuscator\ExampleConfigSemiconductorDemo.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

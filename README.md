@@ -45,7 +45,7 @@ obfuscator generate \
   --output fake.csv
 ```
 
-Generate a semiconductor-style sweep dataset:
+Generate a semiconductor-style sweep dataset (81-row golden; do not overwrite the committed fixture):
 
 ```bash
 obfuscator generate \
@@ -53,6 +53,17 @@ obfuscator generate \
   --create-output-dir \
   --output semi.csv
 ```
+
+Generate a **demo** sweep for squalplot (adds a `Site` facet; 162 rows). This is not the golden:
+
+```bash
+obfuscator generate \
+  --config Obfuscator/ExampleConfigSemiconductorDemo.json \
+  --create-output-dir \
+  --output semi-demo.csv
+```
+
+`ExampleConfigSemiconductor.golden.csv` and suite/databall `fixtures/semiconductor-sweep.csv` stay frozen. Do not regenerate them from the demo config.
 
 Obfuscate and restore a CSV. Prefer env vars or a file for secrets (`--passphrase` on the command line is visible in process lists):
 
