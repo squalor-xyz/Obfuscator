@@ -1093,6 +1093,26 @@ public sealed class ObfuscatorTests : IDisposable
     }
 
     [Fact]
+    public void Cli_UnknownCommand_DoesNotEchoToken()
+    {
+        using var stderr = new StringWriter();
+        var originalError = Console.Error;
+        Console.SetError(stderr);
+        try
+        {
+            var exit = ObfuscatorCliProgram.Run(["not-a-flag"]);
+            Assert.Equal(1, exit);
+            var text = stderr.ToString();
+            Assert.DoesNotContain("not-a-flag", text, StringComparison.Ordinal);
+            Assert.Contains("Unknown command.", text, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Console.SetError(originalError);
+        }
+    }
+
+    [Fact]
     public void Cli_UnexpectedBareToken_DoesNotEchoToken()
     {
         using var stderr = new StringWriter();

@@ -26,7 +26,7 @@ internal static class ObfuscatorCliProgram
                 "generate" => RunGenerate(args[1..]),
                 "obfuscate" => RunObfuscate(args[1..]),
                 "deobfuscate" => RunDeobfuscate(args[1..]),
-                _ => Fail($"Unknown command '{args[0]}'.")
+                _ => Fail("Unknown command.")
             };
         }
         catch (Exception ex)
