@@ -14,11 +14,8 @@ namespace Squalor.Obfuscator;
 internal sealed class ObfuscationEngine
 {
     private const string DeterministicTokenPrefix = "OBF_TKN_";
-    private const int KindInferenceSampleSize = 250;
     private const long IntegerSafeMagnitude = 1L << 53;
     private const int DeterministicTokenIvLengthBytes = 16;
-    private const double ShiftRangeHalfWidth = 100000.0;
-    private const double ShiftRangeWidth = ShiftRangeHalfWidth * 2.0;
     private const int DateShiftRangeHalfWidthDays = 3650;
     private const int DateShiftRangeWidthDays = DateShiftRangeHalfWidthDays * 2;
     private readonly Random _random;
@@ -328,7 +325,7 @@ internal sealed class ObfuscationEngine
 
     private static ObfuscatedColumnKind InferKind(IReadOnlyList<string> values)
     {
-        var sample = values.Where(v => !string.IsNullOrWhiteSpace(v)).Take(KindInferenceSampleSize).ToList();
+        var sample = values.Where(v => !string.IsNullOrWhiteSpace(v)).ToList();
         if (sample.Count == 0) return ObfuscatedColumnKind.Empty;
         if (sample.All(v => ParsingUtility.TryParseBoolean(v, out _))) return ObfuscatedColumnKind.Boolean;
         if (sample.All(v => ParsingUtility.TryParseInteger(v, out _))) return ObfuscatedColumnKind.Integer;
@@ -377,24 +374,28 @@ internal sealed class ObfuscationEngine
         return (spec.InvertBoolean ? !b : b) ? "true" : "false";
     }
 
-    private string ObfuscateInteger(string value, ColumnObfuscationSpec spec)
+    internal string ObfuscateInteger(string value, ColumnObfuscationSpec spec)
     {
         if (!long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n))
             return ObfuscateString(value, spec);
-        if (Math.Abs(n) > IntegerSafeMagnitude)
-            throw new InvalidOperationException(
-                $"Column '{spec.Name}' value '{value}' exceeds the 2^53 integer range that can round-trip through double.");
         var y = (n * spec.Scale) + spec.Shift;
-        if (!double.IsFinite(y))
-            throw new InvalidOperationException($"Column '{spec.Name}' obfuscation produced a non-finite value.");
+        if (!double.IsFinite(y) || Math.Abs(y) > IntegerSafeMagnitude)
+            throw new InvalidOperationException(
+                $"Column '{spec.Name}' obfuscation produced {y} from value '{value}' which exceeds the 2^53 integer range that can round-trip through double.");
         return ((long)Math.Round(y)).ToString(CultureInfo.InvariantCulture);
     }
 
-    private string DeobfuscateInteger(string value, ColumnObfuscationSpec spec)
+    internal string DeobfuscateInteger(string value, ColumnObfuscationSpec spec)
     {
         if (!double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var n))
             return DeobfuscateString(value, spec);
+        if (!double.IsFinite(n))
+            throw new InvalidOperationException($"Column '{spec.Name}' deobfuscation produced a non-finite value.");
+        if (spec.Scale == 0)
+            throw new InvalidOperationException($"Column '{spec.Name}' has Scale 0.");
         var x = (n - spec.Shift) / spec.Scale;
+        if (!double.IsFinite(x))
+            throw new InvalidOperationException($"Column '{spec.Name}' deobfuscation produced a non-finite value.");
         return ((long)Math.Round(x)).ToString(CultureInfo.InvariantCulture);
     }
 

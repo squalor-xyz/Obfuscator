@@ -149,7 +149,7 @@ public sealed class ObfuscationOptions
     public bool PreserveBlanks { get; set; } = true;
 
     // If set, deterministic transforms are derived from this key.
-    // Same key + same schema = same obfuscation behavior.
+    // Same key + same salt (the salt is per manifest) = same obfuscation behavior.
     public string? DeterministicKey { get; set; }
 
     // Column filtering:

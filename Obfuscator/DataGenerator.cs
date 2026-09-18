@@ -13,7 +13,8 @@ internal sealed class DataGenerator
 {
     private const double BooleanTruePercentageDefault = 50.0;
     private const double PercentageScale = 100.0;
-    private const int DefaultDateLookbackDays = 30;
+    private static readonly DateTimeOffset DefaultDateMinUtc = new(2020, 1, 1, 0, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset DefaultDateMaxUtc = new(2020, 1, 31, 0, 0, 0, TimeSpan.Zero);
     private const double CorrelatedNoiseStdDev = 0.08;
     private const double IdealRangePercentageDefault = 70.0;
     private const double IdealRangeCenter = 0.5;
@@ -124,8 +125,8 @@ internal sealed class DataGenerator
 
         if (col.IsDateTime)
         {
-            var min = ParseDate(col.DateMinUtc) ?? DateTimeOffset.UtcNow.AddDays(-DefaultDateLookbackDays);
-            var max = ParseDate(col.DateMaxUtc) ?? DateTimeOffset.UtcNow;
+            var min = ParseDate(col.DateMinUtc) ?? DefaultDateMinUtc;
+            var max = ParseDate(col.DateMaxUtc) ?? DefaultDateMaxUtc;
             if (max < min) (min, max) = (max, min);
 
             var delta = max - min;
@@ -136,7 +137,7 @@ internal sealed class DataGenerator
         }
 
         if (col.IsGuid)
-            return Guid.NewGuid().ToString();
+            return NextGuid().ToString();
 
         if (col.IsString)
         {
@@ -355,6 +356,15 @@ internal sealed class DataGenerator
     {
         if (string.IsNullOrWhiteSpace(value)) return null;
         return DateTimeOffset.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
+    }
+
+    private Guid NextGuid()
+    {
+        var bytes = new byte[16];
+        _random.NextBytes(bytes);
+        bytes[6] = (byte)((bytes[6] & 0x0F) | 0x40);
+        bytes[8] = (byte)((bytes[8] & 0x3F) | 0x80);
+        return new Guid(bytes);
     }
 
     private string RandomAlphaNumeric(int length)

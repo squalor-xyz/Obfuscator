@@ -69,7 +69,7 @@ Supported commands:
 
 Useful obfuscation options:
 
-- `--deterministic-key <secret>` enables stable deterministic transforms across runs.
+- `--deterministic-key <secret>` derives transforms from the key plus the **per-manifest salt**. The same key does not produce the same tokens across two separate obfuscate runs.
 - `--string-mode auto|mapping|deterministic-token`
 - `--include <colA,colB>` and `--exclude <colA,colB>`
 - `--allow-list` means only included columns are obfuscated.

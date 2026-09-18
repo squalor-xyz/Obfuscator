@@ -236,7 +236,7 @@ public sealed class ObfuscatorTests : IDisposable
     }
 
     [Fact]
-    public void DeterministicKey_DerivationUsesManifestSalt()
+    public void DeterministicKey_SameKeyAcrossRuns_ProducesDifferentTokens()
     {
         var inputPath = Path.Combine(_tempDir, "salt-input.csv");
         File.WriteAllLines(inputPath, ["CustomerId", "ALPHA", "ALPHA"], Encoding.UTF8);
@@ -731,7 +731,9 @@ public sealed class ObfuscatorTests : IDisposable
             [
                 new ColumnGenerationSpec { Name = "Id", DataType = "int", TotalRangeMin = 1, TotalRangeMax = 100 },
                 new ColumnGenerationSpec { Name = "Enabled", DataType = "boolean", TruePercentage = 25 },
-                new ColumnGenerationSpec { Name = "Code", DataType = "string", RandomString = true, StringPrefix = "SQ_", RandomStringLength = 4 }
+                new ColumnGenerationSpec { Name = "Code", DataType = "string", RandomString = true, StringPrefix = "SQ_", RandomStringLength = 4 },
+                new ColumnGenerationSpec { Name = "Uid", DataType = "guid" },
+                new ColumnGenerationSpec { Name = "When", DataType = "datetime" }
             ]
         };
 
@@ -739,6 +741,71 @@ public sealed class ObfuscatorTests : IDisposable
         _obfuscator.GenerateCsv(config, outputPath2);
 
         Assert.Equal(File.ReadAllText(outputPath1, Encoding.UTF8), File.ReadAllText(outputPath2, Encoding.UTF8));
+    }
+
+    [Fact]
+    public void Generate_SameSeed_ProducesIdenticalGuidColumns()
+    {
+        var config = new DataGenConfig
+        {
+            RowMode = "fixed",
+            NRows = 8,
+            Seed = 123,
+            Columns = [new ColumnGenerationSpec { Name = "Id", DataType = "guid" }]
+        };
+        var a = Path.Combine(_tempDir, "guid-a.csv");
+        var b = Path.Combine(_tempDir, "guid-b.csv");
+        _obfuscator.GenerateCsv(config, a);
+        _obfuscator.GenerateCsv(config, b);
+        Assert.Equal(File.ReadAllText(a, Encoding.UTF8), File.ReadAllText(b, Encoding.UTF8));
+    }
+
+    [Fact]
+    public void Generate_SameSeed_ProducesIdenticalDateColumns_WhenBoundsAbsent()
+    {
+        var config = new DataGenConfig
+        {
+            RowMode = "fixed",
+            NRows = 8,
+            Seed = 123,
+            Columns = [new ColumnGenerationSpec { Name = "When", DataType = "datetime" }]
+        };
+        var a = Path.Combine(_tempDir, "date-a.csv");
+        var b = Path.Combine(_tempDir, "date-b.csv");
+        _obfuscator.GenerateCsv(config, a);
+        _obfuscator.GenerateCsv(config, b);
+        Assert.Equal(File.ReadAllText(a, Encoding.UTF8), File.ReadAllText(b, Encoding.UTF8));
+    }
+
+    [Fact]
+    public void ObfuscateInteger_LargeInputWithHighScale_RoundTripsExactly()
+    {
+        const long n = 8_000_000_000_000_001L;
+        var spec = new ColumnObfuscationSpec { Name = "N", Scale = 10, Shift = 0 };
+        var engine = new ObfuscationEngine();
+        var ex = Assert.Throws<InvalidOperationException>(
+            () => engine.ObfuscateInteger(n.ToString(CultureInfo.InvariantCulture), spec));
+        Assert.Contains("N", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("8000000000000001", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("2^53", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DeobfuscateInteger_NonFiniteManifestValue_Throws()
+    {
+        var spec = new ColumnObfuscationSpec { Name = "N", Scale = 2, Shift = 1 };
+        var engine = new ObfuscationEngine();
+        Assert.Throws<InvalidOperationException>(() => engine.DeobfuscateInteger("NaN", spec));
+        Assert.Throws<InvalidOperationException>(() => engine.DeobfuscateInteger("Infinity", spec));
+    }
+
+    [Fact]
+    public void DeobfuscateInteger_ZeroScale_Throws()
+    {
+        var spec = new ColumnObfuscationSpec { Name = "N", Scale = 0, Shift = 1 };
+        var engine = new ObfuscationEngine();
+        var ex = Assert.Throws<InvalidOperationException>(() => engine.DeobfuscateInteger("10", spec));
+        Assert.Contains("Scale", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
