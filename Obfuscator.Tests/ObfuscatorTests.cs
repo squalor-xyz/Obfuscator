@@ -858,7 +858,7 @@ public sealed class ObfuscatorTests : IDisposable
         var goldenPath = Path.Combine(AppContext.BaseDirectory, "ExampleConfigSemiconductor.golden.csv");
         var outputPath = Path.Combine(_tempDir, "semi-golden.csv");
         _obfuscator.GenerateCsvFromConfig(configPath, outputPath);
-        Assert.Equal(File.ReadAllBytes(goldenPath), File.ReadAllBytes(outputPath));
+        AssertSemiconductorGoldenMatches(goldenPath, outputPath);
     }
 
     [Fact]
@@ -1509,6 +1509,44 @@ public sealed class ObfuscatorTests : IDisposable
             writer.WriteLine($"10000{i},1.5");
         writer.WriteLine("LOT-SECRET-ABC,1.5");
     }
+
+    /// <summary>
+    /// Golden is a macOS snapshot. Box-Muller (Math.Log/Sin) last bits differ on
+    /// glibc/ucrt, so byte-compare fails on Linux/Windows CI. Non-float fields and
+    /// row layout must still match; floats may differ by a few ULPs.
+    /// </summary>
+    private static void AssertSemiconductorGoldenMatches(string goldenPath, string actualPath)
+    {
+        var golden = File.ReadAllLines(goldenPath);
+        var actual = File.ReadAllLines(actualPath);
+        Assert.Equal(golden.Length, actual.Length);
+        Assert.Equal(golden[0], actual[0]);
+        for (var row = 1; row < golden.Length; row++)
+        {
+            var g = golden[row].Split(',');
+            var a = actual[row].Split(',');
+            Assert.True(g.Length == a.Length, $"row {row} field count {g.Length} vs {a.Length}");
+            for (var col = 0; col < g.Length; col++)
+            {
+                if (LooksLikeFloat(g[col]) && LooksLikeFloat(a[col])
+                    && double.TryParse(g[col], NumberStyles.Float, CultureInfo.InvariantCulture, out var gd)
+                    && double.TryParse(a[col], NumberStyles.Float, CultureInfo.InvariantCulture, out var ad))
+                {
+                    var tol = Math.Max(1e-12, Math.Abs(gd) * 1e-12);
+                    Assert.True(
+                        Math.Abs(gd - ad) <= tol,
+                        $"row {row} col {col}: {g[col]} vs {a[col]}");
+                    continue;
+                }
+
+                Assert.Equal(g[col], a[col]);
+            }
+        }
+    }
+
+    private static bool LooksLikeFloat(string field)
+        => field.Contains('.', StringComparison.Ordinal)
+           || field.Contains('e', StringComparison.OrdinalIgnoreCase);
 
     private static bool GpgAvailable()
     {
