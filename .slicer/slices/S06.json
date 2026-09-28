@@ -1,0 +1,41 @@
+{
+  "id": "S06",
+  "title": "Document security guarantees and supported workflows",
+  "lead": [
+    "Keep the project, CLI, and package documentation consistent about manifest protection, deterministic-token guarantees, safe credential inputs, compatibility, and intended use of generated datasets."
+  ],
+  "depends_note": null,
+  "findings_note": "README.md; Obfuscator.Cli/README.md; Obfuscator/PackageReadme.md",
+  "size": "S",
+  "flags": [],
+  "trees_note": "docs, cli",
+  "trees_plural": true,
+  "boundary": "**Not in this slice:**",
+  "sections": [
+    {
+      "heading": "Why",
+      "body": "Security and workflow guidance is repeated across project, CLI, and package readmes; changes to credentials, token behavior, and compatibility need consistent user-facing instructions."
+    },
+    {
+      "heading": "Files",
+      "body": "README.md; Obfuscator.Cli/README.md; Obfuscator/PackageReadme.md; example commands."
+    },
+    {
+      "heading": "Failing tests",
+      "body": "Add or update documentation checks only if the repository already has a suitable mechanism; otherwise use a manual cross-document review."
+    },
+    {
+      "heading": "Implement",
+      "body": "After S01–S05 settle behavior, align descriptions of manifest protection defaults, safe credential inputs, deterministic-token guarantees and limits, compatibility/migration, and synthetic data use. Keep examples executable and secret-free."
+    },
+    {
+      "heading": "Check",
+      "body": "Search all documentation for stale claims/options and compare examples with current CLI help and public APIs. Run the existing package/CLI smoke workflow when code changes are included."
+    },
+    {
+      "heading": "Git",
+      "body": "Update all affected readmes together and keep example secrets obviously non-production."
+    }
+  ],
+  "notes": []
+}

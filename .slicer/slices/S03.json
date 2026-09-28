@@ -1,0 +1,41 @@
+{
+  "id": "S03",
+  "title": "Prevent path collisions and incomplete output pairs",
+  "lead": [
+    "Ensure input, CSV output, and manifest paths cannot overwrite one another. Define and implement failure behavior so an error while producing either output does not leave a misleading partial output pair or destroy pre-existing files."
+  ],
+  "depends_note": null,
+  "findings_note": "Obfuscator/ObfuscationEngine.cs; Obfuscator/FileWrite.cs",
+  "size": "M",
+  "flags": [],
+  "trees_note": "core, tests",
+  "trees_plural": true,
+  "boundary": "**Not in this slice:**",
+  "sections": [
+    {
+      "heading": "Why",
+      "body": "The transform checks that the input and CSV output differ, but CSV output and manifest paths are not checked against each other or the input. CSV and manifest are written separately, so a later failure can leave a misleading partial pair."
+    },
+    {
+      "heading": "Files",
+      "body": "Obfuscator/ObfuscationEngine.cs; Obfuscator/FileWrite.cs; Obfuscator/ManifestCrypto.cs; Obfuscator.Tests/ObfuscatorTests.cs."
+    },
+    {
+      "heading": "Failing tests",
+      "body": "Add cases for input/output/manifest path collisions, including normalized relative aliases; failure while writing either output; and preservation of pre-existing outputs when force is enabled and a later stage fails."
+    },
+    {
+      "heading": "Implement",
+      "body": "Reject any aliased input, CSV output, or manifest paths before writing. Stage both outputs and publish them only after both are complete; on failure, clean staged and newly published artifacts without deleting pre-existing files."
+    },
+    {
+      "heading": "Check",
+      "body": "Run focused file-write and manifest tests, then the full solution test suite. Verify successful round trips and all collision/failure cases leave the documented files only."
+    },
+    {
+      "heading": "Git",
+      "body": "Keep filesystem tests isolated in temporary directories and ensure cleanup runs on both success and failure."
+    }
+  ],
+  "notes": []
+}

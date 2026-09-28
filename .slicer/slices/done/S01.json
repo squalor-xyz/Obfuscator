@@ -1,0 +1,41 @@
+{
+  "id": "S01",
+  "title": "Define the security contract and supported threat model",
+  "lead": [
+    "Agree and document what obfuscation protects, what it does not protect, and the supported attacker and workflow assumptions. Use this contract to guide cryptographic and operational changes."
+  ],
+  "depends_note": null,
+  "findings_note": "README.md documents deterministic-token leakage and plaintext manifests; no recorded Slicer goals",
+  "size": "S",
+  "flags": [],
+  "trees_note": "core, docs",
+  "trees_plural": true,
+  "boundary": "**Not in this slice:**",
+  "sections": [
+    {
+      "heading": "Why",
+      "body": "The project currently has no recorded goals or shared statement of what obfuscation protects. README documents that manifests can contain plaintext mappings and deterministic tokens reveal equality and frequency. Security design and claims need an agreed boundary before further crypto work."
+    },
+    {
+      "heading": "Files",
+      "body": "README.md; Obfuscator.Cli/README.md; Obfuscator/PackageReadme.md; relevant public API comments."
+    },
+    {
+      "heading": "Failing tests",
+      "body": "No code regression is assumed. Record review cases: plain manifest behavior, passphrase-protected manifests, deterministic token equality leakage, and limits of reversibility."
+    },
+    {
+      "heading": "Implement",
+      "body": "Document supported users and workflows, attacker assumptions, data the tool protects, data it does not protect, manifest confidentiality, token leakage, and the distinction between obfuscation and encryption. Record compatibility constraints and approved dependency posture."
+    },
+    {
+      "heading": "Check",
+      "body": "Review statements against current code and tests. Ensure all three readmes describe the same guarantees and do not claim cryptographic secrecy from obfuscation alone."
+    },
+    {
+      "heading": "Git",
+      "body": "Documentation and decision record only. Keep this slice separate from crypto implementation."
+    }
+  ],
+  "notes": []
+}

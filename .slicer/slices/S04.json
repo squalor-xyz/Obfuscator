@@ -1,0 +1,41 @@
+{
+  "id": "S04",
+  "title": "Replace or redesign deterministic-token cryptography",
+  "lead": [
+    "Retain deterministic token functionality while removing the documented prefix leakage. Have the design reviewed; evaluate a vetted FLOSS package if the .NET BCL cannot meet the security requirement, and record manifest/API compatibility and migration behavior."
+  ],
+  "depends_note": null,
+  "findings_note": "README.md documents fixed-IV CBC prefix leakage; Obfuscator/ObfuscationEngine.cs",
+  "size": "L",
+  "flags": [],
+  "trees_note": "core, tests",
+  "trees_plural": true,
+  "boundary": "**Not in this slice:**",
+  "sections": [
+    {
+      "heading": "Why",
+      "body": "The current deterministic-token implementation uses AES-CBC with a fixed per-column IV. The project README documents prefix leakage for related fixed-width values."
+    },
+    {
+      "heading": "Files",
+      "body": "Obfuscator/ObfuscationEngine.cs; Obfuscator/Models.cs; Obfuscator/Obfuscator.csproj; Obfuscator.Tests/ObfuscatorTests.cs; all manifest format documentation."
+    },
+    {
+      "heading": "Failing tests",
+      "body": "Add tests for deterministic equality within the intended scope, distinct values, cross-column separation, deobfuscation, tampered tokens, and compatibility behavior for existing manifests."
+    },
+    {
+      "heading": "Implement",
+      "body": "After S01 fixes the security contract, choose and review a deterministic, misuse-resistant construction. Use a vetted FLOSS package if the BCL cannot meet the requirement; document license and maintenance cost. Version any changed manifest/API behavior and specify how existing data is restored or migrated."
+    },
+    {
+      "heading": "Check",
+      "body": "Run cryptographic known-answer or interoperability vectors supplied by the selected design, focused token tests, and the full solution test suite on supported platforms. Review that equal inputs remain joinable only within the documented scope."
+    },
+    {
+      "heading": "Git",
+      "body": "Never claim a custom construction is secure solely because round-trip tests pass. Record algorithm, dependency, and compatibility decisions."
+    }
+  ],
+  "notes": []
+}
