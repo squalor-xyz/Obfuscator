@@ -1,0 +1,167 @@
+{
+  "version": 1,
+  "id_prefix": "S",
+  "id_width": 2,
+  "next_id": 7,
+  "preamble": "",
+  "passes": [],
+  "items": [
+    {
+      "id": "S01",
+      "title": "Define the security contract and supported threat model",
+      "short_title": "Define the security contract and supported threat model",
+      "status": "done",
+      "has_slice": true,
+      "depends_on": [],
+      "notes": [
+        "**2026-09-28** — Security contract agreed: accidental-exposure risk reduction for controlled workflows; sharing is case-by-case. Docs cover retained structure and inference risk, manifest confidentiality, deterministic leakage, current compatibility, and no new crypto dependency."
+      ],
+      "fields": {
+        "size": "S",
+        "flags": [],
+        "trees": [
+          "core",
+          "docs"
+        ],
+        "trees_literal": false,
+        "findings": "README.md documents deterministic-token leakage and plaintext manifests; no recorded Slicer goals",
+        "pass": "",
+        "group": "",
+        "reason": "",
+        "importance": 3,
+        "urgency": 3
+      }
+    },
+    {
+      "id": "S02",
+      "title": "Make CLI credential entry safe by default",
+      "short_title": "Make CLI credential entry safe by default",
+      "status": "open",
+      "has_slice": true,
+      "depends_on": [],
+      "notes": [],
+      "fields": {
+        "size": "M",
+        "flags": [],
+        "trees": [
+          "cli",
+          "docs"
+        ],
+        "trees_literal": false,
+        "findings": "Obfuscator.Cli/ObfuscatorCliProgram.cs; README.md; Obfuscator.Cli/README.md",
+        "pass": "",
+        "group": "",
+        "reason": "",
+        "importance": 3,
+        "urgency": 3
+      }
+    },
+    {
+      "id": "S03",
+      "title": "Prevent path collisions and incomplete output pairs",
+      "short_title": "Prevent path collisions and incomplete output pairs",
+      "status": "open",
+      "has_slice": true,
+      "depends_on": [],
+      "notes": [],
+      "fields": {
+        "size": "M",
+        "flags": [],
+        "trees": [
+          "core",
+          "tests"
+        ],
+        "trees_literal": false,
+        "findings": "Obfuscator/ObfuscationEngine.cs; Obfuscator/FileWrite.cs",
+        "pass": "",
+        "group": "",
+        "reason": "",
+        "importance": 3,
+        "urgency": 3
+      }
+    },
+    {
+      "id": "S04",
+      "title": "Replace or redesign deterministic-token cryptography",
+      "short_title": "Replace or redesign deterministic-token cryptography",
+      "status": "open",
+      "has_slice": true,
+      "depends_on": [
+        "S01"
+      ],
+      "notes": [],
+      "fields": {
+        "size": "L",
+        "flags": [],
+        "trees": [
+          "core",
+          "tests"
+        ],
+        "trees_literal": false,
+        "findings": "README.md documents fixed-IV CBC prefix leakage; Obfuscator/ObfuscationEngine.cs",
+        "pass": "",
+        "group": "",
+        "reason": "",
+        "importance": 3,
+        "urgency": 2
+      }
+    },
+    {
+      "id": "S05",
+      "title": "Strengthen generator config and sweep validation",
+      "short_title": "Strengthen generator config and sweep validation",
+      "status": "open",
+      "has_slice": true,
+      "depends_on": [],
+      "notes": [],
+      "fields": {
+        "size": "M",
+        "flags": [],
+        "trees": [
+          "generator",
+          "tests"
+        ],
+        "trees_literal": false,
+        "findings": "Obfuscator/Obfuscator.cs; Obfuscator/DataGenerator.cs",
+        "pass": "",
+        "group": "",
+        "reason": "",
+        "importance": 3,
+        "urgency": 2
+      }
+    },
+    {
+      "id": "S06",
+      "title": "Document security guarantees and supported workflows",
+      "short_title": "Document security guarantees and supported workflows",
+      "status": "open",
+      "has_slice": true,
+      "depends_on": [
+        "S01",
+        "S02",
+        "S03",
+        "S04",
+        "S05"
+      ],
+      "notes": [],
+      "fields": {
+        "size": "S",
+        "flags": [],
+        "trees": [
+          "docs",
+          "cli"
+        ],
+        "trees_literal": false,
+        "findings": "README.md; Obfuscator.Cli/README.md; Obfuscator/PackageReadme.md",
+        "pass": "",
+        "group": "",
+        "reason": "",
+        "importance": 2,
+        "urgency": 2
+      }
+    }
+  ],
+  "epilogue": "",
+  "goals": "Make CSV obfuscation and restoration safer to use for library and CLI users, while maintaining synthetic CSV generation as an equally important product capability. Harden the current 0.1 line over the next 1–2 releases, prioritizing safe data handling and risk reduction.",
+  "non_goals": "Do not claim obfuscation alone provides cryptographic secrecy. Do not require encrypted manifests by default. Do not target a 1.0 release in this roadmap."
+}

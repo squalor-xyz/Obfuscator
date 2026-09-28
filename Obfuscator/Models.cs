@@ -139,7 +139,7 @@ public sealed class ObfuscationOptions
     // Optional seed for non-deterministic transform generation.
     public int? Seed { get; set; }
 
-    // If provided, the manifest is AES-encrypted on disk.
+    // If provided, the manifest is AES-GCM-encrypted on disk. This does not encrypt the CSV.
     public string? Passphrase { get; set; }
 
     // Optional GPG recipients for encrypting the written manifest file in place.
@@ -148,8 +148,8 @@ public sealed class ObfuscationOptions
     // If true, blank cells are left untouched even on obfuscated columns.
     public bool PreserveBlanks { get; set; } = true;
 
-    // If set, deterministic transforms are derived from this key.
-    // Same key + same salt (the salt is per manifest) = same obfuscation behavior.
+    // If set, deterministic transforms are derived from this key and the per-manifest salt.
+    // This is not a guarantee of secrecy; deterministic tokens preserve equality patterns.
     public string? DeterministicKey { get; set; }
 
     // Column filtering:

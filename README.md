@@ -91,7 +91,16 @@ Manifest notes:
 - new passphrase-protected writes use AES-GCM. `OBF_AES_V2` (CBC) is unsupported; re-obfuscate to GCM. `OBF_GPG_V2` is unchanged.
 - `--gpg-recipient` support is optional and requires `gpg` to be installed and available on `PATH`
 - **The manifest is the plaintext.** Mapping mode stores the full original-to-token map. An unencrypted `.obf` next to the obfuscated CSV is not protection.
-- Deterministic tokens (`DeterministicKey`) are the same for a repeated value **within one run**. Each obfuscate run mints a new manifest salt, so the same key does **not** produce the same token across two files. Joinability requires the salt from that file's manifest. Deterministic tokens still reveal value equality and frequency inside one file. CBC with a fixed per-column IV also leaks shared block prefixes (lot/week/wafer grouping on fixed-width serials). AES-SIV would keep determinism without prefix leakage; it is not implemented yet.
+
+## Security contract
+
+Obfuscation changes selected cell values to support controlled development, testing, and data workflows. It is reversible when the required manifest and, for deterministic-token mode, the deterministic key are available. This is data transformation, not encryption of the CSV or a guarantee that a dataset is anonymous or safe to share.
+
+The output retains the CSV structure, including column names and row order. Excluded columns, preserved blank cells, and other untransformed values remain visible. Transformations can also preserve useful relationships: repeated values remain equal; numeric transformations generally preserve ordering or its reversal; date shifts preserve time intervals except when values hit supported bounds; and deterministic tokens reveal equality and frequency within a run. Tokens are derived using the per-manifest salt, so the same key does not create stable tokens across separate obfuscation runs. Deterministic tokens use AES-CBC with a fixed per-column IV, which also leaks shared plaintext block prefixes. A recipient with auxiliary information may infer original values even when direct values have changed.
+
+Treat the manifest as sensitive source data. Plain manifests can contain original values in mapping mode and include information needed to reverse transformations. AES-GCM or GPG can encrypt the manifest when configured; that does not encrypt the CSV, protect the original input, or hide information inferable from the output. The unkeyed manifest checksum detects accidental edits, not malicious tampering.
+
+Use obfuscation for controlled workflows where these residual disclosures are acceptable. Review selected and retained columns, values, structure, and likely auxiliary information for each dataset before sharing it. The project makes no guarantee against reidentification or a determined recipient. No external cryptography dependency is required by the current implementation; existing manifest formats and compatibility behavior remain unchanged.
 
 ## Data generation modes
 

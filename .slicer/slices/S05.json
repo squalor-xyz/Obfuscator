@@ -1,0 +1,41 @@
+{
+  "id": "S05",
+  "title": "Strengthen generator config and sweep validation",
+  "lead": [
+    "Define and enforce a clear generation-config contract for invalid or impractically large sweep configurations, while preserving fixed, sweep, and max mode behavior that the docs describe."
+  ],
+  "depends_note": null,
+  "findings_note": "Obfuscator/Obfuscator.cs; Obfuscator/DataGenerator.cs",
+  "size": "M",
+  "flags": [],
+  "trees_note": "generator, tests",
+  "trees_plural": true,
+  "boundary": "**Not in this slice:**",
+  "sections": [
+    {
+      "heading": "Why",
+      "body": "Generation config validation checks basic shape, but does not reject duplicate sweep axes or arithmetic overflow in the sweep cardinality. Invalid or excessively large inputs should fail clearly before expensive allocation or output."
+    },
+    {
+      "heading": "Files",
+      "body": "Obfuscator/Obfuscator.cs; Obfuscator/DataGenerator.cs; Obfuscator.Tests/ObfuscatorTests.cs; generator examples and README."
+    },
+    {
+      "heading": "Failing tests",
+      "body": "Add cases for duplicate axes, invalid discrete values/config combinations, sweep-cardinality overflow, and supported fixed/sweep/max behavior including seeded output."
+    },
+    {
+      "heading": "Implement",
+      "body": "Define validation for sweep axis uniqueness, referenced values, relevant numeric and percentage fields, and checked sweep cardinality before row expansion. Preserve documented row modes and avoid introducing an arbitrary size cap without a documented rationale."
+    },
+    {
+      "heading": "Check",
+      "body": "Run focused config/generator tests, compare the frozen semiconductor fixture, then run the full solution test suite."
+    },
+    {
+      "heading": "Git",
+      "body": "Do not regenerate or overwrite the committed golden CSV or suite fixtures as part of unrelated generator tests."
+    }
+  ],
+  "notes": []
+}

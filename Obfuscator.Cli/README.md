@@ -84,6 +84,14 @@ Manifest notes:
 - plain and AES-encrypted manifests can be written on one OS and read on another
 - `--gpg-recipient` requires `gpg` to be installed and available on `PATH`
 
+## Security contract
+
+Obfuscation changes selected cell values for controlled development, testing, and data workflows. It is reversible when the required manifest and, for deterministic-token mode, the deterministic key are available. It transforms data; it does not encrypt the CSV or guarantee that a dataset is anonymous or safe to share.
+
+The output retains CSV structure, including column names and row order. Excluded columns, preserved blank cells, and other untransformed values remain visible. Transformations can preserve relationships: repeated values remain equal, numeric transformations generally preserve ordering or its reversal, date shifts preserve time intervals except when values hit supported bounds, and deterministic tokens reveal equality and frequency within a run. Tokens use the per-manifest salt, so the same key does not create stable tokens across separate obfuscation runs. Deterministic tokens use AES-CBC with a fixed per-column IV, which also leaks shared plaintext block prefixes. Auxiliary information may let a recipient infer original values.
+
+Treat the manifest as sensitive source data. Plain manifests can contain original values in mapping mode and include information needed to reverse transformations. AES-GCM or GPG can encrypt the manifest when configured; neither encrypts the CSV or protects the original input. The unkeyed manifest checksum detects accidental edits, not malicious tampering. Review each dataset's selected and retained columns, values, structure, and likely auxiliary information before sharing. The project makes no guarantee against reidentification or a determined recipient. The current implementation needs no external cryptography dependency.
+
 ## Config notes
 
 Generation config supports:
