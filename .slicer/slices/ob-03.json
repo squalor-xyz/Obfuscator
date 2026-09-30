@@ -1,15 +1,15 @@
 {
-  "id": "S03",
+  "id": "ob-03",
   "title": "Prevent path collisions and incomplete output pairs",
   "lead": [
     "Ensure input, CSV output, and manifest paths cannot overwrite one another. Define and implement failure behavior so an error while producing either output does not leave a misleading partial output pair or destroy pre-existing files."
   ],
   "depends_note": null,
-  "findings_note": "Obfuscator/ObfuscationEngine.cs; Obfuscator/FileWrite.cs",
+  "findings_note": "Obfuscator/ObfuscationEngine.cs; Obfuscator/FileWrite.cs (was S03)",
   "size": "M",
   "flags": [],
-  "trees_note": "core, tests",
-  "trees_plural": true,
+  "trees_note": "core,tests",
+  "trees_plural": false,
   "boundary": "**Not in this slice:**",
   "sections": [
     {

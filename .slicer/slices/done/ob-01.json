@@ -1,15 +1,15 @@
 {
-  "id": "S01",
+  "id": "ob-01",
   "title": "Define the security contract and supported threat model",
   "lead": [
     "Agree and document what obfuscation protects, what it does not protect, and the supported attacker and workflow assumptions. Use this contract to guide cryptographic and operational changes."
   ],
   "depends_note": null,
-  "findings_note": "README.md documents deterministic-token leakage and plaintext manifests; no recorded Slicer goals",
+  "findings_note": "README.md documents deterministic-token leakage and plaintext manifests; no recorded Slicer goals (was S01)",
   "size": "S",
   "flags": [],
-  "trees_note": "core, docs",
-  "trees_plural": true,
+  "trees_note": "core,docs",
+  "trees_plural": false,
   "boundary": "**Not in this slice:**",
   "sections": [
     {

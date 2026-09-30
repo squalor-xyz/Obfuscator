@@ -1,7 +1,7 @@
 {
   "version": 1,
   "id": {
-    "prefix": "S",
+    "prefix": "ob-",
     "width": 2
   },
   "statuses": {
@@ -15,6 +15,7 @@
   "retired_status": "retired",
   "parked_status": "parked",
   "started_status": "started",
+  "review_status": "review",
   "sections": [
     "Why",
     "Files",
@@ -56,5 +57,7 @@
   "sync": {
     "targets": []
   },
-  "git_check": true
+  "git_check": true,
+  "render_driver_check": true,
+  "claim_owner": ""
 }

@@ -1,15 +1,15 @@
 {
-  "id": "S02",
+  "id": "ob-02",
   "title": "Make CLI credential entry safe by default",
   "lead": [
     "Reduce accidental passphrase exposure in CLI use. Keep environment, file, and stdin inputs available; decide whether the inline `--passphrase` option should be removed or explicitly deprecated, and document the resulting workflow."
   ],
   "depends_note": null,
-  "findings_note": "Obfuscator.Cli/ObfuscatorCliProgram.cs; README.md; Obfuscator.Cli/README.md",
+  "findings_note": "Obfuscator.Cli/ObfuscatorCliProgram.cs; README.md; Obfuscator.Cli/README.md (was S02)",
   "size": "M",
   "flags": [],
-  "trees_note": "cli, docs",
-  "trees_plural": true,
+  "trees_note": "cli,docs",
+  "trees_plural": false,
   "boundary": "**Not in this slice:**",
   "sections": [
     {

@@ -1,163 +1,169 @@
 {
-  "version": 1,
-  "id_prefix": "S",
+  "version": 2,
+  "id_prefix": "ob-",
   "id_width": 2,
   "next_id": 7,
   "preamble": "",
   "passes": [],
   "items": [
     {
-      "id": "S01",
+      "id": "ob-01",
       "title": "Define the security contract and supported threat model",
       "short_title": "Define the security contract and supported threat model",
       "status": "done",
       "has_slice": true,
       "depends_on": [],
       "notes": [
-        "**2026-09-28** — Security contract agreed: accidental-exposure risk reduction for controlled workflows; sharing is case-by-case. Docs cover retained structure and inference risk, manifest confidentiality, deterministic leakage, current compatibility, and no new crypto dependency."
+        "**2026-09-29** — (recorded 2026-09-28 on S01) Security contract agreed: accidental-exposure risk reduction for controlled workflows; sharing is case-by-case. Docs cover retained structure and inference risk, manifest confidentiality, deterministic leakage, current compatibility, and no new crypto dependency."
       ],
+      "claim": null,
       "fields": {
         "size": "S",
         "flags": [],
         "trees": [
-          "core",
-          "docs"
+          "core,docs"
         ],
         "trees_literal": false,
-        "findings": "README.md documents deterministic-token leakage and plaintext manifests; no recorded Slicer goals",
+        "findings": "README.md documents deterministic-token leakage and plaintext manifests; no recorded Slicer goals (was S01)",
         "pass": "",
         "group": "",
         "reason": "",
         "importance": 3,
-        "urgency": 3
+        "urgency": 3,
+        "effort": null
       }
     },
     {
-      "id": "S02",
+      "id": "ob-02",
       "title": "Make CLI credential entry safe by default",
       "short_title": "Make CLI credential entry safe by default",
       "status": "open",
       "has_slice": true,
       "depends_on": [],
       "notes": [],
+      "claim": null,
       "fields": {
         "size": "M",
         "flags": [],
         "trees": [
-          "cli",
-          "docs"
+          "cli,docs"
         ],
         "trees_literal": false,
-        "findings": "Obfuscator.Cli/ObfuscatorCliProgram.cs; README.md; Obfuscator.Cli/README.md",
+        "findings": "Obfuscator.Cli/ObfuscatorCliProgram.cs; README.md; Obfuscator.Cli/README.md (was S02)",
         "pass": "",
         "group": "",
         "reason": "",
         "importance": 3,
-        "urgency": 3
+        "urgency": 3,
+        "effort": null
       }
     },
     {
-      "id": "S03",
+      "id": "ob-03",
       "title": "Prevent path collisions and incomplete output pairs",
       "short_title": "Prevent path collisions and incomplete output pairs",
       "status": "open",
       "has_slice": true,
       "depends_on": [],
       "notes": [],
+      "claim": null,
       "fields": {
         "size": "M",
         "flags": [],
         "trees": [
-          "core",
-          "tests"
+          "core,tests"
         ],
         "trees_literal": false,
-        "findings": "Obfuscator/ObfuscationEngine.cs; Obfuscator/FileWrite.cs",
+        "findings": "Obfuscator/ObfuscationEngine.cs; Obfuscator/FileWrite.cs (was S03)",
         "pass": "",
         "group": "",
         "reason": "",
         "importance": 3,
-        "urgency": 3
+        "urgency": 3,
+        "effort": null
       }
     },
     {
-      "id": "S04",
+      "id": "ob-04",
       "title": "Replace or redesign deterministic-token cryptography",
       "short_title": "Replace or redesign deterministic-token cryptography",
       "status": "open",
       "has_slice": true,
       "depends_on": [
-        "S01"
+        "ob-01"
       ],
       "notes": [],
+      "claim": null,
       "fields": {
         "size": "L",
         "flags": [],
         "trees": [
-          "core",
-          "tests"
+          "core,tests"
         ],
         "trees_literal": false,
-        "findings": "README.md documents fixed-IV CBC prefix leakage; Obfuscator/ObfuscationEngine.cs",
+        "findings": "README.md documents fixed-IV CBC prefix leakage; Obfuscator/ObfuscationEngine.cs (was S04)",
         "pass": "",
         "group": "",
         "reason": "",
         "importance": 3,
-        "urgency": 2
+        "urgency": 2,
+        "effort": null
       }
     },
     {
-      "id": "S05",
+      "id": "ob-05",
       "title": "Strengthen generator config and sweep validation",
       "short_title": "Strengthen generator config and sweep validation",
       "status": "open",
       "has_slice": true,
       "depends_on": [],
       "notes": [],
+      "claim": null,
       "fields": {
         "size": "M",
         "flags": [],
         "trees": [
-          "generator",
-          "tests"
+          "generator,tests"
         ],
         "trees_literal": false,
-        "findings": "Obfuscator/Obfuscator.cs; Obfuscator/DataGenerator.cs",
+        "findings": "Obfuscator/Obfuscator.cs; Obfuscator/DataGenerator.cs (was S05)",
         "pass": "",
         "group": "",
         "reason": "",
         "importance": 3,
-        "urgency": 2
+        "urgency": 2,
+        "effort": null
       }
     },
     {
-      "id": "S06",
+      "id": "ob-06",
       "title": "Document security guarantees and supported workflows",
       "short_title": "Document security guarantees and supported workflows",
       "status": "open",
       "has_slice": true,
       "depends_on": [
-        "S01",
-        "S02",
-        "S03",
-        "S04",
-        "S05"
+        "ob-01",
+        "ob-02",
+        "ob-03",
+        "ob-04",
+        "ob-05"
       ],
       "notes": [],
+      "claim": null,
       "fields": {
         "size": "S",
         "flags": [],
         "trees": [
-          "docs",
-          "cli"
+          "docs,cli"
         ],
         "trees_literal": false,
-        "findings": "README.md; Obfuscator.Cli/README.md; Obfuscator/PackageReadme.md",
+        "findings": "README.md; Obfuscator.Cli/README.md; Obfuscator/PackageReadme.md (was S06)",
         "pass": "",
         "group": "",
         "reason": "",
         "importance": 2,
-        "urgency": 2
+        "urgency": 2,
+        "effort": null
       }
     }
   ],

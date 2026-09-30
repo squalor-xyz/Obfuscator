@@ -12,11 +12,11 @@ Do not claim obfuscation alone provides cryptographic secrecy. Do not require en
 
 6 items · — 5 · done 1
 
-| # | Slice | Title | Size | Trees | Findings | Status |
-|---|---|---|---|---|---|---|
-| 1 | [S01](slices/S01.md) | Define the security contract and supported threat model | S | core, docs | README.md documents deterministic-token leakage and plaintext manifests; no recorded Slicer goals | done |
-| 2 | [S02](slices/S02.md) | Make CLI credential entry safe by default | M | cli, docs | Obfuscator.Cli/ObfuscatorCliProgram.cs; README.md; Obfuscator.Cli/README.md | — |
-| 3 | [S03](slices/S03.md) | Prevent path collisions and incomplete output pairs | M | core, tests | Obfuscator/ObfuscationEngine.cs; Obfuscator/FileWrite.cs | — |
-| 4 | [S04](slices/S04.md) | Replace or redesign deterministic-token cryptography | L | core, tests | README.md documents fixed-IV CBC prefix leakage; Obfuscator/ObfuscationEngine.cs | — |
-| 5 | [S05](slices/S05.md) | Strengthen generator config and sweep validation | M | generator, tests | Obfuscator/Obfuscator.cs; Obfuscator/DataGenerator.cs | — |
-| 6 | [S06](slices/S06.md) | Document security guarantees and supported workflows | S | docs, cli | README.md; Obfuscator.Cli/README.md; Obfuscator/PackageReadme.md | — |
+| # | Slice | Title | Size | Effort | Trees | Findings | Status |
+|---|---|---|---|---|---|---|---|
+| 1 | [ob-01](slices/ob-01.md) | Define the security contract and supported threat model | S | - | core,docs | README.md documents deterministic-token leakage and plaintext manifests; no recorded Slicer goals (was S01) | done |
+| 2 | [ob-02](slices/ob-02.md) | Make CLI credential entry safe by default | M | - | cli,docs | Obfuscator.Cli/ObfuscatorCliProgram.cs; README.md; Obfuscator.Cli/README.md (was S02) | — |
+| 3 | [ob-03](slices/ob-03.md) | Prevent path collisions and incomplete output pairs | M | - | core,tests | Obfuscator/ObfuscationEngine.cs; Obfuscator/FileWrite.cs (was S03) | — |
+| 4 | [ob-04](slices/ob-04.md) | Replace or redesign deterministic-token cryptography | L | - | core,tests | README.md documents fixed-IV CBC prefix leakage; Obfuscator/ObfuscationEngine.cs (was S04) | — |
+| 5 | [ob-05](slices/ob-05.md) | Strengthen generator config and sweep validation | M | - | generator,tests | Obfuscator/Obfuscator.cs; Obfuscator/DataGenerator.cs (was S05) | — |
+| 6 | [ob-06](slices/ob-06.md) | Document security guarantees and supported workflows | S | - | docs,cli | README.md; Obfuscator.Cli/README.md; Obfuscator/PackageReadme.md (was S06) | — |

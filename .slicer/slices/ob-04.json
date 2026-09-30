@@ -1,15 +1,15 @@
 {
-  "id": "S04",
+  "id": "ob-04",
   "title": "Replace or redesign deterministic-token cryptography",
   "lead": [
     "Retain deterministic token functionality while removing the documented prefix leakage. Have the design reviewed; evaluate a vetted FLOSS package if the .NET BCL cannot meet the security requirement, and record manifest/API compatibility and migration behavior."
   ],
   "depends_note": null,
-  "findings_note": "README.md documents fixed-IV CBC prefix leakage; Obfuscator/ObfuscationEngine.cs",
+  "findings_note": "README.md documents fixed-IV CBC prefix leakage; Obfuscator/ObfuscationEngine.cs (was S04)",
   "size": "L",
   "flags": [],
-  "trees_note": "core, tests",
-  "trees_plural": true,
+  "trees_note": "core,tests",
+  "trees_plural": false,
   "boundary": "**Not in this slice:**",
   "sections": [
     {
@@ -26,7 +26,7 @@
     },
     {
       "heading": "Implement",
-      "body": "After S01 fixes the security contract, choose and review a deterministic, misuse-resistant construction. Use a vetted FLOSS package if the BCL cannot meet the requirement; document license and maintenance cost. Version any changed manifest/API behavior and specify how existing data is restored or migrated."
+      "body": "After ob-01 fixes the security contract, choose and review a deterministic, misuse-resistant construction. Use a vetted FLOSS package if the BCL cannot meet the requirement; document license and maintenance cost. Version any changed manifest/API behavior and specify how existing data is restored or migrated."
     },
     {
       "heading": "Check",
