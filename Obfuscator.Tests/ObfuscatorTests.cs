@@ -881,6 +881,7 @@ public sealed class ObfuscatorTests : IDisposable
     public void Manifest_GpgRoundTrip_RestoresOriginal()
     {
         Skip.If(!GpgAvailable(), "gpg is not on PATH");
+        Skip.If(GpgIsMsysOnWindows(), "gpg on PATH is an MSYS build; it does not accept a Windows --homedir");
 
         var gnupg = Path.Combine(Path.GetTempPath(), "r9g" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(gnupg);
@@ -1565,6 +1566,39 @@ public sealed class ObfuscatorTests : IDisposable
                 return false;
             p.WaitForExit();
             return p.ExitCode == 0;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    // Git for Windows ships an MSYS gpg that reports a POSIX "Home:" and treats C:\ paths as relative.
+    private static bool GpgIsMsysOnWindows()
+    {
+        if (!OperatingSystem.IsWindows())
+            return false;
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "gpg",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false
+            };
+            psi.ArgumentList.Add("--version");
+            using var p = Process.Start(psi);
+            if (p is null)
+                return false;
+            var stdout = p.StandardOutput.ReadToEnd();
+            p.WaitForExit();
+            foreach (var line in stdout.Split('\n'))
+            {
+                if (line.StartsWith("Home:", StringComparison.Ordinal))
+                    return line["Home:".Length..].TrimStart().StartsWith('/');
+            }
+            return false;
         }
         catch
         {
