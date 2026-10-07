@@ -277,7 +277,7 @@
       "id": "ob-09",
       "title": "Document the slice worktree workflow",
       "short_title": "Document the slice worktree workflow",
-      "status": "reviewing",
+      "status": "done",
       "has_slice": true,
       "depends_on": [],
       "note_records": [
@@ -315,10 +315,7 @@
           "stale_after": ""
         }
       ],
-      "claim": {
-        "owner": "Jon R",
-        "at": "2026-10-07T12:04:06Z"
-      },
+      "claim": null,
       "fields": {
         "size": "S",
         "flags": [],
