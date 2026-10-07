@@ -9,8 +9,23 @@ namespace Squalor.Obfuscator;
 
 internal static class FileWrite
 {
+    // Case-insensitive on every OS: rejecting a rare case-only pair on Linux is safer than
+    // letting an alias through on a case-insensitive macOS or Windows volume.
     public static bool SamePath(string left, string right)
-        => string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), StringComparison.Ordinal);
+        => string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), StringComparison.OrdinalIgnoreCase);
+
+    public static void RejectAliases(params (string Label, string Path)[] paths)
+    {
+        for (var i = 0; i < paths.Length; i++)
+        {
+            for (var j = i + 1; j < paths.Length; j++)
+            {
+                if (SamePath(paths[i].Path, paths[j].Path))
+                    throw new InvalidOperationException(
+                        $"{paths[i].Label} path and {paths[j].Label} path refer to the same file: '{paths[j].Path}'.");
+            }
+        }
+    }
 
     public static void RefuseOverwriteUnlessForce(string path, bool force)
     {
@@ -34,6 +49,64 @@ internal static class FileWrite
             if (File.Exists(tmp))
                 File.Delete(tmp);
             throw;
+        }
+    }
+
+    // Stages both files next to their targets and publishes them only after both are written.
+    // On any failure, files this call published are removed and pre-existing targets are restored.
+    public static void WritePairAtomically(
+        string firstPath,
+        Action<string> writeFirst,
+        string secondPath,
+        Action<string> writeSecond,
+        bool force)
+    {
+        ArgumentNullException.ThrowIfNull(writeFirst);
+        ArgumentNullException.ThrowIfNull(writeSecond);
+
+        var id = Guid.NewGuid().ToString("N");
+        var targets = new[] { firstPath, secondPath };
+        var staged = targets.Select(t => $"{t}.{id}.tmp").ToArray();
+        var backups = targets.Select(t => $"{t}.{id}.bak").ToArray();
+        var backedUp = new bool[2];
+        var published = new bool[2];
+
+        try
+        {
+            writeFirst(staged[0]);
+            writeSecond(staged[1]);
+
+            for (var i = 0; i < 2; i++)
+            {
+                if (force && File.Exists(targets[i]))
+                {
+                    File.Move(targets[i], backups[i]);
+                    backedUp[i] = true;
+                }
+
+                File.Move(staged[i], targets[i], overwrite: false);
+                published[i] = true;
+            }
+        }
+        catch
+        {
+            for (var i = 0; i < 2; i++)
+            {
+                if (published[i])
+                    File.Delete(targets[i]);
+                if (backedUp[i])
+                    File.Move(backups[i], targets[i]);
+                if (File.Exists(staged[i]))
+                    File.Delete(staged[i]);
+            }
+
+            throw;
+        }
+
+        for (var i = 0; i < 2; i++)
+        {
+            if (backedUp[i])
+                File.Delete(backups[i]);
         }
     }
 }

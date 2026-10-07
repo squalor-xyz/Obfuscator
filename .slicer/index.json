@@ -2,7 +2,7 @@
   "version": 7,
   "id_prefix": "ob-",
   "id_width": 2,
-  "next_id": 12,
+  "next_id": 13,
   "preamble": "",
   "passes": [],
   "items": [
@@ -101,11 +101,14 @@
       "id": "ob-03",
       "title": "Prevent path collisions and incomplete output pairs",
       "short_title": "Prevent path collisions and incomplete output pairs",
-      "status": "open",
+      "status": "started",
       "has_slice": true,
       "depends_on": [],
       "note_records": [],
-      "claim": null,
+      "claim": {
+        "owner": "Jon R",
+        "at": "2026-10-07T12:54:33Z"
+      },
       "fields": {
         "size": "M",
         "flags": [],
@@ -122,7 +125,7 @@
         "importance": 3,
         "urgency": 3,
         "effort": null,
-        "attempts": 0
+        "attempts": 1
       }
     },
     {
@@ -387,6 +390,34 @@
         "reason": "",
         "importance": 2,
         "urgency": 2,
+        "effort": 1,
+        "attempts": 0
+      }
+    },
+    {
+      "id": "ob-12",
+      "title": "Detect symlink and hard-link aliases between input, output, and manifest",
+      "short_title": "Detect symlink and hard-link aliases between input, output, and manifest",
+      "status": "open",
+      "has_slice": false,
+      "depends_on": [],
+      "note_records": [],
+      "claim": null,
+      "fields": {
+        "size": "S",
+        "flags": [],
+        "trees": [
+          "core"
+        ],
+        "trees_literal": false,
+        "findings": "Obfuscator/FileWrite.cs: SamePath compares Path.GetFullPath case-insensitively only; a symlinked or hard-linked path to the same file is not rejected",
+        "discovered_from": "ob-03",
+        "key": "",
+        "pass": "",
+        "group": "",
+        "reason": "",
+        "importance": 2,
+        "urgency": 1,
         "effort": 1,
         "attempts": 0
       }

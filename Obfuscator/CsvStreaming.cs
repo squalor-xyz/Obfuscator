@@ -41,39 +41,45 @@ internal static class CsvStreaming
             throw new InvalidOperationException("Output path is the input path. Pass -o explicitly.");
 
         FileWrite.RefuseOverwriteUnlessForce(outputPath, force);
-        FileWrite.WriteAtomically(outputPath, tmp =>
-        {
-            using var reader = new StreamReader(inputPath);
-            using var writer = new StreamWriter(tmp, false, new System.Text.UTF8Encoding(false));
+        FileWrite.WriteAtomically(outputPath, tmp => WriteTransformed(inputPath, tmp, transformRow, outputDelimiter));
+    }
 
-            using var csvReader = CreateReader(reader);
-            csvReader.Read();
-            csvReader.ReadHeader();
-            var headers = csvReader.HeaderRecord ?? Array.Empty<string>();
-            var delimiter = string.IsNullOrEmpty(outputDelimiter) ? csvReader.Parser.Delimiter : outputDelimiter;
-            using var csvWriter = CreateWriter(writer, delimiter);
+    public static void WriteTransformed(
+        string inputPath,
+        string destPath,
+        Func<string[], IDictionary<string, string>, IDictionary<string, string>> transformRow,
+        string? outputDelimiter = null)
+    {
+        using var reader = new StreamReader(inputPath);
+        using var writer = new StreamWriter(destPath, false, new System.Text.UTF8Encoding(false));
+
+        using var csvReader = CreateReader(reader);
+        csvReader.Read();
+        csvReader.ReadHeader();
+        var headers = csvReader.HeaderRecord ?? Array.Empty<string>();
+        var delimiter = string.IsNullOrEmpty(outputDelimiter) ? csvReader.Parser.Delimiter : outputDelimiter;
+        using var csvWriter = CreateWriter(writer, delimiter);
+
+        foreach (var h in headers)
+            csvWriter.WriteField(h);
+        csvWriter.NextRecord();
+
+        while (csvReader.Read())
+        {
+            var inputRow = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var h in headers)
+                inputRow[h] = csvReader.GetField(h) ?? string.Empty;
+
+            var outputRow = transformRow(headers, inputRow);
 
             foreach (var h in headers)
-                csvWriter.WriteField(h);
-            csvWriter.NextRecord();
-
-            while (csvReader.Read())
             {
-                var inputRow = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                foreach (var h in headers)
-                    inputRow[h] = csvReader.GetField(h) ?? string.Empty;
-
-                var outputRow = transformRow(headers, inputRow);
-
-                foreach (var h in headers)
-                {
-                    outputRow.TryGetValue(h, out var value);
-                    csvWriter.WriteField(value ?? string.Empty);
-                }
-
-                csvWriter.NextRecord();
+                outputRow.TryGetValue(h, out var value);
+                csvWriter.WriteField(value ?? string.Empty);
             }
-        });
+
+            csvWriter.NextRecord();
+        }
     }
 
     public static IEnumerable<IDictionary<string, string>> ReadRows(string path)

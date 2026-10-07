@@ -23,17 +23,20 @@ internal static class ManifestCrypto
     private const string HeaderSeparator = "\n";
     private static readonly UTF8Encoding Utf8NoBom = new(false);
 
-    public static void WriteManifest(
-        string path,
-        string json,
-        string? passphrase,
-        IReadOnlyList<string>? gpgRecipients,
-        bool force = false)
+    public static void ValidatePassphrase(string? passphrase)
     {
         if (passphrase is not null && string.IsNullOrWhiteSpace(passphrase))
             throw new ArgumentException("Passphrase is blank. Omit it or supply a value.", nameof(passphrase));
+    }
 
-        FileWrite.RefuseOverwriteUnlessForce(path, force);
+    // Writes directly to destPath; callers stage and publish it.
+    public static void WriteManifestTo(
+        string destPath,
+        string json,
+        string? passphrase,
+        IReadOnlyList<string>? gpgRecipients)
+    {
+        ValidatePassphrase(passphrase);
 
         var payload = !string.IsNullOrWhiteSpace(passphrase)
             ? $"{AesGcmHeader}{HeaderSeparator}{EncryptAesGcm(json, passphrase!)}"
@@ -45,7 +48,7 @@ internal static class ManifestCrypto
             try
             {
                 File.WriteAllText(tmp, payload, Utf8NoBom);
-                GpgEncryptTo(tmp, path, gpgRecipients);
+                GpgEncryptTo(tmp, destPath, gpgRecipients);
             }
             finally
             {
@@ -56,7 +59,7 @@ internal static class ManifestCrypto
             return;
         }
 
-        FileWrite.WriteAtomically(path, destTmp => File.WriteAllText(destTmp, payload, Utf8NoBom));
+        File.WriteAllText(destPath, payload, Utf8NoBom);
     }
 
     public static string ReadManifest(string path, string? passphrase)
@@ -224,8 +227,7 @@ internal static class ManifestCrypto
                 throw new InvalidOperationException("gpg encrypt failed.");
 
             var armored = File.ReadAllText(output, Utf8NoBom);
-            FileWrite.WriteAtomically(destPath, destTmp =>
-                File.WriteAllText(destTmp, $"{GpgHeader}{HeaderSeparator}{armored}", Utf8NoBom));
+            File.WriteAllText(destPath, $"{GpgHeader}{HeaderSeparator}{armored}", Utf8NoBom);
         }
         finally
         {

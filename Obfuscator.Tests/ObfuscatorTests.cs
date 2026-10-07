@@ -1094,6 +1094,7 @@ public sealed class ObfuscatorTests : IDisposable
                 new ObfuscationOptions { GpgRecipients = ["nobody@invalid"] }));
 
         Assert.False(File.Exists(manifestPath), manifestPath);
+        Assert.False(File.Exists(obfuscatedPath), obfuscatedPath);
     }
 
     [Fact]
@@ -1369,13 +1370,17 @@ public sealed class ObfuscatorTests : IDisposable
         File.WriteAllLines(input, ["N", "1", "9007199254740993"], Encoding.UTF8);
         var payload = Encoding.UTF8.GetBytes("KEEP-EXISTING-OUTPUT");
         File.WriteAllBytes(output, payload);
+        File.WriteAllText(manifest, "KEEP-EXISTING-MANIFEST", Encoding.UTF8);
         var before = Convert.ToHexString(SHA256.HashData(payload));
+        var manifestBefore = HashFile(manifest);
 
         Assert.ThrowsAny<Exception>(() =>
             _obfuscator.ObfuscateCsv(input, output, manifest, new ObfuscationOptions { Force = true }));
 
         Assert.True(File.Exists(output));
         Assert.Equal(before, Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(output))));
+        Assert.Equal(manifestBefore, HashFile(manifest));
+        AssertOnlyEntries("preexist-input.csv", "preexist-obfuscated.csv", "preexist.obf");
     }
 
     [Fact]
@@ -1427,6 +1432,160 @@ public sealed class ObfuscatorTests : IDisposable
         Assert.ThrowsAny<Exception>(() =>
             _obfuscator.ObfuscateCsv(inputPath, obfuscatedPath, manifestPath));
         Assert.False(File.Exists(obfuscatedPath), obfuscatedPath);
+        AssertOnlyEntries("partial-input.csv");
+    }
+
+    [Fact]
+    public void Obfuscate_OutputEqualsManifest_ThrowsAndPreservesFile()
+    {
+        var input = Path.Combine(_tempDir, "om-in.csv");
+        var output = Path.Combine(_tempDir, "om-out.csv");
+        File.WriteAllText(input, "Name\nAlice\n", Encoding.UTF8);
+        File.WriteAllText(output, "KEEP-EXISTING-OUTPUT", Encoding.UTF8);
+        var before = HashFile(output);
+
+        Assert.Throws<InvalidOperationException>(() =>
+            _obfuscator.ObfuscateCsv(input, output, output, new ObfuscationOptions { Force = true }));
+
+        Assert.Equal(before, HashFile(output));
+        AssertOnlyEntries("om-in.csv", "om-out.csv");
+    }
+
+    [Fact]
+    public void Obfuscate_ManifestEqualsInput_ThrowsAndPreservesInput()
+    {
+        var input = Path.Combine(_tempDir, "mi-in.csv");
+        var output = Path.Combine(_tempDir, "mi-out.csv");
+        File.WriteAllText(input, "Name\nAlice\n", Encoding.UTF8);
+        var before = HashFile(input);
+
+        Assert.Throws<InvalidOperationException>(() =>
+            _obfuscator.ObfuscateCsv(input, output, input, new ObfuscationOptions { Force = true }));
+
+        Assert.Equal(before, HashFile(input));
+        AssertOnlyEntries("mi-in.csv");
+    }
+
+    [Fact]
+    public void Obfuscate_ManifestRelativeAliasOfOutput_Throws()
+    {
+        var input = Path.Combine(_tempDir, "alias-in.csv");
+        var output = Path.Combine(_tempDir, "alias-out.csv");
+        Directory.CreateDirectory(Path.Combine(_tempDir, "sub"));
+        File.WriteAllText(input, "Name\nAlice\n", Encoding.UTF8);
+
+        foreach (var manifest in new[]
+                 {
+                     Path.Combine(_tempDir, ".", "alias-out.csv"),
+                     Path.Combine(_tempDir, "sub", "..", "alias-out.csv")
+                 })
+        {
+            Assert.Throws<InvalidOperationException>(() =>
+                _obfuscator.ObfuscateCsv(input, output, manifest, new ObfuscationOptions { Force = true }));
+        }
+
+        AssertOnlyEntries("alias-in.csv", "sub");
+    }
+
+    [Fact]
+    public void Obfuscate_ManifestCaseOnlyAliasOfOutput_Throws()
+    {
+        var input = Path.Combine(_tempDir, "case-in.csv");
+        var output = Path.Combine(_tempDir, "case-out.csv");
+        var manifest = Path.Combine(_tempDir, "CASE-OUT.csv");
+        File.WriteAllText(input, "Name\nAlice\n", Encoding.UTF8);
+
+        Assert.Throws<InvalidOperationException>(() =>
+            _obfuscator.ObfuscateCsv(input, output, manifest, new ObfuscationOptions { Force = true }));
+
+        AssertOnlyEntries("case-in.csv");
+    }
+
+    [Fact]
+    public void Deobfuscate_OutputEqualsManifest_ThrowsAndPreservesManifest()
+    {
+        var input = Path.Combine(_tempDir, "do-in.csv");
+        var obfuscated = Path.Combine(_tempDir, "do-obf.csv");
+        var manifest = Path.Combine(_tempDir, "do.obf");
+        File.WriteAllText(input, "Name\nAlice\n", Encoding.UTF8);
+        _obfuscator.ObfuscateCsv(input, obfuscated, manifest);
+        var before = HashFile(manifest);
+
+        Assert.Throws<InvalidOperationException>(() =>
+            _obfuscator.DeobfuscateCsv(obfuscated, manifest, manifest, force: true));
+
+        Assert.Equal(before, HashFile(manifest));
+        AssertOnlyEntries("do-in.csv", "do-obf.csv", "do.obf");
+    }
+
+    [Fact]
+    public void Obfuscate_ManifestStageFailure_WithForce_PreservesBothExistingOutputs()
+    {
+        var input = Path.Combine(_tempDir, "ms-in.csv");
+        var output = Path.Combine(_tempDir, "ms-out.csv");
+        var manifest = Path.Combine(_tempDir, "ms.obf");
+        File.WriteAllText(input, "Name\nAlice\n", Encoding.UTF8);
+        File.WriteAllText(output, "KEEP-EXISTING-OUTPUT", Encoding.UTF8);
+        File.WriteAllText(manifest, "KEEP-EXISTING-MANIFEST", Encoding.UTF8);
+        var outputBefore = HashFile(output);
+        var manifestBefore = HashFile(manifest);
+
+        Assert.ThrowsAny<Exception>(() =>
+            _obfuscator.ObfuscateCsv(input, output, manifest, new ObfuscationOptions { Force = true, Passphrase = " " }));
+
+        Assert.Equal(outputBefore, HashFile(output));
+        Assert.Equal(manifestBefore, HashFile(manifest));
+        AssertOnlyEntries("ms-in.csv", "ms-out.csv", "ms.obf");
+    }
+
+    [Fact]
+    public void Obfuscate_ManifestPublishFailure_WithForce_RestoresExistingOutput()
+    {
+        var input = Path.Combine(_tempDir, "mp-in.csv");
+        var output = Path.Combine(_tempDir, "mp-out.csv");
+        var manifest = Path.Combine(_tempDir, "mp.obf");
+        File.WriteAllText(input, "Name\nAlice\n", Encoding.UTF8);
+        File.WriteAllText(output, "KEEP-EXISTING-OUTPUT", Encoding.UTF8);
+        Directory.CreateDirectory(manifest);
+        var outputBefore = HashFile(output);
+
+        Assert.ThrowsAny<Exception>(() =>
+            _obfuscator.ObfuscateCsv(input, output, manifest, new ObfuscationOptions { Force = true }));
+
+        Assert.Equal(outputBefore, HashFile(output));
+        Assert.True(Directory.Exists(manifest));
+        Assert.Empty(Directory.EnumerateFileSystemEntries(manifest));
+        AssertOnlyEntries("mp-in.csv", "mp-out.csv", "mp.obf");
+    }
+
+    [Fact]
+    public void Obfuscate_WithForce_OverExistingPair_RoundTripsAndLeavesNoStagingFiles()
+    {
+        var input = Path.Combine(_tempDir, "fp-in.csv");
+        var output = Path.Combine(_tempDir, "fp-out.csv");
+        var manifest = Path.Combine(_tempDir, "fp.obf");
+        var restored = Path.Combine(_tempDir, "fp-restored.csv");
+        File.WriteAllText(input, "Name\nAlice\n", Encoding.UTF8);
+        File.WriteAllText(output, "KEEP-EXISTING-OUTPUT", Encoding.UTF8);
+        File.WriteAllText(manifest, "KEEP-EXISTING-MANIFEST", Encoding.UTF8);
+
+        _obfuscator.ObfuscateCsv(input, output, manifest, new ObfuscationOptions { Force = true });
+        _obfuscator.DeobfuscateCsv(output, manifest, restored);
+
+        Assert.Contains("Alice", File.ReadAllText(restored, Encoding.UTF8), StringComparison.Ordinal);
+        AssertOnlyEntries("fp-in.csv", "fp-out.csv", "fp.obf", "fp-restored.csv");
+    }
+
+    private static string HashFile(string path)
+        => Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path)));
+
+    private void AssertOnlyEntries(params string[] names)
+    {
+        var actual = Directory.EnumerateFileSystemEntries(_tempDir)
+            .Select(Path.GetFileName)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+        Assert.Equal(names.Order(StringComparer.Ordinal).ToArray(), actual);
     }
 
     [Fact]
