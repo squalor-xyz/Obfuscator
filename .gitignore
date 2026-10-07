@@ -6,6 +6,9 @@
 artifacts/
 *.binlog
 
+# Local .NET SDK home (cache and telemetry)
+.dotnet_home/
+
 # VS / VS Code / Rider
 .vs/
 .vscode/
