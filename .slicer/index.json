@@ -2,7 +2,7 @@
   "version": 7,
   "id_prefix": "ob-",
   "id_width": 2,
-  "next_id": 11,
+  "next_id": 12,
   "preamble": "",
   "passes": [],
   "items": [
@@ -198,7 +198,7 @@
       "id": "ob-09",
       "title": "Document the slice worktree workflow",
       "short_title": "Document the slice worktree workflow",
-      "status": "review",
+      "status": "reviewing",
       "has_slice": true,
       "depends_on": [],
       "note_records": [
@@ -223,9 +223,23 @@
           "verified_by": "",
           "verified_at": "",
           "stale_after": ""
+        },
+        {
+          "id": "1f1dfc4c-b57b-44b0-9eb3-5d0ec3053314",
+          "kind": "",
+          "text": "**2026-10-07** — VERDICT: PASS - slicer check ok; config implement_finish = handoff; git check-attr: index.json slicer-index, log.jsonl union, render slicer-generated; every slicer flag in CONTRIBUTING exists in its subcommand --help; setup-git commands match slicer setup-git; step 8 exercised on the ob-02 landing: works except the reviewer claim needs a slicer render before commit (filed ob-11).",
+          "created_at": "2026-10-07T12:10:23Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
         }
       ],
-      "claim": null,
+      "claim": {
+        "owner": "Jon R",
+        "at": "2026-10-07T12:04:06Z"
+      },
       "fields": {
         "size": "S",
         "flags": [],
@@ -269,6 +283,34 @@
         "reason": "",
         "importance": 2,
         "urgency": 1,
+        "effort": 1,
+        "attempts": 0
+      }
+    },
+    {
+      "id": "ob-11",
+      "title": "Render after reviewer claim in CONTRIBUTING step 8",
+      "short_title": "Render after reviewer claim in CONTRIBUTING step 8",
+      "status": "open",
+      "has_slice": false,
+      "depends_on": [],
+      "note_records": [],
+      "claim": null,
+      "fields": {
+        "size": "S",
+        "flags": [],
+        "trees": [
+          "docs"
+        ],
+        "trees_literal": false,
+        "findings": "CONTRIBUTING.md:120: reviewer runs 'slicer next --status review --start' which does not re-render; committing the claim then fails 'slicer check' (hit on ob-02 and ob-09 reviews). Add 'slicer --root .worktrees/ob-NN render' after the claim.",
+        "discovered_from": "ob-09",
+        "key": "",
+        "pass": "",
+        "group": "",
+        "reason": "",
+        "importance": 2,
+        "urgency": 2,
         "effort": 1,
         "attempts": 0
       }
