@@ -160,6 +160,8 @@ For CLI output paths:
 
 ## Local development
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the roadmap and review workflow (one git worktree per slicer item, handed off for review before merge).
+
 Run the local smoke test:
 
 ```bash
