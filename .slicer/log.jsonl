@@ -17,3 +17,5 @@
 {"when": "2026-10-07T11:54:23Z", "item": "ob-09", "action": "add", "from": "", "to": "open", "note": "Document the slice worktree workflow"}
 {"when": "2026-10-07T11:54:23Z", "item": "ob-09", "action": "status", "from": "open", "to": "started", "note": "", "by": "Jon R"}
 {"when": "2026-10-07T11:54:24Z", "item": "ob-10", "action": "add", "from": "", "to": "open", "note": "Fix absolute local path link in README Local development"}
+{"when": "2026-10-07T11:55:31Z", "item": "ob-09", "action": "note", "from": "", "to": "", "note": "Ready for review: branch ob-09-contributing-workflow, commit", "by": "Jon R"}
+{"when": "2026-10-07T11:55:31Z", "item": "ob-09", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon R cleared", "by": "Jon R"}

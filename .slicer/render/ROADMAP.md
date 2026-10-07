@@ -10,7 +10,7 @@ Make CSV obfuscation and restoration safer to use for library and CLI users, whi
 
 Do not claim obfuscation alone provides cryptographic secrecy. Do not require encrypted manifests by default. Do not target a 1.0 release in this roadmap.
 
-8 items · — 6 · done 1 · started 1
+8 items · — 6 · done 1 · review 1
 
 | # | Slice | Title | Size | Effort | Trees | Findings | Status |
 |---|---|---|---|---|---|---|---|
@@ -19,7 +19,7 @@ Do not claim obfuscation alone provides cryptographic secrecy. Do not require en
 | 3 | [ob-04](slices/ob-04.md) | Replace or redesign deterministic-token cryptography | L | - | core,tests | README.md documents fixed-IV CBC prefix leakage; Obfuscator/ObfuscationEngine.cs (was S04) | — |
 | 4 | [ob-05](slices/ob-05.md) | Strengthen generator config and sweep validation | M | - | generator,tests | Obfuscator/Obfuscator.cs; Obfuscator/DataGenerator.cs (was S05) | — |
 | 5 | [ob-06](slices/ob-06.md) | Document security guarantees and supported workflows | S | - | docs,cli | README.md; Obfuscator.Cli/README.md; Obfuscator/PackageReadme.md (was S06) | — |
-| 6 | [ob-09](slices/ob-09.md) | Document the slice worktree workflow | S | 1 | docs | owner request during ob-02 | started |
+| 6 | [ob-09](slices/ob-09.md) | Document the slice worktree workflow | S | 1 | docs | owner request during ob-02 | review |
 | 7 | ob-10 | Fix absolute local path link in README Local development | S | 1 | docs | README.md:177 links to /Users/jon/code/squalor-xyz/obfuscator/Obfuscator.Cli/README.md; broken on GitHub and for every other clone | — |
 
 ---

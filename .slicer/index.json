@@ -198,14 +198,23 @@
       "id": "ob-09",
       "title": "Document the slice worktree workflow",
       "short_title": "Document the slice worktree workflow",
-      "status": "started",
+      "status": "review",
       "has_slice": true,
       "depends_on": [],
-      "note_records": [],
-      "claim": {
-        "owner": "Jon R",
-        "at": "2026-10-07T11:54:23Z"
-      },
+      "note_records": [
+        {
+          "id": "6dcb897c-91b6-46df-9142-80ae01781824",
+          "kind": "",
+          "text": "**2026-10-07** — Ready for review: branch ob-09-contributing-workflow, commit 1eceb45. New CONTRIBUTING.md (setup, slice workflow, review/merge/cleanup, agents) linked from README Local development; .slicer/config.json implement_finish=handoff (slicer config implement_finish prints handoff; slicer ai step 4 now says handoff); /.worktrees/ ignored. slicer check ok. Commands checked against slicer --help for start/edit/add/feedback/note/handoff/next/reject/done. Not exercised: reviewer merge path. Filed ob-10.",
+          "created_at": "2026-10-07T11:55:31Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        }
+      ],
+      "claim": null,
       "fields": {
         "size": "S",
         "flags": [],
