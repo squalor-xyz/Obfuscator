@@ -34,8 +34,8 @@ internal sealed class ObfuscationEngine
         string manifestPath,
         ObfuscationOptions options)
     {
-        if (FileWrite.SamePath(inputCsvPath, outputCsvPath))
-            throw new InvalidOperationException("Output path is the input path. Pass -o explicitly.");
+        FileWrite.RejectAliases(("Input", inputCsvPath), ("Output", outputCsvPath), ("Manifest", manifestPath));
+        ManifestCrypto.ValidatePassphrase(options.Passphrase);
 
         FileWrite.RefuseOverwriteUnlessForce(outputCsvPath, options.Force);
         FileWrite.RefuseOverwriteUnlessForce(manifestPath, options.Force);
@@ -51,19 +51,26 @@ internal sealed class ObfuscationEngine
                 $"Strict mode: values did not match the inferred kind in column(s): {named}.");
         }
 
-        CsvStreaming.TransformCsv(
-            inputCsvPath,
+        // Both outputs are staged and published together so a failure never leaves
+        // a CSV without its manifest or destroys pre-existing files.
+        FileWrite.WritePairAtomically(
             outputCsvPath,
-            (_, row) => TransformRowObfuscate(row, manifest, options),
-            options.Force,
-            manifest.Delimiter);
+            tmp => CsvStreaming.WriteTransformed(
+                inputCsvPath,
+                tmp,
+                (_, row) => TransformRowObfuscate(row, manifest, options),
+                manifest.Delimiter),
+            manifestPath,
+            tmp =>
+            {
+                // Hash the manifest after all derived strategy data is populated so deobfuscation
+                // can reject tampering before applying reversible transforms.
+                manifest.IntegrityHashSha256 = ComputeIntegrityHash(manifest);
 
-        // Hash the manifest after all derived strategy data is populated so deobfuscation
-        // can reject tampering before applying reversible transforms.
-        manifest.IntegrityHashSha256 = ComputeIntegrityHash(manifest);
-
-        var json = JsonSerializer.Serialize(manifest, new JsonSerializerOptions { WriteIndented = true });
-        ManifestCrypto.WriteManifest(manifestPath, json, options.Passphrase, options.GpgRecipients, options.Force);
+                var json = JsonSerializer.Serialize(manifest, new JsonSerializerOptions { WriteIndented = true });
+                ManifestCrypto.WriteManifestTo(tmp, json, options.Passphrase, options.GpgRecipients);
+            },
+            options.Force);
 
         return manifest;
     }
@@ -76,6 +83,8 @@ internal sealed class ObfuscationEngine
         bool allowMismatchedSource = false,
         bool force = false)
     {
+        FileWrite.RejectAliases(("Input", obfuscatedCsvPath), ("Manifest", manifestPath), ("Output", outputCsvPath));
+
         var manifestJson = ManifestCrypto.ReadManifest(manifestPath, passphrase);
         var manifest = JsonSerializer.Deserialize<ObfuscationManifest>(manifestJson)
             ?? throw new InvalidOperationException("Failed to deserialize manifest.");

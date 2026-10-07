@@ -83,7 +83,7 @@ obfuscator deobfuscate \
 
 The CLI rejects inline `--passphrase <secret>` because command-line arguments are visible in process lists. The library `ObfuscationOptions.Passphrase` and `DeobfuscateCsv(passphrase:)` APIs are unchanged.
 
-Existing `--output` and `--manifest` files are refused unless you pass `--force`. Input and output must be different paths (`Path.GetFullPath`, ordinal). Writes go to `path.tmp` then `File.Move`. The input CSV delimiter is stored on the manifest and restored on deobfuscate.
+Existing `--output` and `--manifest` files are refused unless you pass `--force`. `--input`, `--output`, and `--manifest` must be three different files: paths are compared after `Path.GetFullPath`, ignoring case on every OS (symlinks and hard links are not resolved). Obfuscate stages the CSV and the manifest next to their targets and publishes them only after both are complete. If either fails, neither is published and any files they would have replaced are restored. Generate and deobfuscate write their single output to `path.tmp`, then `File.Move`. The input CSV delimiter is stored on the manifest and restored on deobfuscate.
 
 Manifest notes:
 

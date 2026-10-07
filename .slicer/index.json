@@ -2,7 +2,7 @@
   "version": 7,
   "id_prefix": "ob-",
   "id_width": 2,
-  "next_id": 12,
+  "next_id": 13,
   "preamble": "",
   "passes": [],
   "items": [
@@ -101,11 +101,48 @@
       "id": "ob-03",
       "title": "Prevent path collisions and incomplete output pairs",
       "short_title": "Prevent path collisions and incomplete output pairs",
-      "status": "open",
+      "status": "reviewing",
       "has_slice": true,
       "depends_on": [],
-      "note_records": [],
-      "claim": null,
+      "note_records": [
+        {
+          "id": "fd4f026a-6c4e-4b86-9d16-252450a05017",
+          "kind": "",
+          "text": "**2026-10-07** — Ready for review: branch ob-03-path-collisions, commit f25c523. Behaviour: obfuscate and deobfuscate reject any input/output/manifest pair that matches after Path.GetFullPath with a case-insensitive compare. Obfuscate stages the CSV and manifest as unique sibling .tmp files and publishes both only after both are written; on failure it deletes what it published and restores --force targets from .bak. A blank passphrase is now rejected before any work. ManifestCrypto.WriteManifest is replaced by WriteManifestTo (callers stage it). README overwrite paragraph updated. Checks: dotnet test Obfuscator.slnx 73/73 passed (8 new or extended tests failed before the change, including the gpg failure test, which ran); scripts/test-local.sh exit 0; slicer check passed. Follow-up: ob-12 (symlink and hard-link aliases).",
+          "created_at": "2026-10-07T12:56:51Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        },
+        {
+          "id": "8c1a931b-6447-45e6-9d77-c317f39dfd59",
+          "kind": "",
+          "text": "**2026-10-07** — VERDICT: FAIL - Obfuscate_ManifestStageFailure_WithForce_PreservesBothExistingOutputs is now stopped by the early blank-passphrase check and never stages the manifest; manifest staging failure is covered only by the gpg test, which is skipped without gpg. Add a gpg-independent manifest staging failure test and rename the passphrase test.",
+          "created_at": "2026-10-07T13:15:19Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        },
+        {
+          "id": "530459f4-584d-47c2-a1c8-b138df9280c9",
+          "kind": "",
+          "text": "**2026-10-07** — Ready for review (round 2): addresses FAIL verdict in b6e22d9. New Obfuscate_ManifestStageFailure_WithForce_PreservesExistingOutput (missing manifest dir, no gpg needed) fails on main (existing CSV overwritten) and passes on the branch; blank-passphrase test renamed to Obfuscate_BlankPassphrase_WithForce_PreservesBothExistingOutputs. dotnet test 74/74 passed; slicer check passed.",
+          "created_at": "2026-10-07T13:15:56Z",
+          "attempt": 2,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        }
+      ],
+      "claim": {
+        "owner": "Jon R",
+        "at": "2026-10-07T13:16:03Z"
+      },
       "fields": {
         "size": "M",
         "flags": [],
@@ -122,7 +159,7 @@
         "importance": 3,
         "urgency": 3,
         "effort": null,
-        "attempts": 0
+        "attempts": 2
       }
     },
     {
@@ -387,6 +424,34 @@
         "reason": "",
         "importance": 2,
         "urgency": 2,
+        "effort": 1,
+        "attempts": 0
+      }
+    },
+    {
+      "id": "ob-12",
+      "title": "Detect symlink and hard-link aliases between input, output, and manifest",
+      "short_title": "Detect symlink and hard-link aliases between input, output, and manifest",
+      "status": "open",
+      "has_slice": false,
+      "depends_on": [],
+      "note_records": [],
+      "claim": null,
+      "fields": {
+        "size": "S",
+        "flags": [],
+        "trees": [
+          "core"
+        ],
+        "trees_literal": false,
+        "findings": "Obfuscator/FileWrite.cs: SamePath compares Path.GetFullPath case-insensitively only; a symlinked or hard-linked path to the same file is not rejected",
+        "discovered_from": "ob-03",
+        "key": "",
+        "pass": "",
+        "group": "",
+        "reason": "",
+        "importance": 2,
+        "urgency": 1,
         "effort": 1,
         "attempts": 0
       }
