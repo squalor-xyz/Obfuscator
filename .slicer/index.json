@@ -212,6 +212,17 @@
           "verified_by": "",
           "verified_at": "",
           "stale_after": ""
+        },
+        {
+          "id": "1e5a650b-15c6-47f7-aedf-a1e2754424e0",
+          "kind": "",
+          "text": "**2026-10-07** — Added after handoff: commit 08d8f6b adds 'index.json merge=slicer-index' to .slicer/.gitattributes (owner-approved; file is slicer-managed, so a future slicer version may rewrite it). git check-attr now reports slicer-index for .slicer/index.json; slicer check ok.",
+          "created_at": "2026-10-07T11:58:39Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
         }
       ],
       "claim": null,
