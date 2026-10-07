@@ -27,9 +27,9 @@
 <h1>Roadmap</h1>
 <section><h2>Goals</h2><div class="prose"><p>Make CSV obfuscation and restoration safer to use for library and CLI users, while maintaining synthetic CSV generation as an equally important product capability. Harden the current 0.1 line over the next 1–2 releases, prioritizing safe data handling and risk reduction.</p></div></section>
 <section><h2>Non-goals</h2><div class="prose"><p>Do not claim obfuscation alone provides cryptographic secrecy. Do not require encrypted manifests by default. Do not target a 1.0 release in this roadmap.</p></div></section>
-<p class="summary">13 items · — 8 · done 4 · started 1</p>
+<p class="summary">13 items · — 8 · done 4 · review 1</p>
 <table><thead><tr><th>#</th><th>ID</th><th>Title</th><th>Size</th><th>Effort</th><th>Trees</th><th>Findings</th><th>Status</th></tr></thead><tbody>
-<tr class="started"><td>1</td><td>ob-04</td><td>Replace or redesign deterministic-token cryptography</td><td>L</td><td>-</td><td>core,tests</td><td>README.md documents fixed-IV CBC prefix leakage; Obfuscator/ObfuscationEngine.cs (was S04)</td><td class="status">started</td></tr>
+<tr class="other"><td>1</td><td>ob-04</td><td>Replace or redesign deterministic-token cryptography</td><td>L</td><td>-</td><td>core,tests</td><td>README.md documents fixed-IV CBC prefix leakage; Obfuscator/ObfuscationEngine.cs (was S04)</td><td class="status">review</td></tr>
 <tr class="open"><td>2</td><td>ob-05</td><td>Strengthen generator config and sweep validation</td><td>M</td><td>-</td><td>generator,tests</td><td>Obfuscator/Obfuscator.cs; Obfuscator/DataGenerator.cs (was S05)</td><td class="status">—</td></tr>
 <tr class="open"><td>3</td><td>ob-06</td><td>Document security guarantees and supported workflows</td><td>S</td><td>-</td><td>docs,cli</td><td>README.md; Obfuscator.Cli/README.md; Obfuscator/PackageReadme.md (was S06)</td><td class="status">—</td></tr>
 <tr class="open"><td>4</td><td>ob-07</td><td>Reject unrecognised CLI options</td><td>S</td><td>1</td><td>cli</td><td>Obfuscator.Cli/ObfuscatorCliProgram.cs ParseOptions accepts any --token; a typo like --gpg-recipent or --pasphrase-file is silently ignored and the manifest is written unprotected · discovered from ob-02</td><td class="status">—</td></tr>

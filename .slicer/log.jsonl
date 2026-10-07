@@ -47,3 +47,6 @@
 {"when": "2026-10-07T13:16:22Z", "item": "ob-03", "action": "status", "from": "reviewing", "to": "done", "note": "Reviewed and merged", "by": "Jon R"}
 {"when": "2026-10-07T13:25:59Z", "item": "ob-04", "action": "status", "from": "open", "to": "started", "note": "", "by": "Jon R"}
 {"when": "2026-10-07T13:30:57Z", "item": "ob-13", "action": "add", "from": "", "to": "open", "note": "Floating-point columns do not round-trip exactly"}
+{"when": "2026-10-07T13:31:12Z", "item": "ob-04", "action": "note", "from": "", "to": "", "note": "Decisions (owner-approved 2026-10-07): Algorithm = AES-SIV-C", "by": "Jon R"}
+{"when": "2026-10-07T13:31:12Z", "item": "ob-04", "action": "note", "from": "", "to": "", "note": "Ready for review: branch ob-04-aes-siv-tokens (c3c83a6 claim", "by": "Jon R"}
+{"when": "2026-10-07T13:31:12Z", "item": "ob-04", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon R cleared", "by": "Jon R"}
