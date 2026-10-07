@@ -1519,7 +1519,7 @@ public sealed class ObfuscatorTests : IDisposable
     }
 
     [Fact]
-    public void Obfuscate_ManifestStageFailure_WithForce_PreservesBothExistingOutputs()
+    public void Obfuscate_BlankPassphrase_WithForce_PreservesBothExistingOutputs()
     {
         var input = Path.Combine(_tempDir, "ms-in.csv");
         var output = Path.Combine(_tempDir, "ms-out.csv");
@@ -1536,6 +1536,24 @@ public sealed class ObfuscatorTests : IDisposable
         Assert.Equal(outputBefore, HashFile(output));
         Assert.Equal(manifestBefore, HashFile(manifest));
         AssertOnlyEntries("ms-in.csv", "ms-out.csv", "ms.obf");
+    }
+
+    [Fact]
+    public void Obfuscate_ManifestStageFailure_WithForce_PreservesExistingOutput()
+    {
+        // The CSV stages successfully; the manifest cannot be staged because its directory is missing.
+        var input = Path.Combine(_tempDir, "ms2-in.csv");
+        var output = Path.Combine(_tempDir, "ms2-out.csv");
+        var manifest = Path.Combine(_tempDir, "missing-dir", "ms2.obf");
+        File.WriteAllText(input, "Name\nAlice\n", Encoding.UTF8);
+        File.WriteAllText(output, "KEEP-EXISTING-OUTPUT", Encoding.UTF8);
+        var outputBefore = HashFile(output);
+
+        Assert.ThrowsAny<IOException>(() =>
+            _obfuscator.ObfuscateCsv(input, output, manifest, new ObfuscationOptions { Force = true }));
+
+        Assert.Equal(outputBefore, HashFile(output));
+        AssertOnlyEntries("ms2-in.csv", "ms2-out.csv");
     }
 
     [Fact]
