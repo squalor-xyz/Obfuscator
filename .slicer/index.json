@@ -50,14 +50,23 @@
       "id": "ob-02",
       "title": "Make CLI credential entry safe by default",
       "short_title": "Make CLI credential entry safe by default",
-      "status": "started",
+      "status": "review",
       "has_slice": true,
       "depends_on": [],
-      "note_records": [],
-      "claim": {
-        "owner": "Jon R",
-        "at": "2026-10-07T11:41:26Z"
-      },
+      "note_records": [
+        {
+          "id": "5e4cc35e-5685-4d7d-a6db-368c57753cdd",
+          "kind": "",
+          "text": "**2026-10-07** — Ready for review: branch ob-02-cli-credentials, commit 7b4e307. Inline --passphrase and --passphrase=<x> rejected (case-insensitive) with no value echo; env/file/stdin kept; library API unchanged. Tests: dotnet test 65/65 pass (new Cli_PassphraseFromFile_RoundTrips, Cli_InlinePassphrase_IsRejectedWithoutEcho x3, Cli_PassphraseFileFollowedByAnotherFlag_Fails); scripts/test-local.sh passes and writes OBF_AESGCM_V3 manifests via OBFUSCATOR_PASSPHRASE. Follow-ups filed: ob-07, ob-08.",
+          "created_at": "2026-10-07T11:45:18Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        }
+      ],
+      "claim": null,
       "fields": {
         "size": "M",
         "flags": [],

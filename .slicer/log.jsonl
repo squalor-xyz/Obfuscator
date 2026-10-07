@@ -18,3 +18,5 @@
 {"when": "2026-10-07T11:41:38Z", "item": "ob-02", "action": "edit", "from": "", "to": "", "note": "Files"}
 {"when": "2026-10-07T11:44:47Z", "item": "ob-07", "action": "add", "from": "", "to": "open", "note": "Reject unrecognised CLI options"}
 {"when": "2026-10-07T11:44:48Z", "item": "ob-08", "action": "add", "from": "", "to": "open", "note": "Move deterministic key off the command line"}
+{"when": "2026-10-07T11:45:18Z", "item": "ob-02", "action": "note", "from": "", "to": "", "note": "Ready for review: branch ob-02-cli-credentials, commit 7b4e3", "by": "Jon R"}
+{"when": "2026-10-07T11:45:19Z", "item": "ob-02", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon R cleared", "by": "Jon R"}
