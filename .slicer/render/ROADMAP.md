@@ -10,11 +10,11 @@ Make CSV obfuscation and restoration safer to use for library and CLI users, whi
 
 Do not claim obfuscation alone provides cryptographic secrecy. Do not require encrypted manifests by default. Do not target a 1.0 release in this roadmap.
 
-12 items · — 8 · done 3 · started 1
+12 items · — 8 · done 3 · review 1
 
 | # | Slice | Title | Size | Effort | Trees | Findings | Status |
 |---|---|---|---|---|---|---|---|
-| 1 | [ob-03](slices/ob-03.md) | Prevent path collisions and incomplete output pairs | M | - | core,tests | Obfuscator/ObfuscationEngine.cs; Obfuscator/FileWrite.cs (was S03) | started |
+| 1 | [ob-03](slices/ob-03.md) | Prevent path collisions and incomplete output pairs | M | - | core,tests | Obfuscator/ObfuscationEngine.cs; Obfuscator/FileWrite.cs (was S03) | review |
 | 2 | [ob-04](slices/ob-04.md) | Replace or redesign deterministic-token cryptography | L | - | core,tests | README.md documents fixed-IV CBC prefix leakage; Obfuscator/ObfuscationEngine.cs (was S04) | — |
 | 3 | [ob-05](slices/ob-05.md) | Strengthen generator config and sweep validation | M | - | generator,tests | Obfuscator/Obfuscator.cs; Obfuscator/DataGenerator.cs (was S05) | — |
 | 4 | [ob-06](slices/ob-06.md) | Document security guarantees and supported workflows | S | - | docs,cli | README.md; Obfuscator.Cli/README.md; Obfuscator/PackageReadme.md (was S06) | — |
