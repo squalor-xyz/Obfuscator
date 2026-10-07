@@ -50,3 +50,6 @@ Thumbs.db
 
 # slicer advisory lock (transient, never state)
 /.slicer/lock
+
+# Local git worktrees
+/.worktrees/

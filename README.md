@@ -62,7 +62,7 @@ obfuscator generate \
 
 `ExampleConfigSemiconductor.golden.csv` and suite/databall `fixtures/semiconductor-sweep.csv` stay frozen. Do not regenerate them from the demo config.
 
-Obfuscate and restore a CSV. Prefer env vars or a file for secrets (`--passphrase` on the command line is visible in process lists):
+Obfuscate and restore a CSV. Supply the manifest passphrase through `OBFUSCATOR_PASSPHRASE`, `--passphrase-file <path>`, or `--passphrase-stdin`:
 
 ```bash
 export OBFUSCATOR_PASSPHRASE
@@ -81,7 +81,7 @@ obfuscator deobfuscate \
   --create-output-dir
 ```
 
-`--passphrase-file` and `--passphrase-stdin` are also accepted. `--passphrase` still works and is insecure.
+The CLI rejects inline `--passphrase <secret>` because command-line arguments are visible in process lists. The library `ObfuscationOptions.Passphrase` and `DeobfuscateCsv(passphrase:)` APIs are unchanged.
 
 Existing `--output` and `--manifest` files are refused unless you pass `--force`. Input and output must be different paths (`Path.GetFullPath`, ordinal). Writes go to `path.tmp` then `File.Move`. The input CSV delimiter is stored on the manifest and restored on deobfuscate.
 

@@ -1,8 +1,8 @@
 {
-  "version": 2,
+  "version": 7,
   "id_prefix": "ob-",
   "id_width": 2,
-  "next_id": 7,
+  "next_id": 9,
   "preamble": "",
   "passes": [],
   "items": [
@@ -13,8 +13,18 @@
       "status": "done",
       "has_slice": true,
       "depends_on": [],
-      "notes": [
-        "**2026-09-29** — (recorded 2026-09-28 on S01) Security contract agreed: accidental-exposure risk reduction for controlled workflows; sharing is case-by-case. Docs cover retained structure and inference risk, manifest confidentiality, deterministic leakage, current compatibility, and no new crypto dependency."
+      "note_records": [
+        {
+          "id": "ob-01:legacy:0",
+          "kind": "",
+          "text": "**2026-09-29** — (recorded 2026-09-28 on S01) Security contract agreed: accidental-exposure risk reduction for controlled workflows; sharing is case-by-case. Docs cover retained structure and inference risk, manifest confidentiality, deterministic leakage, current compatibility, and no new crypto dependency.",
+          "created_at": "",
+          "attempt": null,
+          "by": "",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        }
       ],
       "claim": null,
       "fields": {
@@ -25,23 +35,52 @@
         ],
         "trees_literal": false,
         "findings": "README.md documents deterministic-token leakage and plaintext manifests; no recorded Slicer goals (was S01)",
+        "discovered_from": "",
+        "key": "",
         "pass": "",
         "group": "",
         "reason": "",
         "importance": 3,
         "urgency": 3,
-        "effort": null
+        "effort": null,
+        "attempts": 0
       }
     },
     {
       "id": "ob-02",
       "title": "Make CLI credential entry safe by default",
       "short_title": "Make CLI credential entry safe by default",
-      "status": "open",
+      "status": "reviewing",
       "has_slice": true,
       "depends_on": [],
-      "notes": [],
-      "claim": null,
+      "note_records": [
+        {
+          "id": "5e4cc35e-5685-4d7d-a6db-368c57753cdd",
+          "kind": "",
+          "text": "**2026-10-07** — Ready for review: branch ob-02-cli-credentials, commit 7b4e307. Inline --passphrase and --passphrase=<x> rejected (case-insensitive) with no value echo; env/file/stdin kept; library API unchanged. Tests: dotnet test 65/65 pass (new Cli_PassphraseFromFile_RoundTrips, Cli_InlinePassphrase_IsRejectedWithoutEcho x3, Cli_PassphraseFileFollowedByAnotherFlag_Fails); scripts/test-local.sh passes and writes OBF_AESGCM_V3 manifests via OBFUSCATOR_PASSPHRASE. Follow-ups filed: ob-07, ob-08.",
+          "created_at": "2026-10-07T11:45:18Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        },
+        {
+          "id": "a05419b6-ea90-4bcb-800c-361e4027132e",
+          "kind": "",
+          "text": "**2026-10-07** — VERDICT: PASS - focused Cli_ tests 9/9, full dotnet test 65/65, scripts/test-local.sh passes (OBF_AESGCM_V3 manifests via OBFUSCATOR_PASSPHRASE), installed CLI help lists only env/file/stdin and inline --passphrase exits 1 without echoing the value, docs have no stale inline examples, slicer check ok.",
+          "created_at": "2026-10-07T12:03:46Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        }
+      ],
+      "claim": {
+        "owner": "Jon R",
+        "at": "2026-10-07T12:03:00Z"
+      },
       "fields": {
         "size": "M",
         "flags": [],
@@ -50,12 +89,15 @@
         ],
         "trees_literal": false,
         "findings": "Obfuscator.Cli/ObfuscatorCliProgram.cs; README.md; Obfuscator.Cli/README.md (was S02)",
+        "discovered_from": "",
+        "key": "",
         "pass": "",
         "group": "",
         "reason": "",
         "importance": 3,
         "urgency": 3,
-        "effort": null
+        "effort": null,
+        "attempts": 1
       }
     },
     {
@@ -65,7 +107,7 @@
       "status": "open",
       "has_slice": true,
       "depends_on": [],
-      "notes": [],
+      "note_records": [],
       "claim": null,
       "fields": {
         "size": "M",
@@ -75,12 +117,15 @@
         ],
         "trees_literal": false,
         "findings": "Obfuscator/ObfuscationEngine.cs; Obfuscator/FileWrite.cs (was S03)",
+        "discovered_from": "",
+        "key": "",
         "pass": "",
         "group": "",
         "reason": "",
         "importance": 3,
         "urgency": 3,
-        "effort": null
+        "effort": null,
+        "attempts": 0
       }
     },
     {
@@ -92,7 +137,7 @@
       "depends_on": [
         "ob-01"
       ],
-      "notes": [],
+      "note_records": [],
       "claim": null,
       "fields": {
         "size": "L",
@@ -102,12 +147,15 @@
         ],
         "trees_literal": false,
         "findings": "README.md documents fixed-IV CBC prefix leakage; Obfuscator/ObfuscationEngine.cs (was S04)",
+        "discovered_from": "",
+        "key": "",
         "pass": "",
         "group": "",
         "reason": "",
         "importance": 3,
         "urgency": 2,
-        "effort": null
+        "effort": null,
+        "attempts": 0
       }
     },
     {
@@ -117,7 +165,7 @@
       "status": "open",
       "has_slice": true,
       "depends_on": [],
-      "notes": [],
+      "note_records": [],
       "claim": null,
       "fields": {
         "size": "M",
@@ -127,12 +175,15 @@
         ],
         "trees_literal": false,
         "findings": "Obfuscator/Obfuscator.cs; Obfuscator/DataGenerator.cs (was S05)",
+        "discovered_from": "",
+        "key": "",
         "pass": "",
         "group": "",
         "reason": "",
         "importance": 3,
         "urgency": 2,
-        "effort": null
+        "effort": null,
+        "attempts": 0
       }
     },
     {
@@ -148,7 +199,7 @@
         "ob-04",
         "ob-05"
       ],
-      "notes": [],
+      "note_records": [],
       "claim": null,
       "fields": {
         "size": "S",
@@ -158,12 +209,71 @@
         ],
         "trees_literal": false,
         "findings": "README.md; Obfuscator.Cli/README.md; Obfuscator/PackageReadme.md (was S06)",
+        "discovered_from": "",
+        "key": "",
         "pass": "",
         "group": "",
         "reason": "",
         "importance": 2,
         "urgency": 2,
-        "effort": null
+        "effort": null,
+        "attempts": 0
+      }
+    },
+    {
+      "id": "ob-07",
+      "title": "Reject unrecognised CLI options",
+      "short_title": "Reject unrecognised CLI options",
+      "status": "open",
+      "has_slice": false,
+      "depends_on": [],
+      "note_records": [],
+      "claim": null,
+      "fields": {
+        "size": "S",
+        "flags": [],
+        "trees": [
+          "cli"
+        ],
+        "trees_literal": false,
+        "findings": "Obfuscator.Cli/ObfuscatorCliProgram.cs ParseOptions accepts any --token; a typo like --gpg-recipent or --pasphrase-file is silently ignored and the manifest is written unprotected",
+        "discovered_from": "ob-02",
+        "key": "",
+        "pass": "",
+        "group": "",
+        "reason": "",
+        "importance": 3,
+        "urgency": 2,
+        "effort": 1,
+        "attempts": 0
+      }
+    },
+    {
+      "id": "ob-08",
+      "title": "Move deterministic key off the command line",
+      "short_title": "Move deterministic key off the command line",
+      "status": "open",
+      "has_slice": false,
+      "depends_on": [],
+      "note_records": [],
+      "claim": null,
+      "fields": {
+        "size": "S",
+        "flags": [],
+        "trees": [
+          "cli,docs"
+        ],
+        "trees_literal": false,
+        "findings": "Obfuscator.Cli/ObfuscatorCliProgram.cs ResolveDeterministicKey; --deterministic-key <secret> is visible in process lists like the removed --passphrase; scripts/test-local.sh and README examples use it",
+        "discovered_from": "ob-02",
+        "key": "",
+        "pass": "",
+        "group": "",
+        "reason": "",
+        "importance": 2,
+        "urgency": 2,
+        "effort": 1,
+        "attempts": 0
       }
     }
   ],

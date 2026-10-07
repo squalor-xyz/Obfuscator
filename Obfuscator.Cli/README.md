@@ -49,7 +49,7 @@ obfuscator obfuscate \
   --string-mode deterministic-token
 ```
 
-Prefer `OBFUSCATOR_PASSPHRASE` / `OBFUSCATOR_DETERMINISTIC_KEY`, `--passphrase-file`, or `--passphrase-stdin`. `--passphrase` on the command line is visible in process lists.
+Supply the manifest passphrase with `OBFUSCATOR_PASSPHRASE`, `--passphrase-file <path>`, or `--passphrase-stdin`. Inline `--passphrase <secret>` is rejected because command-line arguments are visible in process lists. Prefer `OBFUSCATOR_DETERMINISTIC_KEY` over `--deterministic-key` for the same reason.
 
 Restore an obfuscated CSV:
 
@@ -74,7 +74,7 @@ Useful obfuscation options:
 - `--include <colA,colB>` and `--exclude <colA,colB>`
 - `--allow-list` means only included columns are obfuscated.
 - `--seed <int>` makes non-keyed transforms reproducible.
-- `--passphrase-file` / `--passphrase-stdin` / `OBFUSCATOR_PASSPHRASE` encrypt the manifest with AES-GCM. `--passphrase` still works and is insecure.
+- `--passphrase-file` / `--passphrase-stdin` / `OBFUSCATOR_PASSPHRASE` encrypt the manifest with AES-GCM. Inline `--passphrase` is not accepted.
 - `--gpg-recipient <recipient>` can be repeated to GPG-encrypt the manifest in place.
 - `--preserve-blanks true|false`
 - `--create-output-dir` creates missing parent directories for `--output` and `--manifest`

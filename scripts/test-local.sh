@@ -16,7 +16,8 @@ SEMICONDUCTOR_MANIFEST_FILE="$ARTIFACTS_DIR/fake-semiconductor.obf"
 SEMICONDUCTOR_RESTORED_CSV="$ARTIFACTS_DIR/fake-semiconductor.deobfuscated.csv"
 LOCAL_VERSION="0.0.0-local"
 DETERMINISTIC_KEY="local-test-key"
-MANIFEST_PASSPHRASE="local-test-passphrase"
+# The CLI reads the manifest passphrase from the environment; inline --passphrase is rejected.
+export OBFUSCATOR_PASSPHRASE="local-test-passphrase"
 
 rm -rf "$ARTIFACTS_DIR"
 mkdir -p "$NUGET_DIR" "$TOOL_DIR"
@@ -64,8 +65,7 @@ echo "==> Obfuscating sample CSV"
   --input "$GENERATED_CSV" \
   --output "$OBFUSCATED_CSV" \
   --manifest "$MANIFEST_FILE" \
-  --deterministic-key "$DETERMINISTIC_KEY" \
-  --passphrase "$MANIFEST_PASSPHRASE"
+  --deterministic-key "$DETERMINISTIC_KEY"
 
 test -f "$OBFUSCATED_CSV"
 test -f "$MANIFEST_FILE"
@@ -75,8 +75,7 @@ echo "==> Deobfuscating sample CSV"
   --input "$OBFUSCATED_CSV" \
   --manifest "$MANIFEST_FILE" \
   --output "$RESTORED_CSV" \
-  --deterministic-key "$DETERMINISTIC_KEY" \
-  --passphrase "$MANIFEST_PASSPHRASE"
+  --deterministic-key "$DETERMINISTIC_KEY"
 
 test -f "$RESTORED_CSV"
 
@@ -85,8 +84,7 @@ echo "==> Obfuscating semiconductor sample CSV"
   --input "$SEMICONDUCTOR_CSV" \
   --output "$SEMICONDUCTOR_OBFUSCATED_CSV" \
   --manifest "$SEMICONDUCTOR_MANIFEST_FILE" \
-  --deterministic-key "$DETERMINISTIC_KEY" \
-  --passphrase "$MANIFEST_PASSPHRASE"
+  --deterministic-key "$DETERMINISTIC_KEY"
 
 test -f "$SEMICONDUCTOR_OBFUSCATED_CSV"
 test -f "$SEMICONDUCTOR_MANIFEST_FILE"
@@ -96,8 +94,7 @@ echo "==> Deobfuscating semiconductor sample CSV"
   --input "$SEMICONDUCTOR_OBFUSCATED_CSV" \
   --manifest "$SEMICONDUCTOR_MANIFEST_FILE" \
   --output "$SEMICONDUCTOR_RESTORED_CSV" \
-  --deterministic-key "$DETERMINISTIC_KEY" \
-  --passphrase "$MANIFEST_PASSPHRASE"
+  --deterministic-key "$DETERMINISTIC_KEY"
 
 test -f "$SEMICONDUCTOR_RESTORED_CSV"
 
