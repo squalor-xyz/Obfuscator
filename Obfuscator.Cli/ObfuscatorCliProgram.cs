@@ -112,7 +112,6 @@ internal static class ObfuscatorCliProgram
         "--input",
         "--manifest",
         "--seed",
-        "--passphrase",
         "--passphrase-file",
         "--deterministic-key",
         "--string-mode",
@@ -131,6 +130,13 @@ internal static class ObfuscatorCliProgram
             var token = args[i];
             if (!token.StartsWith("--", StringComparison.Ordinal))
                 throw new InvalidOperationException("Unexpected option. Options must start with '--'.");
+
+            // Inline secrets leak through process lists; refuse without echoing any value.
+            if (token.Equals("--passphrase", StringComparison.OrdinalIgnoreCase)
+                || token.StartsWith("--passphrase=", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException(
+                    "--passphrase is no longer supported because it exposes the secret in process lists. " +
+                    "Use OBFUSCATOR_PASSPHRASE, --passphrase-file <path>, or --passphrase-stdin.");
 
             if (!result.TryGetValue(token, out var values))
             {
@@ -156,9 +162,6 @@ internal static class ObfuscatorCliProgram
 
     private static string? ResolvePassphrase(Dictionary<string, List<string>> options)
     {
-        var flagged = GetSingle(options, "--passphrase");
-        if (!string.IsNullOrEmpty(flagged))
-            return flagged;
         var file = GetSingle(options, "--passphrase-file");
         if (!string.IsNullOrEmpty(file))
             return File.ReadAllText(file).TrimEnd('\r', '\n');
@@ -284,7 +287,6 @@ internal static class ObfuscatorCliProgram
         Console.WriteLine("  --exclude <colA,colB>");
         Console.WriteLine("  --allow-list");
         Console.WriteLine("  --seed <int>");
-        Console.WriteLine("  --passphrase <secret>   (insecure: visible in process lists)");
         Console.WriteLine("  --passphrase-file <path>");
         Console.WriteLine("  --passphrase-stdin");
         Console.WriteLine("  --gpg-recipient <recipient>");
@@ -292,9 +294,13 @@ internal static class ObfuscatorCliProgram
         Console.WriteLine("  --strict");
         Console.WriteLine();
         Console.WriteLine("Deobfuscate options:");
-        Console.WriteLine("  --passphrase <secret>");
+        Console.WriteLine("  --passphrase-file <path>");
+        Console.WriteLine("  --passphrase-stdin");
         Console.WriteLine("  --deterministic-key <secret>");
         Console.WriteLine("  --allow-mismatched-source");
+        Console.WriteLine();
+        Console.WriteLine("The manifest passphrase can also come from OBFUSCATOR_PASSPHRASE.");
+        Console.WriteLine("Inline --passphrase is not accepted because it is visible in process lists.");
     }
 
     private static void PrintBanner()

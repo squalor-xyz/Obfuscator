@@ -377,6 +377,40 @@ public sealed class ObfuscatorTests : IDisposable
     }
 
     [Fact]
+    public void Cli_PassphraseFromFile_RoundTrips()
+    {
+        var inputPath = Path.Combine(_tempDir, "file-input.csv");
+        var obfuscatedPath = Path.Combine(_tempDir, "file-obfuscated.csv");
+        var manifestPath = Path.Combine(_tempDir, "file.obf");
+        var restoredPath = Path.Combine(_tempDir, "file-restored.csv");
+        var passphrasePath = Path.Combine(_tempDir, "passphrase.txt");
+        File.WriteAllLines(inputPath, ["CustomerId", "ALPHA"], Encoding.UTF8);
+        File.WriteAllText(passphrasePath, "from-file\n");
+
+        var exit = ObfuscatorCliProgram.Run(
+        [
+            "obfuscate",
+            "--input", inputPath,
+            "--output", obfuscatedPath,
+            "--manifest", manifestPath,
+            "--passphrase-file", passphrasePath
+        ]);
+        Assert.Equal(0, exit);
+        Assert.StartsWith("OBF_AESGCM_V3\n", File.ReadAllText(manifestPath, Encoding.UTF8), StringComparison.Ordinal);
+
+        exit = ObfuscatorCliProgram.Run(
+        [
+            "deobfuscate",
+            "--input", obfuscatedPath,
+            "--manifest", manifestPath,
+            "--output", restoredPath,
+            "--passphrase-file", passphrasePath
+        ]);
+        Assert.Equal(0, exit);
+        Assert.Equal(File.ReadAllLines(inputPath, Encoding.UTF8), File.ReadAllLines(restoredPath, Encoding.UTF8));
+    }
+
+    [Fact]
     public void Deobfuscate_DeterministicTokenModeWithoutKey_Throws()
     {
         var inputPath = Path.Combine(_tempDir, "missing-key-input.csv");
@@ -1063,7 +1097,7 @@ public sealed class ObfuscatorTests : IDisposable
     }
 
     [Fact]
-    public void Cli_PassphraseFollowedByAnotherFlag_Fails()
+    public void Cli_PassphraseFileFollowedByAnotherFlag_Fails()
     {
         var inputPath = Path.Combine(_tempDir, "cli-pp-input.csv");
         var obfuscatedPath = Path.Combine(_tempDir, "cli-pp-obfuscated.csv");
@@ -1081,14 +1115,54 @@ public sealed class ObfuscatorTests : IDisposable
                 "--input", inputPath,
                 "--output", obfuscatedPath,
                 "--manifest", manifestPath,
-                "--passphrase",
+                "--passphrase-file",
                 "--create-output-dir"
             ]);
             Assert.NotEqual(0, exit);
-            Assert.Contains("--passphrase", stderr.ToString(), StringComparison.Ordinal);
+            Assert.Contains("--passphrase-file requires a value.", stderr.ToString(), StringComparison.Ordinal);
         }
         finally
         {
+            Console.SetError(originalError);
+        }
+    }
+
+    [Theory]
+    [InlineData("--passphrase", "cli-inline-value-1")]
+    [InlineData("--PASSPHRASE", "cli-inline-value-2")]
+    [InlineData("--passphrase=cli-inline-value-3", null)]
+    public void Cli_InlinePassphrase_IsRejectedWithoutEcho(string flag, string? value)
+    {
+        var inputPath = Path.Combine(_tempDir, "cli-inline-input.csv");
+        var obfuscatedPath = Path.Combine(_tempDir, "cli-inline-obfuscated.csv");
+        var manifestPath = Path.Combine(_tempDir, "cli-inline.obf");
+        File.WriteAllLines(inputPath, ["CustomerId", "ALPHA"], Encoding.UTF8);
+
+        List<string> args = ["obfuscate", "--input", inputPath, "--output", obfuscatedPath, "--manifest", manifestPath, flag];
+        if (value is not null)
+            args.Add(value);
+
+        using var stdout = new StringWriter();
+        using var stderr = new StringWriter();
+        var originalOut = Console.Out;
+        var originalError = Console.Error;
+        Console.SetOut(stdout);
+        Console.SetError(stderr);
+        try
+        {
+            var exit = ObfuscatorCliProgram.Run([.. args]);
+            Assert.Equal(1, exit);
+            var text = stderr.ToString() + stdout.ToString();
+            Assert.DoesNotContain("cli-inline-value", text, StringComparison.Ordinal);
+            Assert.Contains("OBFUSCATOR_PASSPHRASE", text, StringComparison.Ordinal);
+            Assert.Contains("--passphrase-file", text, StringComparison.Ordinal);
+            Assert.Contains("--passphrase-stdin", text, StringComparison.Ordinal);
+            Assert.False(File.Exists(obfuscatedPath));
+            Assert.False(File.Exists(manifestPath));
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
             Console.SetError(originalError);
         }
     }

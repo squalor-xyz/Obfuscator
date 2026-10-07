@@ -18,7 +18,7 @@
     },
     {
       "heading": "Files",
-      "body": "Obfuscator.Cli/ObfuscatorCliProgram.cs; Obfuscator.Tests/ObfuscatorTests.cs; README.md; Obfuscator.Cli/README.md."
+      "body": "Obfuscator.Cli/ObfuscatorCliProgram.cs; Obfuscator.Tests/ObfuscatorTests.cs; README.md; Obfuscator.Cli/README.md; scripts/test-local.sh (CI smoke script used inline --passphrase)."
     },
     {
       "heading": "Failing tests",
