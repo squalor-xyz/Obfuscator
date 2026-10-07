@@ -38,3 +38,5 @@
 {"when": "2026-10-07T12:56:44Z", "item": "ob-12", "action": "add", "from": "", "to": "open", "note": "Detect symlink and hard-link aliases between input, output, and manifest"}
 {"when": "2026-10-07T12:56:51Z", "item": "ob-03", "action": "note", "from": "", "to": "", "note": "Ready for review: branch ob-03-path-collisions, commit f25c5", "by": "Jon R"}
 {"when": "2026-10-07T12:56:51Z", "item": "ob-03", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon R cleared", "by": "Jon R"}
+{"when": "2026-10-07T13:12:30Z", "item": "ob-03", "action": "status", "from": "review", "to": "reviewing", "note": "", "by": "Jon R"}
+{"when": "2026-10-07T13:15:19Z", "item": "ob-03", "action": "reject", "from": "reviewing", "to": "open", "note": "VERDICT: FAIL - Obfuscate_ManifestStageFailure_WithForce_PreservesBothExistingOutputs is now stopped by the early blank-passphrase check and never stages the manifest; manifest staging failure is covered only by the gpg test, which is skipped without gpg. Add a gpg-independent manifest staging failure test and rename the passphrase test.", "by": "Jon R"}
