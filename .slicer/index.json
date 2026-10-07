@@ -2,7 +2,7 @@
   "version": 7,
   "id_prefix": "ob-",
   "id_width": 2,
-  "next_id": 13,
+  "next_id": 14,
   "preamble": "",
   "passes": [],
   "items": [
@@ -453,6 +453,34 @@
         "importance": 2,
         "urgency": 1,
         "effort": 1,
+        "attempts": 0
+      }
+    },
+    {
+      "id": "ob-13",
+      "title": "Floating-point columns do not round-trip exactly",
+      "short_title": "Floating-point columns do not round-trip exactly",
+      "status": "open",
+      "has_slice": false,
+      "depends_on": [],
+      "note_records": [],
+      "claim": null,
+      "fields": {
+        "size": "S",
+        "flags": [],
+        "trees": [
+          "core,tests"
+        ],
+        "trees_literal": false,
+        "findings": "Obfuscator/ObfuscationEngine.cs ObfuscateFloating/DeobfuscateFloating: (x*Scale+Shift) then (y-Shift)/Scale changes the last digits of G17 output (e.g. 131.60538314346292 -> 131.60538314346289) in scripts/test-local.sh sample output; README does not document floats as approximate and test-local.sh does not compare restored CSVs",
+        "discovered_from": "ob-04",
+        "key": "",
+        "pass": "",
+        "group": "",
+        "reason": "",
+        "importance": 2,
+        "urgency": 2,
+        "effort": 2,
         "attempts": 0
       }
     }

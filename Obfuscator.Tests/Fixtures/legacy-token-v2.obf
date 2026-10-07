@@ -1,0 +1,42 @@
+OBF_PLAIN_V2
+{
+  "Version": "2.0",
+  "CreatedUtc": "2026-10-07T13:26:16.744929+00:00",
+  "SourceFileName": "legacy-token-v2.source.csv",
+  "ObfuscatedFileName": "legacy-token-v2.csv",
+  "PreserveBlanks": true,
+  "Delimiter": ",",
+  "UnparsedValueCounts": {},
+  "Salt": "UgEo5nnSwXoxoBzttN3ArQ==",
+  "IntegrityHashSha256": "D991D340037B06C39820E8522668C139430D5E93C532F3E8780B800EE4953780",
+  "Columns": [
+    {
+      "Name": "CustomerId",
+      "Ordinal": 0,
+      "Kind": 1,
+      "IsObfuscated": true,
+      "Scale": 1,
+      "Shift": 0,
+      "InvertBoolean": false,
+      "StringMap": null,
+      "StringMode": 2,
+      "DateShiftTicks": 0,
+      "DateFormat": null,
+      "NumericTypeHint": null
+    },
+    {
+      "Name": "Region",
+      "Ordinal": 1,
+      "Kind": 1,
+      "IsObfuscated": true,
+      "Scale": 1,
+      "Shift": 0,
+      "InvertBoolean": false,
+      "StringMap": null,
+      "StringMode": 2,
+      "DateShiftTicks": 0,
+      "DateFormat": null,
+      "NumericTypeHint": null
+    }
+  ]
+}

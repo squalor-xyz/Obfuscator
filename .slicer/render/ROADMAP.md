@@ -10,7 +10,7 @@ Make CSV obfuscation and restoration safer to use for library and CLI users, whi
 
 Do not claim obfuscation alone provides cryptographic secrecy. Do not require encrypted manifests by default. Do not target a 1.0 release in this roadmap.
 
-12 items · — 7 · done 4 · started 1
+13 items · — 8 · done 4 · started 1
 
 | # | Slice | Title | Size | Effort | Trees | Findings | Status |
 |---|---|---|---|---|---|---|---|
@@ -22,12 +22,13 @@ Do not claim obfuscation alone provides cryptographic secrecy. Do not require en
 | 6 | ob-10 | Fix absolute local path link in README Local development | S | 1 | docs | README.md:177 links to /Users/jon/code/squalor-xyz/obfuscator/Obfuscator.Cli/README.md; broken on GitHub and for every other clone | — |
 | 7 | ob-11 | Render after reviewer claim in CONTRIBUTING step 8 | S | 1 | docs | CONTRIBUTING.md:120: reviewer runs 'slicer next --status review --start' which does not re-render; committing the claim then fails 'slicer check' (hit on ob-02 and ob-09 reviews). Add 'slicer --root .worktrees/ob-NN render' after the claim. · discovered from ob-09 | — |
 | 8 | ob-12 | Detect symlink and hard-link aliases between input, output, and manifest | S | 1 | core | Obfuscator/FileWrite.cs: SamePath compares Path.GetFullPath case-insensitively only; a symlinked or hard-linked path to the same file is not rejected · discovered from ob-03 | — |
+| 9 | ob-13 | Floating-point columns do not round-trip exactly | S | 2 | core,tests | Obfuscator/ObfuscationEngine.cs ObfuscateFloating/DeobfuscateFloating: (x*Scale+Shift) then (y-Shift)/Scale changes the last digits of G17 output (e.g. 131.60538314346292 -> 131.60538314346289) in scripts/test-local.sh sample output; README does not document floats as approximate and test-local.sh does not compare restored CSVs · discovered from ob-04 | — |
 
 ---
 
 | # | Slice | Title | Size | Effort | Trees | Findings | Status |
 |---|---|---|---|---|---|---|---|
-| 9 | [ob-01](slices/ob-01.md) | Define the security contract and supported threat model | S | - | core,docs | README.md documents deterministic-token leakage and plaintext manifests; no recorded Slicer goals (was S01) | done |
-| 10 | [ob-02](slices/ob-02.md) | Make CLI credential entry safe by default | M | - | cli,docs | Obfuscator.Cli/ObfuscatorCliProgram.cs; README.md; Obfuscator.Cli/README.md (was S02) | done |
-| 11 | [ob-03](slices/ob-03.md) | Prevent path collisions and incomplete output pairs | M | - | core,tests | Obfuscator/ObfuscationEngine.cs; Obfuscator/FileWrite.cs (was S03) | done |
-| 12 | [ob-09](slices/ob-09.md) | Document the slice worktree workflow | S | 1 | docs | owner request during ob-02 | done |
+| 10 | [ob-01](slices/ob-01.md) | Define the security contract and supported threat model | S | - | core,docs | README.md documents deterministic-token leakage and plaintext manifests; no recorded Slicer goals (was S01) | done |
+| 11 | [ob-02](slices/ob-02.md) | Make CLI credential entry safe by default | M | - | cli,docs | Obfuscator.Cli/ObfuscatorCliProgram.cs; README.md; Obfuscator.Cli/README.md (was S02) | done |
+| 12 | [ob-03](slices/ob-03.md) | Prevent path collisions and incomplete output pairs | M | - | core,tests | Obfuscator/ObfuscationEngine.cs; Obfuscator/FileWrite.cs (was S03) | done |
+| 13 | [ob-09](slices/ob-09.md) | Document the slice worktree workflow | S | 1 | docs | owner request during ob-02 | done |
