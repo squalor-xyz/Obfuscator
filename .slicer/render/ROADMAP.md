@@ -10,20 +10,20 @@ Make CSV obfuscation and restoration safer to use for library and CLI users, whi
 
 Do not claim obfuscation alone provides cryptographic secrecy. Do not require encrypted manifests by default. Do not target a 1.0 release in this roadmap.
 
-8 items · — 6 · done 1 · reviewing 1
+8 items · — 6 · done 2
 
 | # | Slice | Title | Size | Effort | Trees | Findings | Status |
 |---|---|---|---|---|---|---|---|
-| 1 | [ob-02](slices/ob-02.md) | Make CLI credential entry safe by default | M | - | cli,docs | Obfuscator.Cli/ObfuscatorCliProgram.cs; README.md; Obfuscator.Cli/README.md (was S02) | reviewing |
-| 2 | [ob-03](slices/ob-03.md) | Prevent path collisions and incomplete output pairs | M | - | core,tests | Obfuscator/ObfuscationEngine.cs; Obfuscator/FileWrite.cs (was S03) | — |
-| 3 | [ob-04](slices/ob-04.md) | Replace or redesign deterministic-token cryptography | L | - | core,tests | README.md documents fixed-IV CBC prefix leakage; Obfuscator/ObfuscationEngine.cs (was S04) | — |
-| 4 | [ob-05](slices/ob-05.md) | Strengthen generator config and sweep validation | M | - | generator,tests | Obfuscator/Obfuscator.cs; Obfuscator/DataGenerator.cs (was S05) | — |
-| 5 | [ob-06](slices/ob-06.md) | Document security guarantees and supported workflows | S | - | docs,cli | README.md; Obfuscator.Cli/README.md; Obfuscator/PackageReadme.md (was S06) | — |
-| 6 | ob-07 | Reject unrecognised CLI options | S | 1 | cli | Obfuscator.Cli/ObfuscatorCliProgram.cs ParseOptions accepts any --token; a typo like --gpg-recipent or --pasphrase-file is silently ignored and the manifest is written unprotected · discovered from ob-02 | — |
-| 7 | ob-08 | Move deterministic key off the command line | S | 1 | cli,docs | Obfuscator.Cli/ObfuscatorCliProgram.cs ResolveDeterministicKey; --deterministic-key <secret> is visible in process lists like the removed --passphrase; scripts/test-local.sh and README examples use it · discovered from ob-02 | — |
+| 1 | [ob-03](slices/ob-03.md) | Prevent path collisions and incomplete output pairs | M | - | core,tests | Obfuscator/ObfuscationEngine.cs; Obfuscator/FileWrite.cs (was S03) | — |
+| 2 | [ob-04](slices/ob-04.md) | Replace or redesign deterministic-token cryptography | L | - | core,tests | README.md documents fixed-IV CBC prefix leakage; Obfuscator/ObfuscationEngine.cs (was S04) | — |
+| 3 | [ob-05](slices/ob-05.md) | Strengthen generator config and sweep validation | M | - | generator,tests | Obfuscator/Obfuscator.cs; Obfuscator/DataGenerator.cs (was S05) | — |
+| 4 | [ob-06](slices/ob-06.md) | Document security guarantees and supported workflows | S | - | docs,cli | README.md; Obfuscator.Cli/README.md; Obfuscator/PackageReadme.md (was S06) | — |
+| 5 | ob-07 | Reject unrecognised CLI options | S | 1 | cli | Obfuscator.Cli/ObfuscatorCliProgram.cs ParseOptions accepts any --token; a typo like --gpg-recipent or --pasphrase-file is silently ignored and the manifest is written unprotected · discovered from ob-02 | — |
+| 6 | ob-08 | Move deterministic key off the command line | S | 1 | cli,docs | Obfuscator.Cli/ObfuscatorCliProgram.cs ResolveDeterministicKey; --deterministic-key <secret> is visible in process lists like the removed --passphrase; scripts/test-local.sh and README examples use it · discovered from ob-02 | — |
 
 ---
 
 | # | Slice | Title | Size | Effort | Trees | Findings | Status |
 |---|---|---|---|---|---|---|---|
-| 8 | [ob-01](slices/ob-01.md) | Define the security contract and supported threat model | S | - | core,docs | README.md documents deterministic-token leakage and plaintext manifests; no recorded Slicer goals (was S01) | done |
+| 7 | [ob-01](slices/ob-01.md) | Define the security contract and supported threat model | S | - | core,docs | README.md documents deterministic-token leakage and plaintext manifests; no recorded Slicer goals (was S01) | done |
+| 8 | [ob-02](slices/ob-02.md) | Make CLI credential entry safe by default | M | - | cli,docs | Obfuscator.Cli/ObfuscatorCliProgram.cs; README.md; Obfuscator.Cli/README.md (was S02) | done |
