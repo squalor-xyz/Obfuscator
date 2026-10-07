@@ -10,11 +10,11 @@ Make CSV obfuscation and restoration safer to use for library and CLI users, whi
 
 Do not claim obfuscation alone provides cryptographic secrecy. Do not require encrypted manifests by default. Do not target a 1.0 release in this roadmap.
 
-12 items · — 8 · done 4
+12 items · — 7 · done 4 · started 1
 
 | # | Slice | Title | Size | Effort | Trees | Findings | Status |
 |---|---|---|---|---|---|---|---|
-| 1 | [ob-04](slices/ob-04.md) | Replace or redesign deterministic-token cryptography | L | - | core,tests | README.md documents fixed-IV CBC prefix leakage; Obfuscator/ObfuscationEngine.cs (was S04) | — |
+| 1 | [ob-04](slices/ob-04.md) | Replace or redesign deterministic-token cryptography | L | - | core,tests | README.md documents fixed-IV CBC prefix leakage; Obfuscator/ObfuscationEngine.cs (was S04) | started |
 | 2 | [ob-05](slices/ob-05.md) | Strengthen generator config and sweep validation | M | - | generator,tests | Obfuscator/Obfuscator.cs; Obfuscator/DataGenerator.cs (was S05) | — |
 | 3 | [ob-06](slices/ob-06.md) | Document security guarantees and supported workflows | S | - | docs,cli | README.md; Obfuscator.Cli/README.md; Obfuscator/PackageReadme.md (was S06) | — |
 | 4 | ob-07 | Reject unrecognised CLI options | S | 1 | cli | Obfuscator.Cli/ObfuscatorCliProgram.cs ParseOptions accepts any --token; a typo like --gpg-recipent or --pasphrase-file is silently ignored and the manifest is written unprotected · discovered from ob-02 | — |

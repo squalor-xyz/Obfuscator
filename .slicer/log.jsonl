@@ -45,3 +45,4 @@
 {"when": "2026-10-07T13:15:56Z", "item": "ob-03", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon R cleared", "by": "Jon R"}
 {"when": "2026-10-07T13:16:03Z", "item": "ob-03", "action": "status", "from": "review", "to": "reviewing", "note": "", "by": "Jon R"}
 {"when": "2026-10-07T13:16:22Z", "item": "ob-03", "action": "status", "from": "reviewing", "to": "done", "note": "Reviewed and merged", "by": "Jon R"}
+{"when": "2026-10-07T13:25:59Z", "item": "ob-04", "action": "status", "from": "open", "to": "started", "note": "", "by": "Jon R"}

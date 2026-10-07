@@ -163,13 +163,16 @@
       "id": "ob-04",
       "title": "Replace or redesign deterministic-token cryptography",
       "short_title": "Replace or redesign deterministic-token cryptography",
-      "status": "open",
+      "status": "started",
       "has_slice": true,
       "depends_on": [
         "ob-01"
       ],
       "note_records": [],
-      "claim": null,
+      "claim": {
+        "owner": "Jon R",
+        "at": "2026-10-07T13:25:59Z"
+      },
       "fields": {
         "size": "L",
         "flags": [],
@@ -186,7 +189,7 @@
         "importance": 3,
         "urgency": 2,
         "effort": null,
-        "attempts": 0
+        "attempts": 1
       }
     },
     {
