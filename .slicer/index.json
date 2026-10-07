@@ -50,7 +50,7 @@
       "id": "ob-02",
       "title": "Make CLI credential entry safe by default",
       "short_title": "Make CLI credential entry safe by default",
-      "status": "review",
+      "status": "reviewing",
       "has_slice": true,
       "depends_on": [],
       "note_records": [
@@ -64,9 +64,23 @@
           "verified_by": "",
           "verified_at": "",
           "stale_after": ""
+        },
+        {
+          "id": "a05419b6-ea90-4bcb-800c-361e4027132e",
+          "kind": "",
+          "text": "**2026-10-07** — VERDICT: PASS - focused Cli_ tests 9/9, full dotnet test 65/65, scripts/test-local.sh passes (OBF_AESGCM_V3 manifests via OBFUSCATOR_PASSPHRASE), installed CLI help lists only env/file/stdin and inline --passphrase exits 1 without echoing the value, docs have no stale inline examples, slicer check ok.",
+          "created_at": "2026-10-07T12:03:46Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
         }
       ],
-      "claim": null,
+      "claim": {
+        "owner": "Jon R",
+        "at": "2026-10-07T12:03:00Z"
+      },
       "fields": {
         "size": "M",
         "flags": [],
