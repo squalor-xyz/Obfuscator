@@ -101,7 +101,7 @@
       "id": "ob-03",
       "title": "Prevent path collisions and incomplete output pairs",
       "short_title": "Prevent path collisions and incomplete output pairs",
-      "status": "review",
+      "status": "reviewing",
       "has_slice": true,
       "depends_on": [],
       "note_records": [
@@ -139,7 +139,10 @@
           "stale_after": ""
         }
       ],
-      "claim": null,
+      "claim": {
+        "owner": "Jon R",
+        "at": "2026-10-07T13:16:03Z"
+      },
       "fields": {
         "size": "M",
         "flags": [],
