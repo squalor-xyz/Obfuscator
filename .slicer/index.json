@@ -1,8 +1,8 @@
 {
-  "version": 2,
+  "version": 7,
   "id_prefix": "ob-",
   "id_width": 2,
-  "next_id": 7,
+  "next_id": 11,
   "preamble": "",
   "passes": [],
   "items": [
@@ -13,8 +13,18 @@
       "status": "done",
       "has_slice": true,
       "depends_on": [],
-      "notes": [
-        "**2026-09-29** — (recorded 2026-09-28 on S01) Security contract agreed: accidental-exposure risk reduction for controlled workflows; sharing is case-by-case. Docs cover retained structure and inference risk, manifest confidentiality, deterministic leakage, current compatibility, and no new crypto dependency."
+      "note_records": [
+        {
+          "id": "ob-01:legacy:0",
+          "kind": "",
+          "text": "**2026-09-29** — (recorded 2026-09-28 on S01) Security contract agreed: accidental-exposure risk reduction for controlled workflows; sharing is case-by-case. Docs cover retained structure and inference risk, manifest confidentiality, deterministic leakage, current compatibility, and no new crypto dependency.",
+          "created_at": "",
+          "attempt": null,
+          "by": "",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        }
       ],
       "claim": null,
       "fields": {
@@ -25,12 +35,15 @@
         ],
         "trees_literal": false,
         "findings": "README.md documents deterministic-token leakage and plaintext manifests; no recorded Slicer goals (was S01)",
+        "discovered_from": "",
+        "key": "",
         "pass": "",
         "group": "",
         "reason": "",
         "importance": 3,
         "urgency": 3,
-        "effort": null
+        "effort": null,
+        "attempts": 0
       }
     },
     {
@@ -40,7 +53,7 @@
       "status": "open",
       "has_slice": true,
       "depends_on": [],
-      "notes": [],
+      "note_records": [],
       "claim": null,
       "fields": {
         "size": "M",
@@ -50,12 +63,15 @@
         ],
         "trees_literal": false,
         "findings": "Obfuscator.Cli/ObfuscatorCliProgram.cs; README.md; Obfuscator.Cli/README.md (was S02)",
+        "discovered_from": "",
+        "key": "",
         "pass": "",
         "group": "",
         "reason": "",
         "importance": 3,
         "urgency": 3,
-        "effort": null
+        "effort": null,
+        "attempts": 0
       }
     },
     {
@@ -65,7 +81,7 @@
       "status": "open",
       "has_slice": true,
       "depends_on": [],
-      "notes": [],
+      "note_records": [],
       "claim": null,
       "fields": {
         "size": "M",
@@ -75,12 +91,15 @@
         ],
         "trees_literal": false,
         "findings": "Obfuscator/ObfuscationEngine.cs; Obfuscator/FileWrite.cs (was S03)",
+        "discovered_from": "",
+        "key": "",
         "pass": "",
         "group": "",
         "reason": "",
         "importance": 3,
         "urgency": 3,
-        "effort": null
+        "effort": null,
+        "attempts": 0
       }
     },
     {
@@ -92,7 +111,7 @@
       "depends_on": [
         "ob-01"
       ],
-      "notes": [],
+      "note_records": [],
       "claim": null,
       "fields": {
         "size": "L",
@@ -102,12 +121,15 @@
         ],
         "trees_literal": false,
         "findings": "README.md documents fixed-IV CBC prefix leakage; Obfuscator/ObfuscationEngine.cs (was S04)",
+        "discovered_from": "",
+        "key": "",
         "pass": "",
         "group": "",
         "reason": "",
         "importance": 3,
         "urgency": 2,
-        "effort": null
+        "effort": null,
+        "attempts": 0
       }
     },
     {
@@ -117,7 +139,7 @@
       "status": "open",
       "has_slice": true,
       "depends_on": [],
-      "notes": [],
+      "note_records": [],
       "claim": null,
       "fields": {
         "size": "M",
@@ -127,12 +149,15 @@
         ],
         "trees_literal": false,
         "findings": "Obfuscator/Obfuscator.cs; Obfuscator/DataGenerator.cs (was S05)",
+        "discovered_from": "",
+        "key": "",
         "pass": "",
         "group": "",
         "reason": "",
         "importance": 3,
         "urgency": 2,
-        "effort": null
+        "effort": null,
+        "attempts": 0
       }
     },
     {
@@ -148,7 +173,7 @@
         "ob-04",
         "ob-05"
       ],
-      "notes": [],
+      "note_records": [],
       "claim": null,
       "fields": {
         "size": "S",
@@ -158,12 +183,74 @@
         ],
         "trees_literal": false,
         "findings": "README.md; Obfuscator.Cli/README.md; Obfuscator/PackageReadme.md (was S06)",
+        "discovered_from": "",
+        "key": "",
         "pass": "",
         "group": "",
         "reason": "",
         "importance": 2,
         "urgency": 2,
-        "effort": null
+        "effort": null,
+        "attempts": 0
+      }
+    },
+    {
+      "id": "ob-09",
+      "title": "Document the slice worktree workflow",
+      "short_title": "Document the slice worktree workflow",
+      "status": "started",
+      "has_slice": true,
+      "depends_on": [],
+      "note_records": [],
+      "claim": {
+        "owner": "Jon R",
+        "at": "2026-10-07T11:54:23Z"
+      },
+      "fields": {
+        "size": "S",
+        "flags": [],
+        "trees": [
+          "docs"
+        ],
+        "trees_literal": false,
+        "findings": "owner request during ob-02",
+        "discovered_from": "",
+        "key": "",
+        "pass": "",
+        "group": "",
+        "reason": "",
+        "importance": 2,
+        "urgency": 2,
+        "effort": 1,
+        "attempts": 1
+      }
+    },
+    {
+      "id": "ob-10",
+      "title": "Fix absolute local path link in README Local development",
+      "short_title": "Fix absolute local path link in README Local development",
+      "status": "open",
+      "has_slice": false,
+      "depends_on": [],
+      "note_records": [],
+      "claim": null,
+      "fields": {
+        "size": "S",
+        "flags": [],
+        "trees": [
+          "docs"
+        ],
+        "trees_literal": false,
+        "findings": "README.md:177 links to /Users/jon/code/squalor-xyz/obfuscator/Obfuscator.Cli/README.md; broken on GitHub and for every other clone",
+        "discovered_from": "",
+        "key": "",
+        "pass": "",
+        "group": "",
+        "reason": "",
+        "importance": 2,
+        "urgency": 1,
+        "effort": 1,
+        "attempts": 0
       }
     }
   ],

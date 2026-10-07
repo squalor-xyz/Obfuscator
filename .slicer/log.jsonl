@@ -14,3 +14,6 @@
 {"when": "2026-09-29T23:55:22Z", "item": "ob-06", "action": "promote", "from": "", "to": "", "note": ""}
 {"when": "2026-09-29T23:55:22Z", "item": "ob-01", "action": "note", "from": "", "to": "", "note": "(recorded 2026-09-28 on S01) Security contract agreed: accid"}
 {"when": "2026-09-29T23:55:22Z", "item": "ob-01", "action": "status", "from": "open", "to": "done", "note": "done as S01 in dff246a (merged 636ad53)"}
+{"when": "2026-10-07T11:54:23Z", "item": "ob-09", "action": "add", "from": "", "to": "open", "note": "Document the slice worktree workflow"}
+{"when": "2026-10-07T11:54:23Z", "item": "ob-09", "action": "status", "from": "open", "to": "started", "note": "", "by": "Jon R"}
+{"when": "2026-10-07T11:54:24Z", "item": "ob-10", "action": "add", "from": "", "to": "open", "note": "Fix absolute local path link in README Local development"}

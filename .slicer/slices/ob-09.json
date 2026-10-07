@@ -1,0 +1,41 @@
+{
+  "id": "ob-09",
+  "title": "Document the slice worktree workflow",
+  "lead": [
+    "Write down how roadmap items move from the slicer queue to a reviewed branch, so humans and agents follow the same process."
+  ],
+  "depends_note": null,
+  "findings_note": "owner request during ob-02",
+  "size": "S",
+  "flags": [],
+  "trees_note": "docs",
+  "trees_plural": false,
+  "boundary": "**Not in this slice:**",
+  "sections": [
+    {
+      "heading": "Why",
+      "body": "The owner set a per-slice process during ob-02 (git worktree per item, commit in the worktree, slicer handoff for review). It is not recorded anywhere in the repo, and slicer's implement_finish is still `done`, so agent guidance tells agents to skip review."
+    },
+    {
+      "heading": "Files",
+      "body": "CONTRIBUTING.md (new); README.md (Local development pointer); .gitignore; .slicer/config.json (implement_finish)."
+    },
+    {
+      "heading": "Failing tests",
+      "body": "None; documentation and config only."
+    },
+    {
+      "heading": "Implement",
+      "body": "Add CONTRIBUTING.md covering setup (slicer merge drivers), picking an item, creating `.worktrees/<id>`, running slicer with `--root`, building and testing, committing in the worktree, handoff with a review note, filing discovered work and slicer friction, review and merge, and cleanup. Link it from README Local development. Set implement_finish to handoff. Ignore `/.worktrees/`."
+    },
+    {
+      "heading": "Check",
+      "body": "`slicer check` passes; `slicer config implement_finish` prints handoff; commands in CONTRIBUTING.md match `slicer --help` and the repo scripts."
+    },
+    {
+      "heading": "Git",
+      "body": "Commit in the ob-09 worktree; hand off; do not merge or push."
+    }
+  ],
+  "notes": []
+}
