@@ -10,11 +10,11 @@ Make CSV obfuscation and restoration safer to use for library and CLI users, whi
 
 Do not claim obfuscation alone provides cryptographic secrecy. Do not require encrypted manifests by default. Do not target a 1.0 release in this roadmap.
 
-17 items · — 6 · done 9 · retired 1 · review 1
+17 items · — 7 · done 9 · retired 1
 
 | # | Slice | Title | Size | Effort | Trees | Findings | Status |
 |---|---|---|---|---|---|---|---|
-| 1 | [ob-08](slices/ob-08.md) | Move deterministic key off the command line | S | 1 | cli,docs | Obfuscator.Cli/ObfuscatorCliProgram.cs ResolveDeterministicKey; --deterministic-key <secret> is visible in process lists like the removed --passphrase; scripts/test-local.sh and README examples use it · discovered from ob-02 | review |
+| 1 | [ob-08](slices/ob-08.md) | Move deterministic key off the command line | S | 1 | cli,docs | Obfuscator.Cli/ObfuscatorCliProgram.cs ResolveDeterministicKey; --deterministic-key <secret> is visible in process lists like the removed --passphrase; scripts/test-local.sh and README examples use it · discovered from ob-02 | — |
 | 2 | ob-10 | Fix absolute local path link in README Local development | S | 1 | docs | README.md:177 links to /Users/jon/code/squalor-xyz/obfuscator/Obfuscator.Cli/README.md; broken on GitHub and for every other clone | — |
 | 3 | ob-11 | Render after reviewer claim in CONTRIBUTING step 8 | S | 1 | docs | CONTRIBUTING.md:120: reviewer runs 'slicer next --status review --start' which does not re-render; committing the claim then fails 'slicer check' (hit on ob-02 and ob-09 reviews). Add 'slicer --root .worktrees/ob-NN render' after the claim. · discovered from ob-09 | — |
 | 4 | ob-12 | Detect symlink and hard-link aliases between input, output, and manifest | S | 1 | core | Obfuscator/FileWrite.cs: SamePath compares Path.GetFullPath case-insensitively only; a symlinked or hard-linked path to the same file is not rejected · discovered from ob-03 | — |
