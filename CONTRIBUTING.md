@@ -118,11 +118,12 @@ The reviewer works in the item's worktree:
 
 ```bash
 slicer --root .worktrees/ob-NN next --status review --start --ready --section Check
+slicer --root .worktrees/ob-NN render
 git log main..ob-NN-<topic>
 git diff main...ob-NN-<topic>
 ```
 
-This claims the item and moves it to `reviewing`. The reviewer re-runs the **Check** section and the project checks, then records the verdict on the branch.
+This claims the item, moves it to `reviewing`, and re-renders the roadmap, which the claim alone leaves stale. The reviewer re-runs the **Check** section and the project checks, then records the verdict on the branch.
 
 - **Fail:** record the verdict, which returns the item to open, and commit it on the branch:
 

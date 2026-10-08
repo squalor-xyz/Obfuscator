@@ -1,0 +1,41 @@
+{
+  "id": "ob-11",
+  "title": "Render after reviewer claim in CONTRIBUTING step 8",
+  "lead": [
+    "CONTRIBUTING step 8 re-renders the roadmap right after the reviewer claims the item, so the claim commits cleanly."
+  ],
+  "depends_note": null,
+  "findings_note": "CONTRIBUTING.md:120: reviewer runs 'slicer next --status review --start' which does not re-render; committing the claim then fails 'slicer check' (hit on ob-02 and ob-09 reviews). Add 'slicer --root .worktrees/ob-NN render' after the claim.",
+  "size": "S",
+  "flags": [],
+  "trees_note": "docs",
+  "trees_plural": false,
+  "boundary": "**Not in this slice:** changing slicer itself; other CONTRIBUTING steps.",
+  "sections": [
+    {
+      "heading": "Why",
+      "body": "`slicer next --status review --start` changes tracking state without re-rendering, so `slicer check` reports a stale render until someone runs `slicer render`. Reviews of ob-02, ob-09, ob-17, and ob-08 all hit this."
+    },
+    {
+      "heading": "Files",
+      "body": "CONTRIBUTING.md."
+    },
+    {
+      "heading": "Failing tests",
+      "body": "None; documentation only. Following step 8 as written leaves `slicer check` failing with \"stale render\" after the claim."
+    },
+    {
+      "heading": "Implement",
+      "body": "In step 8, add `slicer --root .worktrees/ob-NN render` directly after the `next --status review --start` claim in the reviewer's command block."
+    },
+    {
+      "heading": "Check",
+      "body": "Claim a review-status item by following step 8 literally, then run `slicer --root .worktrees/ob-NN check`; it passes."
+    },
+    {
+      "heading": "Git",
+      "body": "One commit for the doc change plus the `.slicer/` changes."
+    }
+  ],
+  "notes": []
+}
