@@ -163,7 +163,7 @@
       "id": "ob-04",
       "title": "Replace or redesign deterministic-token cryptography",
       "short_title": "Replace or redesign deterministic-token cryptography",
-      "status": "review",
+      "status": "reviewing",
       "has_slice": true,
       "depends_on": [
         "ob-01"
@@ -190,9 +190,23 @@
           "verified_by": "",
           "verified_at": "",
           "stale_after": ""
+        },
+        {
+          "id": "6885318a-38bf-4d0b-a6e8-ed28595a7145",
+          "kind": "",
+          "text": "**2026-10-08** — VERDICT: PASS. Reviewed AesSiv.cs line-by-line against RFC 4493 (subkeys, CMAC last-block handling) and RFC 5297 (S2V incl. xorend/pad branches, Q bit-31/63 clearing, 128-bit counter, constant-time tag compare, plaintext zeroed on failure); KATs RFC 4493 x4, RFC 5297 A.1/A.2 pass. Engine: per-column HKDF key with distinct info label, AD = column name, cache reset on each BindCrypto; no derivation collision with mapping mode (string mode is global per run). Compat: 2.0 manifests verify and decrypt via legacy path (golden fixture); older builds reject 2.1 token manifests via checksum mismatch rather than passing tokens through. Checks: dotnet test 91/91, scripts/test-local.sh exit 0, slicer check pass (macOS). Non-blocking: Version field is never validated on read; token AesSiv instances are not disposed after the final run.",
+          "created_at": "2026-10-08T11:26:03Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
         }
       ],
-      "claim": null,
+      "claim": {
+        "owner": "Jon R",
+        "at": "2026-10-08T11:24:03Z"
+      },
       "fields": {
         "size": "L",
         "flags": [],

@@ -50,3 +50,5 @@
 {"when": "2026-10-07T13:31:12Z", "item": "ob-04", "action": "note", "from": "", "to": "", "note": "Decisions (owner-approved 2026-10-07): Algorithm = AES-SIV-C", "by": "Jon R"}
 {"when": "2026-10-07T13:31:12Z", "item": "ob-04", "action": "note", "from": "", "to": "", "note": "Ready for review: branch ob-04-aes-siv-tokens (c3c83a6 claim", "by": "Jon R"}
 {"when": "2026-10-07T13:31:12Z", "item": "ob-04", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon R cleared", "by": "Jon R"}
+{"when": "2026-10-08T11:24:03Z", "item": "ob-04", "action": "status", "from": "review", "to": "reviewing", "note": "", "by": "Jon R"}
+{"when": "2026-10-08T11:26:03Z", "item": "ob-04", "action": "note", "from": "", "to": "", "note": "VERDICT: PASS. Reviewed AesSiv.cs line-by-line against RFC 4", "by": "Jon R"}
