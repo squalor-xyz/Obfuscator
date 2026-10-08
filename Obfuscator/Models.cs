@@ -193,7 +193,8 @@ public sealed class ObfuscationManifest
 {
     // Version of the manifest schema, not the package version.
     // 2.1: deterministic-token columns record TokenScheme (AES-SIV). 2.0 manifests have none (legacy CBC tokens).
-    public string Version { get; set; } = "2.1";
+    // 2.2: floating columns record FloatScheme (exact decimal). Older manifests have none (approximate double transform).
+    public string Version { get; set; } = "2.2";
     public DateTimeOffset CreatedUtc { get; set; } = DateTimeOffset.UtcNow;
     public string SourceFileName { get; set; } = string.Empty;
     public string ObfuscatedFileName { get; set; } = string.Empty;
@@ -228,6 +229,18 @@ public sealed class ColumnObfuscationSpec
     // y = x * Scale + Shift
     public double Scale { get; set; } = 1.0;
     public double Shift { get; set; }
+
+    // Exact floating transform: ExactScale and ExactShift are decimal strings and y is computed without
+    // rounding. Null on pre-2.2 manifests means the double transform above, which is only approximate.
+    // Omitted from integrity JSON when null so old checksums still verify.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? FloatScheme { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ExactScale { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ExactShift { get; set; }
 
     // boolean
     public bool InvertBoolean { get; set; }
