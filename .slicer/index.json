@@ -601,11 +601,37 @@
       "id": "ob-12",
       "title": "Detect symlink and hard-link aliases between input, output, and manifest",
       "short_title": "Detect symlink and hard-link aliases between input, output, and manifest",
-      "status": "open",
-      "has_slice": false,
+      "status": "reviewing",
+      "has_slice": true,
       "depends_on": [],
-      "note_records": [],
-      "claim": null,
+      "note_records": [
+        {
+          "id": "02a76c9b-7d07-4794-8d7e-e05f52075415",
+          "kind": "",
+          "text": "**2026-10-08** — Ready for review: branch ob-12-link-aliases, commit 2eed47b. Behaviour: FileWrite.SamePath now resolves symbolic links in every existing path component (relative targets rebased on the link's directory, max 40 links, then IOException) before the existing case-insensitive compare. Obfuscate and deobfuscate therefore reject an output or manifest that reaches another of the three files through a symlinked directory or a file symlink. Hard links are deliberately not detected (owner decision): outputs are published by rename, so a hard-linked input keeps its content. README states both. Checks: 3 new SkippableFact symlink tests failed on main (no exception thrown) and pass on the branch; dotnet test Obfuscator.slnx 181/181 passed, 0 skipped (macOS, temp under /var -> /private/var, so the round trips run through a symlinked component); scripts/test-local.sh exit 0; slicer check passed. Not run: Windows, where the symlink tests skip if links cannot be created. Follow-ups: none filed.",
+          "created_at": "2026-10-08T15:17:12Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        },
+        {
+          "id": "58122e11-b46f-4cc0-8d78-77b85c245109",
+          "kind": "",
+          "text": "**2026-10-08** — VERDICT: PASS - diff matches slice scope; dotnet test 181/181 passed, scripts/test-local.sh exit 0. Hard-link README claim verified manually with the packed CLI: input hard-linked as both --output and --manifest, obfuscate --force left the input hash unchanged, outputs replaced the links, and deobfuscate round-tripped identically.",
+          "created_at": "2026-10-08T15:19:50Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        }
+      ],
+      "claim": {
+        "owner": "Jon R",
+        "at": "2026-10-08T15:18:54Z"
+      },
       "fields": {
         "size": "S",
         "flags": [],
@@ -623,7 +649,7 @@
         "importance": 2,
         "urgency": 1,
         "effort": 1,
-        "attempts": 0
+        "attempts": 1
       }
     },
     {
