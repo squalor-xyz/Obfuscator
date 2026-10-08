@@ -165,3 +165,5 @@
 {"when": "2026-10-08T16:41:05Z", "item": "ob-18", "action": "note", "from": "", "to": "", "note": "Correction to the FAIL verdict: it was wrong. On .NET 10.0.1", "by": "Jon R"}
 {"when": "2026-10-08T16:41:05Z", "item": "ob-18", "action": "note", "from": "", "to": "", "note": "Ready for review: branch ob-18-blank-env-key, code commit bf", "by": "Jon R"}
 {"when": "2026-10-08T16:41:05Z", "item": "ob-18", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon R cleared", "by": "Jon R"}
+{"when": "2026-10-08T16:41:11Z", "item": "ob-18", "action": "status", "from": "review", "to": "reviewing", "note": "", "by": "Jon R"}
+{"when": "2026-10-08T16:41:36Z", "item": "ob-18", "action": "note", "from": "", "to": "", "note": "VERDICT: PASS - diff matches slice scope; dotnet test 190/19", "by": "Jon R"}

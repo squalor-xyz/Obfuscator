@@ -856,7 +856,7 @@
       "id": "ob-18",
       "title": "Reject a whitespace-only OBFUSCATOR_DETERMINISTIC_KEY",
       "short_title": "Reject a whitespace-only OBFUSCATOR_DETERMINISTIC_KEY",
-      "status": "review",
+      "status": "reviewing",
       "has_slice": true,
       "depends_on": [],
       "note_records": [
@@ -903,9 +903,23 @@
           "verified_by": "",
           "verified_at": "",
           "stale_after": ""
+        },
+        {
+          "id": "e6b0283e-d39b-4776-be22-548513b398d6",
+          "kind": "",
+          "text": "**2026-10-08** — VERDICT: PASS - diff matches slice scope; dotnet test 190/190; scripts/test-local.sh exit 0; installed CLI: empty env exit 0, whitespace env exit 1 with blank-key message",
+          "created_at": "2026-10-08T16:41:36Z",
+          "attempt": 2,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
         }
       ],
-      "claim": null,
+      "claim": {
+        "owner": "Jon R",
+        "at": "2026-10-08T16:41:11Z"
+      },
       "fields": {
         "size": "S",
         "flags": [],
