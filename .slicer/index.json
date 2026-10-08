@@ -278,7 +278,7 @@
       "id": "ob-06",
       "title": "Document security guarantees and supported workflows",
       "short_title": "Document security guarantees and supported workflows",
-      "status": "started",
+      "status": "review",
       "has_slice": true,
       "depends_on": [
         "ob-01",
@@ -287,11 +287,20 @@
         "ob-04",
         "ob-05"
       ],
-      "note_records": [],
-      "claim": {
-        "owner": "Jon R",
-        "at": "2026-10-08T13:15:37Z"
-      },
+      "note_records": [
+        {
+          "id": "3bac5600-ff79-4b33-9ad2-7d4d9d3db97a",
+          "kind": "",
+          "text": "**2026-10-08** — Ready for review: branch ob-06-security-docs, commit 51d2948. Docs only. Owner decisions: include Obfuscator.Cli/PackageReadme.md (added to Files); fold in ob-15 (retired); one canonical Security contract word for word in all four readmes. Changes: shared Security contract (plain-manifest default, PBKDF2-SHA256 600k for passphrase and deterministic key, HKDF per transform, GPG wraps AES-GCM, System.Random/GUIDs without a key), shared Manifest compatibility list, shared Generated data paragraph, shared CLI credential paragraph; CLI package readme gains obfuscate/deobfuscate example; CLI README string modes fixed for the per-manifest salt, option lists match --help (--strict, --force, deobfuscate options); generator validation list added to Obfuscator/PackageReadme.md and Obfuscator.Cli/README.md. Every crypto claim was checked against ManifestCrypto.cs/ObfuscationEngine.cs. Checks: script confirms contract section and shared blocks byte-identical across files and stale phrases gone; --help option set vs docs compared; dotnet test Obfuscator.slnx 132/132; scripts/test-local.sh exit 0 (packs both readmes); slicer check passed. Follow-up filed: ob-17 (plaintext manifest staged in shared temp before GPG).",
+          "created_at": "2026-10-08T13:18:41Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        }
+      ],
+      "claim": null,
       "fields": {
         "size": "S",
         "flags": [],
