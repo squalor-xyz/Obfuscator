@@ -688,7 +688,7 @@
       "id": "ob-17",
       "title": "Do not stage the manifest in shared temp before GPG encryption",
       "short_title": "Do not stage the manifest in shared temp before GPG encryption",
-      "status": "review",
+      "status": "reviewing",
       "has_slice": true,
       "depends_on": [],
       "note_records": [
@@ -704,7 +704,10 @@
           "stale_after": ""
         }
       ],
-      "claim": null,
+      "claim": {
+        "owner": "Jon R",
+        "at": "2026-10-08T13:28:41Z"
+      },
       "fields": {
         "size": "S",
         "flags": [],

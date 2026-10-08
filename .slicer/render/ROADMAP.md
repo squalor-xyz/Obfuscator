@@ -10,7 +10,7 @@ Make CSV obfuscation and restoration safer to use for library and CLI users, whi
 
 Do not claim obfuscation alone provides cryptographic secrecy. Do not require encrypted manifests by default. Do not target a 1.0 release in this roadmap.
 
-17 items · — 7 · done 8 · retired 1 · review 1
+17 items · — 7 · done 8 · retired 1 · reviewing 1
 
 | # | Slice | Title | Size | Effort | Trees | Findings | Status |
 |---|---|---|---|---|---|---|---|
@@ -22,7 +22,7 @@ Do not claim obfuscation alone provides cryptographic secrecy. Do not require en
 | 6 | ob-14 | Generated sweep IDs can exceed or saturate their configured range | S | 1 | generator | Obfuscator/DataGenerator.cs:280 outer-group IDs clamp at TotalRangeMax, so groups past the range share one ID; Obfuscator/DataGenerator.cs:101 inner-step IDs ignore TotalRangeMax and type bounds · discovered from ob-05 | — |
 | 7 | ob-15 | Document generator config validation in package READMEs | S | 1 | docs | Obfuscator/PackageReadme.md and Obfuscator.Cli/README.md describe rowMode/sweepAxes but not the validation rules ob-05 added to README.md · Folded into ob-06 (owner decision): package README validation docs are aligned there · discovered from ob-05 | retired |
 | 8 | ob-16 | Support --help after a command | S | 1 | cli | Obfuscator.Cli/ObfuscatorCliProgram.cs Run: help is recognised only as the first argument; 'obfuscate --help' now fails with Unknown option '--help' (before ob-07 it failed with a missing-option error) · discovered from ob-07 | — |
-| 9 | [ob-17](slices/ob-17.md) | Do not stage the manifest in shared temp before GPG encryption | S | 1 | core | Obfuscator/ManifestCrypto.cs:47-50 writes the pre-GPG manifest payload (plaintext JSON when no passphrase is set) to Path.GetTempPath() before gpg encrypts it, so an unencrypted copy briefly sits in the shared temp directory and survives a crash; stage it next to the destination or pipe it to gpg's stdin · discovered from ob-06 | review |
+| 9 | [ob-17](slices/ob-17.md) | Do not stage the manifest in shared temp before GPG encryption | S | 1 | core | Obfuscator/ManifestCrypto.cs:47-50 writes the pre-GPG manifest payload (plaintext JSON when no passphrase is set) to Path.GetTempPath() before gpg encrypts it, so an unencrypted copy briefly sits in the shared temp directory and survives a crash; stage it next to the destination or pipe it to gpg's stdin · discovered from ob-06 | reviewing |
 
 ---
 
