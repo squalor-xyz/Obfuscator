@@ -2,7 +2,7 @@
   "version": 7,
   "id_prefix": "ob-",
   "id_width": 2,
-  "next_id": 14,
+  "next_id": 16,
   "preamble": "",
   "passes": [],
   "items": [
@@ -227,11 +227,14 @@
       "id": "ob-05",
       "title": "Strengthen generator config and sweep validation",
       "short_title": "Strengthen generator config and sweep validation",
-      "status": "open",
+      "status": "started",
       "has_slice": true,
       "depends_on": [],
       "note_records": [],
-      "claim": null,
+      "claim": {
+        "owner": "Jon R",
+        "at": "2026-10-08T11:39:31Z"
+      },
       "fields": {
         "size": "M",
         "flags": [],
@@ -248,7 +251,7 @@
         "importance": 3,
         "urgency": 2,
         "effort": null,
-        "attempts": 0
+        "attempts": 1
       }
     },
     {
@@ -512,6 +515,62 @@
         "importance": 2,
         "urgency": 2,
         "effort": 2,
+        "attempts": 0
+      }
+    },
+    {
+      "id": "ob-14",
+      "title": "Generated sweep IDs can exceed or saturate their configured range",
+      "short_title": "Generated sweep IDs can exceed or saturate their configured range",
+      "status": "open",
+      "has_slice": false,
+      "depends_on": [],
+      "note_records": [],
+      "claim": null,
+      "fields": {
+        "size": "S",
+        "flags": [],
+        "trees": [
+          "generator"
+        ],
+        "trees_literal": false,
+        "findings": "Obfuscator/DataGenerator.cs:280 outer-group IDs clamp at TotalRangeMax, so groups past the range share one ID; Obfuscator/DataGenerator.cs:101 inner-step IDs ignore TotalRangeMax and type bounds",
+        "discovered_from": "ob-05",
+        "key": "",
+        "pass": "",
+        "group": "",
+        "reason": "",
+        "importance": 2,
+        "urgency": 1,
+        "effort": 1,
+        "attempts": 0
+      }
+    },
+    {
+      "id": "ob-15",
+      "title": "Document generator config validation in package READMEs",
+      "short_title": "Document generator config validation in package READMEs",
+      "status": "open",
+      "has_slice": false,
+      "depends_on": [],
+      "note_records": [],
+      "claim": null,
+      "fields": {
+        "size": "S",
+        "flags": [],
+        "trees": [
+          "docs"
+        ],
+        "trees_literal": false,
+        "findings": "Obfuscator/PackageReadme.md and Obfuscator.Cli/README.md describe rowMode/sweepAxes but not the validation rules ob-05 added to README.md",
+        "discovered_from": "ob-05",
+        "key": "",
+        "pass": "",
+        "group": "",
+        "reason": "",
+        "importance": 1,
+        "urgency": 1,
+        "effort": 1,
         "attempts": 0
       }
     }

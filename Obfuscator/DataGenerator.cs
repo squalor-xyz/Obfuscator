@@ -13,8 +13,9 @@ internal sealed class DataGenerator
 {
     private const double BooleanTruePercentageDefault = 50.0;
     private const double PercentageScale = 100.0;
-    private static readonly DateTimeOffset DefaultDateMinUtc = new(2020, 1, 1, 0, 0, 0, TimeSpan.Zero);
-    private static readonly DateTimeOffset DefaultDateMaxUtc = new(2020, 1, 31, 0, 0, 0, TimeSpan.Zero);
+    internal static readonly DateTimeOffset DefaultDateMinUtc = new(2020, 1, 1, 0, 0, 0, TimeSpan.Zero);
+    internal static readonly DateTimeOffset DefaultDateMaxUtc = new(2020, 1, 31, 0, 0, 0, TimeSpan.Zero);
+    private const DateTimeStyles DateParseStyles = DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal;
     private const double CorrelatedNoiseStdDev = 0.08;
     private const double IdealRangePercentageDefault = 70.0;
     private const double IdealRangeCenter = 0.5;
@@ -355,8 +356,11 @@ internal sealed class DataGenerator
     private static DateTimeOffset? ParseDate(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return null;
-        return DateTimeOffset.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
+        return DateTimeOffset.Parse(value, CultureInfo.InvariantCulture, DateParseStyles);
     }
+
+    internal static bool TryParseDate(string value, out DateTimeOffset result) =>
+        DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateParseStyles, out result);
 
     private Guid NextGuid()
     {

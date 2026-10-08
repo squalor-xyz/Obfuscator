@@ -10,11 +10,11 @@ Make CSV obfuscation and restoration safer to use for library and CLI users, whi
 
 Do not claim obfuscation alone provides cryptographic secrecy. Do not require encrypted manifests by default. Do not target a 1.0 release in this roadmap.
 
-13 items · — 8 · done 5
+15 items · — 9 · done 5 · started 1
 
 | # | Slice | Title | Size | Effort | Trees | Findings | Status |
 |---|---|---|---|---|---|---|---|
-| 1 | [ob-05](slices/ob-05.md) | Strengthen generator config and sweep validation | M | - | generator,tests | Obfuscator/Obfuscator.cs; Obfuscator/DataGenerator.cs (was S05) | — |
+| 1 | [ob-05](slices/ob-05.md) | Strengthen generator config and sweep validation | M | - | generator,tests | Obfuscator/Obfuscator.cs; Obfuscator/DataGenerator.cs (was S05) | started |
 | 2 | [ob-06](slices/ob-06.md) | Document security guarantees and supported workflows | S | - | docs,cli | README.md; Obfuscator.Cli/README.md; Obfuscator/PackageReadme.md (was S06) | — |
 | 3 | ob-07 | Reject unrecognised CLI options | S | 1 | cli | Obfuscator.Cli/ObfuscatorCliProgram.cs ParseOptions accepts any --token; a typo like --gpg-recipent or --pasphrase-file is silently ignored and the manifest is written unprotected · discovered from ob-02 | — |
 | 4 | ob-08 | Move deterministic key off the command line | S | 1 | cli,docs | Obfuscator.Cli/ObfuscatorCliProgram.cs ResolveDeterministicKey; --deterministic-key <secret> is visible in process lists like the removed --passphrase; scripts/test-local.sh and README examples use it · discovered from ob-02 | — |
@@ -22,13 +22,15 @@ Do not claim obfuscation alone provides cryptographic secrecy. Do not require en
 | 6 | ob-11 | Render after reviewer claim in CONTRIBUTING step 8 | S | 1 | docs | CONTRIBUTING.md:120: reviewer runs 'slicer next --status review --start' which does not re-render; committing the claim then fails 'slicer check' (hit on ob-02 and ob-09 reviews). Add 'slicer --root .worktrees/ob-NN render' after the claim. · discovered from ob-09 | — |
 | 7 | ob-12 | Detect symlink and hard-link aliases between input, output, and manifest | S | 1 | core | Obfuscator/FileWrite.cs: SamePath compares Path.GetFullPath case-insensitively only; a symlinked or hard-linked path to the same file is not rejected · discovered from ob-03 | — |
 | 8 | ob-13 | Floating-point columns do not round-trip exactly | S | 2 | core,tests | Obfuscator/ObfuscationEngine.cs ObfuscateFloating/DeobfuscateFloating: (x*Scale+Shift) then (y-Shift)/Scale changes the last digits of G17 output (e.g. 131.60538314346292 -> 131.60538314346289) in scripts/test-local.sh sample output; README does not document floats as approximate and test-local.sh does not compare restored CSVs · discovered from ob-04 | — |
+| 9 | ob-14 | Generated sweep IDs can exceed or saturate their configured range | S | 1 | generator | Obfuscator/DataGenerator.cs:280 outer-group IDs clamp at TotalRangeMax, so groups past the range share one ID; Obfuscator/DataGenerator.cs:101 inner-step IDs ignore TotalRangeMax and type bounds · discovered from ob-05 | — |
+| 10 | ob-15 | Document generator config validation in package READMEs | S | 1 | docs | Obfuscator/PackageReadme.md and Obfuscator.Cli/README.md describe rowMode/sweepAxes but not the validation rules ob-05 added to README.md · discovered from ob-05 | — |
 
 ---
 
 | # | Slice | Title | Size | Effort | Trees | Findings | Status |
 |---|---|---|---|---|---|---|---|
-| 9 | [ob-01](slices/ob-01.md) | Define the security contract and supported threat model | S | - | core,docs | README.md documents deterministic-token leakage and plaintext manifests; no recorded Slicer goals (was S01) | done |
-| 10 | [ob-02](slices/ob-02.md) | Make CLI credential entry safe by default | M | - | cli,docs | Obfuscator.Cli/ObfuscatorCliProgram.cs; README.md; Obfuscator.Cli/README.md (was S02) | done |
-| 11 | [ob-03](slices/ob-03.md) | Prevent path collisions and incomplete output pairs | M | - | core,tests | Obfuscator/ObfuscationEngine.cs; Obfuscator/FileWrite.cs (was S03) | done |
-| 12 | [ob-04](slices/ob-04.md) | Replace or redesign deterministic-token cryptography | L | - | core,tests | README.md documents fixed-IV CBC prefix leakage; Obfuscator/ObfuscationEngine.cs (was S04) | done |
-| 13 | [ob-09](slices/ob-09.md) | Document the slice worktree workflow | S | 1 | docs | owner request during ob-02 | done |
+| 11 | [ob-01](slices/ob-01.md) | Define the security contract and supported threat model | S | - | core,docs | README.md documents deterministic-token leakage and plaintext manifests; no recorded Slicer goals (was S01) | done |
+| 12 | [ob-02](slices/ob-02.md) | Make CLI credential entry safe by default | M | - | cli,docs | Obfuscator.Cli/ObfuscatorCliProgram.cs; README.md; Obfuscator.Cli/README.md (was S02) | done |
+| 13 | [ob-03](slices/ob-03.md) | Prevent path collisions and incomplete output pairs | M | - | core,tests | Obfuscator/ObfuscationEngine.cs; Obfuscator/FileWrite.cs (was S03) | done |
+| 14 | [ob-04](slices/ob-04.md) | Replace or redesign deterministic-token cryptography | L | - | core,tests | README.md documents fixed-IV CBC prefix leakage; Obfuscator/ObfuscationEngine.cs (was S04) | done |
+| 15 | [ob-09](slices/ob-09.md) | Document the slice worktree workflow | S | 1 | docs | owner request during ob-02 | done |
