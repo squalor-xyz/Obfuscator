@@ -278,7 +278,7 @@
       "id": "ob-06",
       "title": "Document security guarantees and supported workflows",
       "short_title": "Document security guarantees and supported workflows",
-      "status": "review",
+      "status": "reviewing",
       "has_slice": true,
       "depends_on": [
         "ob-01",
@@ -298,9 +298,23 @@
           "verified_by": "",
           "verified_at": "",
           "stale_after": ""
+        },
+        {
+          "id": "128b048e-afc8-4f8a-8743-7c578883a924",
+          "kind": "",
+          "text": "**2026-10-08** — VERDICT: PASS - self-review (same session as the implementation); contract, compatibility and generated-data blocks re-verified byte-identical across all four readmes; dotnet test Obfuscator.slnx 132/132; scripts/test-local.sh exit 0; slicer check passed.",
+          "created_at": "2026-10-08T13:20:37Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
         }
       ],
-      "claim": null,
+      "claim": {
+        "owner": "Jon R",
+        "at": "2026-10-08T13:20:05Z"
+      },
       "fields": {
         "size": "S",
         "flags": [],
