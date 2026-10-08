@@ -393,11 +393,14 @@
       "id": "ob-08",
       "title": "Move deterministic key off the command line",
       "short_title": "Move deterministic key off the command line",
-      "status": "open",
-      "has_slice": false,
+      "status": "started",
+      "has_slice": true,
       "depends_on": [],
       "note_records": [],
-      "claim": null,
+      "claim": {
+        "owner": "Jon R",
+        "at": "2026-10-08T13:33:20Z"
+      },
       "fields": {
         "size": "S",
         "flags": [],
@@ -415,7 +418,7 @@
         "importance": 2,
         "urgency": 2,
         "effort": 1,
-        "attempts": 0
+        "attempts": 1
       }
     },
     {

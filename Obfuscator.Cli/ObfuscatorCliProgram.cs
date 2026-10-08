@@ -113,7 +113,7 @@ internal static class ObfuscatorCliProgram
         "--manifest",
         "--seed",
         "--passphrase-file",
-        "--deterministic-key",
+        "--deterministic-key-file",
         "--string-mode",
         "--include",
         "--exclude",
@@ -136,7 +136,7 @@ internal static class ObfuscatorCliProgram
         "--manifest",
         "--create-output-dir",
         "--force",
-        "--deterministic-key",
+        "--deterministic-key-file",
         "--string-mode",
         "--include",
         "--exclude",
@@ -158,7 +158,7 @@ internal static class ObfuscatorCliProgram
         "--force",
         "--passphrase-file",
         "--passphrase-stdin",
-        "--deterministic-key",
+        "--deterministic-key-file",
         "--allow-mismatched-source",
     };
 
@@ -178,6 +178,11 @@ internal static class ObfuscatorCliProgram
                 throw new InvalidOperationException(
                     "--passphrase is no longer supported because it exposes the secret in process lists. " +
                     "Use OBFUSCATOR_PASSPHRASE, --passphrase-file <path>, or --passphrase-stdin.");
+            if (token.Equals("--deterministic-key", StringComparison.OrdinalIgnoreCase)
+                || token.StartsWith("--deterministic-key=", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException(
+                    "--deterministic-key is no longer supported because it exposes the secret in process lists. " +
+                    "Use OBFUSCATOR_DETERMINISTIC_KEY or --deterministic-key-file <path>.");
 
             // A mistyped option must fail rather than be ignored. Name only the part
             // before '=' so an inline value is never echoed.
@@ -224,9 +229,9 @@ internal static class ObfuscatorCliProgram
 
     private static string? ResolveDeterministicKey(Dictionary<string, List<string>> options)
     {
-        var flagged = GetSingle(options, "--deterministic-key");
-        if (!string.IsNullOrEmpty(flagged))
-            return flagged;
+        var file = GetSingle(options, "--deterministic-key-file");
+        if (!string.IsNullOrEmpty(file))
+            return File.ReadAllText(file).TrimEnd('\r', '\n');
         var env = Environment.GetEnvironmentVariable("OBFUSCATOR_DETERMINISTIC_KEY");
         return string.IsNullOrEmpty(env) ? null : env;
     }
@@ -332,7 +337,7 @@ internal static class ObfuscatorCliProgram
         Console.WriteLine("      Overwrite an existing --output or --manifest file. Refused without this flag.");
         Console.WriteLine();
         Console.WriteLine("Obfuscate options:");
-        Console.WriteLine("  --deterministic-key <secret>");
+        Console.WriteLine("  --deterministic-key-file <path>");
         Console.WriteLine("  --string-mode <auto|mapping|deterministic-token>");
         Console.WriteLine("  --include <colA,colB>");
         Console.WriteLine("  --exclude <colA,colB>");
@@ -347,11 +352,12 @@ internal static class ObfuscatorCliProgram
         Console.WriteLine("Deobfuscate options:");
         Console.WriteLine("  --passphrase-file <path>");
         Console.WriteLine("  --passphrase-stdin");
-        Console.WriteLine("  --deterministic-key <secret>");
+        Console.WriteLine("  --deterministic-key-file <path>");
         Console.WriteLine("  --allow-mismatched-source");
         Console.WriteLine();
         Console.WriteLine("The manifest passphrase can also come from OBFUSCATOR_PASSPHRASE.");
-        Console.WriteLine("Inline --passphrase is not accepted because it is visible in process lists.");
+        Console.WriteLine("The deterministic key can also come from OBFUSCATOR_DETERMINISTIC_KEY.");
+        Console.WriteLine("Inline --passphrase and --deterministic-key are not accepted because they are visible in process lists.");
         Console.WriteLine("Each command rejects options it does not use. Pass values as '--option <value>'.");
     }
 

@@ -1647,6 +1647,90 @@ public sealed class ObfuscatorTests : IDisposable
         }
     }
 
+    [Theory]
+    [InlineData("obfuscate", "--deterministic-key", "cli-inline-key-1")]
+    [InlineData("obfuscate", "--DETERMINISTIC-KEY", "cli-inline-key-2")]
+    [InlineData("obfuscate", "--deterministic-key=cli-inline-key-3", null)]
+    [InlineData("deobfuscate", "--deterministic-key", "cli-inline-key-4")]
+    [InlineData("deobfuscate", "--deterministic-key=cli-inline-key-5", null)]
+    public void Cli_InlineDeterministicKey_IsRejectedWithoutEcho(string command, string flag, string? value)
+    {
+        var inputPath = Path.Combine(_tempDir, "cli-inline-key-input.csv");
+        var outputPath = Path.Combine(_tempDir, "cli-inline-key-output.csv");
+        var manifestPath = Path.Combine(_tempDir, "cli-inline-key.obf");
+        File.WriteAllLines(inputPath, ["CustomerId", "ALPHA"], Encoding.UTF8);
+
+        List<string> args = [command, "--input", inputPath, "--output", outputPath, "--manifest", manifestPath, flag];
+        if (value is not null)
+            args.Add(value);
+
+        var (exit, text) = RunCliCapturingOutput([.. args]);
+
+        Assert.Equal(1, exit);
+        Assert.DoesNotContain("cli-inline-key-", text, StringComparison.Ordinal);
+        Assert.Contains("OBFUSCATOR_DETERMINISTIC_KEY", text, StringComparison.Ordinal);
+        Assert.Contains("--deterministic-key-file", text, StringComparison.Ordinal);
+        Assert.False(File.Exists(outputPath));
+        Assert.False(File.Exists(manifestPath));
+    }
+
+    [Fact]
+    public void Cli_DeterministicKeyFromFile_RoundTrips()
+    {
+        var inputPath = Path.Combine(_tempDir, "key-file-input.csv");
+        var obfuscatedPath = Path.Combine(_tempDir, "key-file-obfuscated.csv");
+        var manifestPath = Path.Combine(_tempDir, "key-file.obf");
+        var restoredPath = Path.Combine(_tempDir, "key-file-restored.csv");
+        var keyPath = Path.Combine(_tempDir, "deterministic-key.txt");
+        File.WriteAllLines(inputPath, ["CustomerId", "ALPHA", "BRAVO"], Encoding.UTF8);
+        File.WriteAllText(keyPath, "key-from-file\n");
+
+        var exit = ObfuscatorCliProgram.Run(
+        [
+            "obfuscate",
+            "--input", inputPath,
+            "--output", obfuscatedPath,
+            "--manifest", manifestPath,
+            "--string-mode", "deterministic-token",
+            "--deterministic-key-file", keyPath
+        ]);
+        Assert.Equal(0, exit);
+        Assert.DoesNotContain("ALPHA", File.ReadAllText(obfuscatedPath, Encoding.UTF8), StringComparison.Ordinal);
+
+        exit = ObfuscatorCliProgram.Run(
+        [
+            "deobfuscate",
+            "--input", obfuscatedPath,
+            "--manifest", manifestPath,
+            "--output", restoredPath,
+            "--deterministic-key-file", keyPath
+        ]);
+        Assert.Equal(0, exit);
+        Assert.Equal(File.ReadAllLines(inputPath, Encoding.UTF8), File.ReadAllLines(restoredPath, Encoding.UTF8));
+    }
+
+    [Fact]
+    public void Cli_DeterministicKeyFileFollowedByAnotherFlag_Fails()
+    {
+        var inputPath = Path.Combine(_tempDir, "cli-key-file-input.csv");
+        var obfuscatedPath = Path.Combine(_tempDir, "cli-key-file-obfuscated.csv");
+        var manifestPath = Path.Combine(_tempDir, "cli-key-file.obf");
+        File.WriteAllLines(inputPath, ["CustomerId,Region", "ALPHA,west"], Encoding.UTF8);
+
+        var (exit, text) = RunCliCapturingOutput(
+        [
+            "obfuscate",
+            "--input", inputPath,
+            "--output", obfuscatedPath,
+            "--manifest", manifestPath,
+            "--deterministic-key-file",
+            "--create-output-dir"
+        ]);
+
+        Assert.NotEqual(0, exit);
+        Assert.Contains("--deterministic-key-file requires a value.", text, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Cli_UnknownCommand_DoesNotEchoToken()
     {
@@ -1750,6 +1834,8 @@ public sealed class ObfuscatorTests : IDisposable
         var inputPath = Path.Combine(_tempDir, "cli-accepted-missing-input.csv");
         var passphrasePath = Path.Combine(_tempDir, "cli-accepted-passphrase.txt");
         File.WriteAllText(passphrasePath, "cli-accepted-passphrase", Encoding.UTF8);
+        var keyPath = Path.Combine(_tempDir, "cli-accepted-key.txt");
+        File.WriteAllText(keyPath, "cli-accepted-key", Encoding.UTF8);
         var outputPath = Path.Combine(_tempDir, "cli-accepted", "out.csv");
         var manifestPath = Path.Combine(_tempDir, "cli-accepted", "out.obf");
 
@@ -1760,7 +1846,7 @@ public sealed class ObfuscatorTests : IDisposable
             "obfuscate" =>
             [
                 "obfuscate", "--input", inputPath, "--output", outputPath, "--manifest", manifestPath,
-                "--create-output-dir", "--force", "--deterministic-key", "cli-accepted-key", "--string-mode", "mapping",
+                "--create-output-dir", "--force", "--deterministic-key-file", keyPath, "--string-mode", "mapping",
                 "--include", "CustomerId", "--exclude", "Other", "--allow-list", "--seed", "7",
                 "--passphrase-file", passphrasePath, "--passphrase-stdin", "--gpg-recipient", "someone@example.invalid",
                 "--preserve-blanks", "true", "--Strict"
@@ -1769,7 +1855,7 @@ public sealed class ObfuscatorTests : IDisposable
             [
                 "deobfuscate", "--input", inputPath, "--manifest", manifestPath, "--output", outputPath,
                 "--create-output-dir", "--force", "--passphrase-file", passphrasePath, "--passphrase-stdin",
-                "--deterministic-key", "cli-accepted-key", "--allow-mismatched-source"
+                "--deterministic-key-file", keyPath, "--allow-mismatched-source"
             ]
         };
 
