@@ -601,7 +601,7 @@
       "id": "ob-12",
       "title": "Detect symlink and hard-link aliases between input, output, and manifest",
       "short_title": "Detect symlink and hard-link aliases between input, output, and manifest",
-      "status": "reviewing",
+      "status": "done",
       "has_slice": true,
       "depends_on": [],
       "note_records": [
@@ -628,10 +628,7 @@
           "stale_after": ""
         }
       ],
-      "claim": {
-        "owner": "Jon R",
-        "at": "2026-10-08T15:18:54Z"
-      },
+      "claim": null,
       "fields": {
         "size": "S",
         "flags": [],
