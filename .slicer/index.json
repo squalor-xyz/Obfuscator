@@ -618,14 +618,23 @@
       "id": "ob-13",
       "title": "Floating-point columns do not round-trip exactly",
       "short_title": "Floating-point columns do not round-trip exactly",
-      "status": "started",
+      "status": "review",
       "has_slice": true,
       "depends_on": [],
-      "note_records": [],
-      "claim": {
-        "owner": "Jon R",
-        "at": "2026-10-08T14:32:20Z"
-      },
+      "note_records": [
+        {
+          "id": "b64dfd69-2737-487b-9e8e-39f3e4720dd7",
+          "kind": "",
+          "text": "**2026-10-08** — Ready for review: branch ob-13-exact-floats (f40d59c claim, a9b3b5d implementation). Behaviour change: new manifests (version 2.2) transform floating columns with exact decimal arithmetic (new internal ExactDecimal, BigInteger mantissa x 10^exponent); specs record FloatScheme exact-decimal/v1, ExactScale (4 decimals) and ExactShift (4 significant digits), omitted when null so pre-2.2 checksums verify; pre-2.2 manifests keep the double path. Restores the same numeric value, not always the same text (5.0 -> 5, 1,000.5 -> 1000.5). Cells beyond 1000 significant digits or |exponent| ~1100 take the string path and count as unparsed (--strict rejects). Edited float cells fail without echoing the value. README documents exactness, normalization, and that exact output reveals roughly how many decimal places the original had. Checks: regression FloatingColumn_RoundTripsToSameNumericValue failed on main (131.60538314346292 -> 131.6053831434628) and passes; round-trip theory over 215 values x 6 transforms (incl. 5e-324, 1e300, -MaxValue, infinite shift), ExactDecimal parse/format/reject, tamper, unknown scheme, legacy spec, unbounded-cell tests pass; dotnet test Obfuscator.slnx 177/177; scripts/test-local.sh exit 0 with new assert_restored (cells byte-equal or numerically equal; plain cmp failed only on -40.0/5.0 normalization); slicer check passed. macOS only locally. No follow-ups filed.",
+          "created_at": "2026-10-08T14:37:07Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        }
+      ],
+      "claim": null,
       "fields": {
         "size": "S",
         "flags": [],

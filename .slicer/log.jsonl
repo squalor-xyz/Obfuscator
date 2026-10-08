@@ -107,3 +107,5 @@
 {"when": "2026-10-08T13:43:02Z", "item": "ob-11", "action": "status", "from": "reviewing", "to": "done", "note": "Reviewed and merged", "by": "Jon R"}
 {"when": "2026-10-08T14:32:17Z", "item": "ob-13", "action": "promote", "from": "", "to": "", "note": ""}
 {"when": "2026-10-08T14:32:20Z", "item": "ob-13", "action": "status", "from": "open", "to": "started", "note": "", "by": "Jon R"}
+{"when": "2026-10-08T14:37:07Z", "item": "ob-13", "action": "note", "from": "", "to": "", "note": "Ready for review: branch ob-13-exact-floats (f40d59c claim, ", "by": "Jon R"}
+{"when": "2026-10-08T14:37:07Z", "item": "ob-13", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon R cleared", "by": "Jon R"}
