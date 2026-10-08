@@ -10,12 +10,12 @@ Make CSV obfuscation and restoration safer to use for library and CLI users, whi
 
 Do not claim obfuscation alone provides cryptographic secrecy. Do not require encrypted manifests by default. Do not target a 1.0 release in this roadmap.
 
-16 items · — 9 · done 6 · review 1
+16 items · — 9 · done 6 · reviewing 1
 
 | # | Slice | Title | Size | Effort | Trees | Findings | Status |
 |---|---|---|---|---|---|---|---|
 | 1 | [ob-06](slices/ob-06.md) | Document security guarantees and supported workflows | S | - | docs,cli | README.md; Obfuscator.Cli/README.md; Obfuscator/PackageReadme.md (was S06) | — |
-| 2 | [ob-07](slices/ob-07.md) | Reject unrecognised CLI options | S | 1 | cli | Obfuscator.Cli/ObfuscatorCliProgram.cs ParseOptions accepts any --token; a typo like --gpg-recipent or --pasphrase-file is silently ignored and the manifest is written unprotected · discovered from ob-02 | review |
+| 2 | [ob-07](slices/ob-07.md) | Reject unrecognised CLI options | S | 1 | cli | Obfuscator.Cli/ObfuscatorCliProgram.cs ParseOptions accepts any --token; a typo like --gpg-recipent or --pasphrase-file is silently ignored and the manifest is written unprotected · discovered from ob-02 | reviewing |
 | 3 | ob-08 | Move deterministic key off the command line | S | 1 | cli,docs | Obfuscator.Cli/ObfuscatorCliProgram.cs ResolveDeterministicKey; --deterministic-key <secret> is visible in process lists like the removed --passphrase; scripts/test-local.sh and README examples use it · discovered from ob-02 | — |
 | 4 | ob-10 | Fix absolute local path link in README Local development | S | 1 | docs | README.md:177 links to /Users/jon/code/squalor-xyz/obfuscator/Obfuscator.Cli/README.md; broken on GitHub and for every other clone | — |
 | 5 | ob-11 | Render after reviewer claim in CONTRIBUTING step 8 | S | 1 | docs | CONTRIBUTING.md:120: reviewer runs 'slicer next --status review --start' which does not re-render; committing the claim then fails 'slicer check' (hit on ob-02 and ob-09 reviews). Add 'slicer --root .worktrees/ob-NN render' after the claim. · discovered from ob-09 | — |
