@@ -1365,6 +1365,83 @@ public sealed class ObfuscatorTests : IDisposable
         }
     }
 
+    [SkippableFact]
+    public void Manifest_GpgEncrypt_WritesNoPlaintextToDiskWhileGpgRuns()
+    {
+        Skip.If(OperatingSystem.IsWindows(), "the gpg wrapper is a POSIX shell script");
+        Skip.If(!GpgAvailable(), "gpg is not on PATH");
+        var realGpg = FindOnPath("gpg");
+        Skip.If(realGpg is null, "gpg is not on PATH");
+
+        // GNUPGHOME stays short and outside the scanned directories (agent socket path limits).
+        var gnupg = Path.Combine(Path.GetTempPath(), "r9g" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(gnupg);
+        var inputDir = Directory.CreateDirectory(Path.Combine(_tempDir, "plain-in")).FullName;
+        var outputDir = Directory.CreateDirectory(Path.Combine(_tempDir, "plain-out")).FullName;
+        var scratchTemp = Directory.CreateDirectory(Path.Combine(_tempDir, "plain-tmp")).FullName;
+        var wrapperDir = Directory.CreateDirectory(Path.Combine(_tempDir, "plain-bin")).FullName;
+        var logPath = Path.Combine(_tempDir, "gpg-wrapper.log");
+        const string marker = "OB17PLAINTEXTMARKER";
+
+        // At each gpg call, record whether the marker (an original value that only the
+        // plaintext manifest holds) is on disk in the temp or output directory.
+        var wrapperPath = Path.Combine(wrapperDir, "gpg");
+        File.WriteAllText(
+            wrapperPath,
+            "#!/bin/sh\n" +
+            $"if grep -rqs '{marker}' '{scratchTemp}' '{outputDir}'; then echo found >> '{logPath}'; else echo clean >> '{logPath}'; fi\n" +
+            $"exec '{realGpg}' \"$@\"\n");
+        File.SetUnixFileMode(wrapperPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+
+        var previousHome = Environment.GetEnvironmentVariable("GNUPGHOME");
+        var previousPath = Environment.GetEnvironmentVariable("PATH");
+        var previousTmp = Environment.GetEnvironmentVariable("TMPDIR");
+        Environment.SetEnvironmentVariable("GNUPGHOME", gnupg);
+        try
+        {
+            File.SetUnixFileMode(gnupg, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            GenerateTestGpgKey("ob17-test@example.invalid", gnupg);
+
+            var inputPath = Path.Combine(inputDir, "input.csv");
+            var obfuscatedPath = Path.Combine(outputDir, "obfuscated.csv");
+            var restoredPath = Path.Combine(inputDir, "restored.csv");
+            var manifestPath = Path.Combine(outputDir, "gpg.obf");
+            File.WriteAllLines(inputPath, ["CustomerId,Region", $"{marker},west"], Encoding.UTF8);
+
+            Environment.SetEnvironmentVariable("PATH", wrapperDir + Path.PathSeparator + previousPath);
+            Environment.SetEnvironmentVariable("TMPDIR", scratchTemp);
+            _obfuscator.ObfuscateCsv(
+                inputPath,
+                obfuscatedPath,
+                manifestPath,
+                new ObfuscationOptions { GpgRecipients = ["ob17-test@example.invalid"], StringMode = StringObfuscationMode.Mapping });
+            Environment.SetEnvironmentVariable("TMPDIR", previousTmp);
+            Environment.SetEnvironmentVariable("PATH", previousPath);
+
+            Assert.Equal(["clean"], File.ReadAllLines(logPath));
+            Assert.Empty(Directory.GetFiles(scratchTemp));
+            Assert.Equal(["gpg.obf", "obfuscated.csv"], Directory.GetFiles(outputDir).Select(Path.GetFileName).Order());
+            Assert.StartsWith("OBF_GPG_V2\n", File.ReadAllText(manifestPath, Encoding.UTF8), StringComparison.Ordinal);
+
+            _obfuscator.DeobfuscateCsv(obfuscatedPath, manifestPath, restoredPath);
+            Assert.Equal(File.ReadAllLines(inputPath, Encoding.UTF8), File.ReadAllLines(restoredPath, Encoding.UTF8));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("TMPDIR", previousTmp);
+            Environment.SetEnvironmentVariable("PATH", previousPath);
+            Environment.SetEnvironmentVariable("GNUPGHOME", previousHome);
+            try
+            {
+                if (Directory.Exists(gnupg))
+                    Directory.Delete(gnupg, true);
+            }
+            catch (IOException)
+            {
+            }
+        }
+    }
+
     [Fact]
     public void Manifest_UnrecognizedContent_ThrowsWithFileName()
     {
@@ -2319,6 +2396,20 @@ public sealed class ObfuscatorTests : IDisposable
     private static bool LooksLikeFloat(string field)
         => field.Contains('.', StringComparison.Ordinal)
            || field.Contains('e', StringComparison.OrdinalIgnoreCase);
+
+    private static string? FindOnPath(string fileName)
+    {
+        foreach (var dir in (Environment.GetEnvironmentVariable("PATH") ?? string.Empty).Split(Path.PathSeparator))
+        {
+            if (dir.Length == 0)
+                continue;
+            var candidate = Path.Combine(dir, fileName);
+            if (File.Exists(candidate))
+                return candidate;
+        }
+
+        return null;
+    }
 
     private static bool GpgAvailable()
     {
