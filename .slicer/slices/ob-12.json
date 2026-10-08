@@ -1,0 +1,39 @@
+{
+  "id": "ob-12",
+  "title": "Detect symlink and hard-link aliases between input, output, and manifest",
+  "lead": [],
+  "depends_note": null,
+  "findings_note": "Obfuscator/FileWrite.cs: SamePath compares Path.GetFullPath case-insensitively only; a symlinked or hard-linked path to the same file is not rejected",
+  "size": "S",
+  "flags": [],
+  "trees_note": "core",
+  "trees_plural": false,
+  "boundary": "Not in this slice: hard-link detection (no native file-identity interop) and bind mounts.",
+  "sections": [
+    {
+      "heading": "Why",
+      "body": "FileWrite.SamePath compares Path.GetFullPath strings only. A symlinked directory component can make the output path name the input file; with --force, the rename-based publish then replaces the real input with the obfuscated output and the original is lost. Hard links are out of scope: outputs are staged and renamed into place, so a hard-linked input keeps its original inode and content."
+    },
+    {
+      "heading": "Files",
+      "body": "Obfuscator/FileWrite.cs; Obfuscator.Tests/ObfuscatorTests.cs; README.md."
+    },
+    {
+      "heading": "Failing tests",
+      "body": "Obfuscate with --force where the output path reaches the input through a symlinked directory: throws, and the input is unchanged. Obfuscate with --force where the manifest path is a symlink to the input file: throws. Deobfuscate with --force where the output reaches the manifest through a symlinked directory: throws, and the manifest is unchanged. Skip symlink tests where the OS refuses to create the link (for example, Windows without the privilege)."
+    },
+    {
+      "heading": "Implement",
+      "body": "Before comparing, SamePath canonicalizes each path. It resolves symlinks in every existing component, starting at the root. It resolves each link with FileSystemInfo.ResolveLinkTarget(returnFinalTarget: true) and rebases relative targets on the link's directory, then appends the components that do not exist yet unchanged. The case-insensitive compare stays. Hard links are not detected. README states that symlinks are resolved and that hard links are not, with the reason."
+    },
+    {
+      "heading": "Check",
+      "body": "Run the new symlink tests and the existing alias tests, then dotnet test Obfuscator.slnx and scripts/test-local.sh. Check that a normal round trip under a symlinked temp directory (for example, /var -> /private/var on macOS) still succeeds."
+    },
+    {
+      "heading": "Git",
+      "body": "Create links only inside the test temp directory, and make cleanup remove them without following them."
+    }
+  ],
+  "notes": []
+}

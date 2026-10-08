@@ -122,3 +122,13 @@
 {"when": "2026-10-08T14:49:16Z", "item": "ob-10", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon R cleared", "by": "Jon R"}
 {"when": "2026-10-08T14:51:04Z", "item": "ob-10", "action": "status", "from": "review", "to": "reviewing", "note": "", "by": "Jon R"}
 {"when": "2026-10-08T14:51:09Z", "item": "ob-10", "action": "status", "from": "reviewing", "to": "done", "note": "Reviewed and merged", "by": "Jon R"}
+{"when": "2026-10-08T15:11:48Z", "item": "ob-12", "action": "promote", "from": "", "to": "", "note": ""}
+{"when": "2026-10-08T15:11:48Z", "item": "ob-12", "action": "edit", "from": "", "to": "", "note": "Why"}
+{"when": "2026-10-08T15:11:49Z", "item": "ob-12", "action": "edit", "from": "", "to": "", "note": "Files"}
+{"when": "2026-10-08T15:11:49Z", "item": "ob-12", "action": "edit", "from": "", "to": "", "note": "Failing tests"}
+{"when": "2026-10-08T15:11:50Z", "item": "ob-12", "action": "edit", "from": "", "to": "", "note": "Implement"}
+{"when": "2026-10-08T15:11:50Z", "item": "ob-12", "action": "edit", "from": "", "to": "", "note": "Check"}
+{"when": "2026-10-08T15:11:51Z", "item": "ob-12", "action": "edit", "from": "", "to": "", "note": "Git"}
+{"when": "2026-10-08T15:11:52Z", "item": "ob-12", "action": "edit", "from": "", "to": "", "note": "boundary"}
+{"when": "2026-10-08T15:11:52Z", "item": "ob-12", "action": "status", "from": "open", "to": "started", "note": "", "by": "Jon R"}
+{"when": "2026-10-08T15:12:01Z", "item": "ob-12", "action": "edit", "from": "", "to": "", "note": "boundary"}

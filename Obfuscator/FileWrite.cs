@@ -9,10 +9,51 @@ namespace Squalor.Obfuscator;
 
 internal static class FileWrite
 {
+    private const int MaxSymbolicLinks = 40;
+
     // Case-insensitive on every OS: rejecting a rare case-only pair on Linux is safer than
     // letting an alias through on a case-insensitive macOS or Windows volume.
+    // Symbolic links are resolved; hard links are not, because outputs are published by rename,
+    // which leaves a hard-linked input's content intact.
     public static bool SamePath(string left, string right)
-        => string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), StringComparison.OrdinalIgnoreCase);
+        => string.Equals(ResolvePath(left), ResolvePath(right), StringComparison.OrdinalIgnoreCase);
+
+    // Resolves symbolic links in every existing component; components that do not exist yet are kept.
+    private static string ResolvePath(string path)
+    {
+        var full = Path.GetFullPath(path);
+        for (var links = 0; links <= MaxSymbolicLinks; links++)
+        {
+            var root = Path.GetPathRoot(full)!;
+            var parts = full[root.Length..].Split(
+                [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries);
+            var current = root;
+            var relinked = false;
+
+            for (var i = 0; i < parts.Length; i++)
+            {
+                var next = Path.Combine(current, parts[i]);
+                FileSystemInfo info = Directory.Exists(next) ? new DirectoryInfo(next) : new FileInfo(next);
+                if (info.LinkTarget is { } target)
+                {
+                    var rest = parts.Skip(i + 1).Prepend(Path.Combine(current, target));
+                    full = Path.GetFullPath(Path.Combine(rest.ToArray()));
+                    relinked = true;
+                    break;
+                }
+
+                if (!info.Exists)
+                    return Path.Combine([current, .. parts[i..]]);
+
+                current = next;
+            }
+
+            if (!relinked)
+                return current;
+        }
+
+        throw new IOException($"Too many levels of symbolic links in '{path}'.");
+    }
 
     public static void RejectAliases(params (string Label, string Path)[] paths)
     {

@@ -2411,6 +2411,79 @@ public sealed class ObfuscatorTests : IDisposable
         AssertOnlyEntries("do-in.csv", "do-obf.csv", "do.obf");
     }
 
+    [SkippableFact]
+    public void Obfuscate_OutputThroughSymlinkedDirectoryIsInput_ThrowsAndPreservesInput()
+    {
+        var real = Path.Combine(_tempDir, "real");
+        var link = Path.Combine(_tempDir, "link");
+        Directory.CreateDirectory(real);
+        var input = Path.Combine(real, "sd-in.csv");
+        File.WriteAllText(input, "Name\nAlice\n", Encoding.UTF8);
+        CreateSymbolicLinkOrSkip(() => Directory.CreateSymbolicLink(link, real));
+        var before = HashFile(input);
+
+        Assert.Throws<InvalidOperationException>(() =>
+            _obfuscator.ObfuscateCsv(
+                input,
+                Path.Combine(link, "sd-in.csv"),
+                Path.Combine(_tempDir, "sd.obf"),
+                new ObfuscationOptions { Force = true }));
+
+        Assert.Equal(before, HashFile(input));
+        AssertOnlyEntries("link", "real");
+        Assert.Equal(["sd-in.csv"], Directory.EnumerateFileSystemEntries(real).Select(Path.GetFileName));
+    }
+
+    [SkippableFact]
+    public void Obfuscate_ManifestIsRelativeSymlinkToInput_Throws()
+    {
+        var input = Path.Combine(_tempDir, "sl-in.csv");
+        var output = Path.Combine(_tempDir, "sl-out.csv");
+        var manifest = Path.Combine(_tempDir, "sl.obf");
+        File.WriteAllText(input, "Name\nAlice\n", Encoding.UTF8);
+        CreateSymbolicLinkOrSkip(() => File.CreateSymbolicLink(manifest, "sl-in.csv"));
+        var before = HashFile(input);
+
+        Assert.Throws<InvalidOperationException>(() =>
+            _obfuscator.ObfuscateCsv(input, output, manifest, new ObfuscationOptions { Force = true }));
+
+        Assert.Equal(before, HashFile(input));
+        Assert.Equal("sl-in.csv", new FileInfo(manifest).LinkTarget);
+        AssertOnlyEntries("sl-in.csv", "sl.obf");
+    }
+
+    [SkippableFact]
+    public void Deobfuscate_OutputThroughSymlinkedDirectoryIsManifest_ThrowsAndPreservesManifest()
+    {
+        var input = Path.Combine(_tempDir, "dl-in.csv");
+        var obfuscated = Path.Combine(_tempDir, "dl-obf.csv");
+        var manifest = Path.Combine(_tempDir, "dl.obf");
+        var link = Path.Combine(_tempDir, "link");
+        File.WriteAllText(input, "Name\nAlice\n", Encoding.UTF8);
+        _obfuscator.ObfuscateCsv(input, obfuscated, manifest);
+        CreateSymbolicLinkOrSkip(() => Directory.CreateSymbolicLink(link, _tempDir));
+        var before = HashFile(manifest);
+
+        Assert.Throws<InvalidOperationException>(() =>
+            _obfuscator.DeobfuscateCsv(obfuscated, manifest, Path.Combine(link, "dl.obf"), force: true));
+
+        Assert.Equal(before, HashFile(manifest));
+        AssertOnlyEntries("dl-in.csv", "dl-obf.csv", "dl.obf", "link");
+    }
+
+    // Creating a symlink needs a privilege or Developer Mode on Windows.
+    private static void CreateSymbolicLinkOrSkip(Action create)
+    {
+        try
+        {
+            create();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Skip.If(true, $"cannot create a symbolic link here: {ex.Message}");
+        }
+    }
+
     [Fact]
     public void Obfuscate_BlankPassphrase_WithForce_PreservesBothExistingOutputs()
     {
