@@ -716,14 +716,23 @@
       "id": "ob-14",
       "title": "Generated sweep IDs can exceed or saturate their configured range",
       "short_title": "Generated sweep IDs can exceed or saturate their configured range",
-      "status": "started",
+      "status": "review",
       "has_slice": true,
       "depends_on": [],
-      "note_records": [],
-      "claim": {
-        "owner": "Jon R",
-        "at": "2026-10-08T15:48:18Z"
-      },
+      "note_records": [
+        {
+          "id": "37529f13-bdce-4084-b3c9-cae7792de5cc",
+          "kind": "",
+          "text": "**2026-10-08** — Ready for review: branch ob-14-sweep-id-range, commit aef85f6. Behaviour: ValidateConfig rejects a generatedIdMode column whose totalRangeMin..totalRangeMax cannot hold the IDs it needs (outer-group: product of the outer axes' value counts; inner-step: innermost value count), in sweep and max mode, before any output. DataGenerator counts outer-group IDs per column (owner decision) instead of one shared counter, and the TotalRangeMax clamp is removed. Output changes only for configs with 2+ outer-group columns. Both READMEs list the new rule. Checks: 5 new tests (4 InlineData validation cases + exact-fit/per-column generation test) failed on main and pass on the branch; dotnet test Obfuscator.slnx 186/186 passed, including the golden semiconductor fixture (file unchanged); scripts/test-local.sh exit 0; slicer check passed. Follow-ups: none filed.",
+          "created_at": "2026-10-08T15:49:52Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        }
+      ],
+      "claim": null,
       "fields": {
         "size": "S",
         "flags": [],
