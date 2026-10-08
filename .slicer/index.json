@@ -548,11 +548,14 @@
       "id": "ob-11",
       "title": "Render after reviewer claim in CONTRIBUTING step 8",
       "short_title": "Render after reviewer claim in CONTRIBUTING step 8",
-      "status": "open",
-      "has_slice": false,
+      "status": "started",
+      "has_slice": true,
       "depends_on": [],
       "note_records": [],
-      "claim": null,
+      "claim": {
+        "owner": "Jon R",
+        "at": "2026-10-08T13:40:13Z"
+      },
       "fields": {
         "size": "S",
         "flags": [],
@@ -570,7 +573,7 @@
         "importance": 2,
         "urgency": 2,
         "effort": 1,
-        "attempts": 0
+        "attempts": 1
       }
     },
     {
