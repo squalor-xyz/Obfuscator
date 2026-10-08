@@ -97,3 +97,4 @@
 {"when": "2026-10-08T13:38:30Z", "item": "ob-18", "action": "add", "from": "", "to": "open", "note": "Reject a whitespace-only OBFUSCATOR_DETERMINISTIC_KEY"}
 {"when": "2026-10-08T13:38:30Z", "item": "ob-08", "action": "note", "from": "", "to": "", "note": "Ready for re-review: commit c2a62d0 fixes the review failure", "by": "Jon R"}
 {"when": "2026-10-08T13:38:30Z", "item": "ob-08", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon R cleared", "by": "Jon R"}
+{"when": "2026-10-08T13:38:37Z", "item": "ob-08", "action": "status", "from": "review", "to": "reviewing", "note": "", "by": "Jon R"}
