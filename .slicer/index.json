@@ -2,7 +2,7 @@
   "version": 7,
   "id_prefix": "ob-",
   "id_width": 2,
-  "next_id": 16,
+  "next_id": 17,
   "preamble": "",
   "passes": [],
   "items": [
@@ -312,11 +312,14 @@
       "id": "ob-07",
       "title": "Reject unrecognised CLI options",
       "short_title": "Reject unrecognised CLI options",
-      "status": "open",
-      "has_slice": false,
+      "status": "started",
+      "has_slice": true,
       "depends_on": [],
       "note_records": [],
-      "claim": null,
+      "claim": {
+        "owner": "Jon R",
+        "at": "2026-10-08T12:18:24Z"
+      },
       "fields": {
         "size": "S",
         "flags": [],
@@ -333,7 +336,7 @@
         "importance": 3,
         "urgency": 2,
         "effort": 1,
-        "attempts": 0
+        "attempts": 1
       }
     },
     {
@@ -584,6 +587,34 @@
         "trees_literal": false,
         "findings": "Obfuscator/PackageReadme.md and Obfuscator.Cli/README.md describe rowMode/sweepAxes but not the validation rules ob-05 added to README.md",
         "discovered_from": "ob-05",
+        "key": "",
+        "pass": "",
+        "group": "",
+        "reason": "",
+        "importance": 1,
+        "urgency": 1,
+        "effort": 1,
+        "attempts": 0
+      }
+    },
+    {
+      "id": "ob-16",
+      "title": "Support --help after a command",
+      "short_title": "Support --help after a command",
+      "status": "open",
+      "has_slice": false,
+      "depends_on": [],
+      "note_records": [],
+      "claim": null,
+      "fields": {
+        "size": "S",
+        "flags": [],
+        "trees": [
+          "cli"
+        ],
+        "trees_literal": false,
+        "findings": "Obfuscator.Cli/ObfuscatorCliProgram.cs Run: help is recognised only as the first argument; 'obfuscate --help' now fails with Unknown option '--help' (before ob-07 it failed with a missing-option error)",
+        "discovered_from": "ob-07",
         "key": "",
         "pass": "",
         "group": "",

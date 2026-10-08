@@ -1,0 +1,41 @@
+{
+  "id": "ob-07",
+  "title": "Reject unrecognised CLI options",
+  "lead": [
+    "Each CLI command accepts only the options it uses and fails before reading input or writing output when given anything else, so a mistyped protection option cannot silently produce an unprotected manifest."
+  ],
+  "depends_note": null,
+  "findings_note": "Obfuscator.Cli/ObfuscatorCliProgram.cs ParseOptions accepts any --token; a typo like --gpg-recipent or --pasphrase-file is silently ignored and the manifest is written unprotected",
+  "size": "S",
+  "flags": [],
+  "trees_note": "cli",
+  "trees_plural": false,
+  "boundary": "**Not in this slice:** library (Obfuscator/) option changes; moving --deterministic-key off the command line (ob-08); per-command --help output.",
+  "sections": [
+    {
+      "heading": "Why",
+      "body": "`ParseOptions` stores every `--token` it sees and each command reads only the keys it knows. A typo such as `--gpg-recipent` or `--pasphrase-file`, or an option that belongs to another command (for example `--gpg-recipient` on `deobfuscate`), is dropped without a warning. For `obfuscate`, that writes the manifest without the protection the user asked for."
+    },
+    {
+      "heading": "Files",
+      "body": "Obfuscator.Cli/ObfuscatorCliProgram.cs; Obfuscator.Tests/ObfuscatorTests.cs; Obfuscator.Cli/README.md; README.md if it lists CLI options."
+    },
+    {
+      "heading": "Failing tests",
+      "body": "- `obfuscate` with a mistyped option (`--gpg-recipent x`, `--pasphrase-file f`) exits 1, names the option and the command, and writes no output or manifest.\n- `--pasphrase=secret-value` is rejected as unknown and the error does not contain the value after `=`.\n- An option valid for another command is rejected: `--gpg-recipient` on `deobfuscate`, `--seed` on `generate`.\n- Every option listed in the usage text for each command is still accepted (no regression), including case-insensitive spelling as today.\n- The existing inline `--passphrase` rejection message and no-echo tests still pass."
+    },
+    {
+      "heading": "Implement",
+      "body": "Define the accepted option set per command (value options and flag options) and have `ParseOptions` take that set. An unknown option throws `Unknown option '<name>' for '<command>'.`, where `<name>` is the token up to any `=`, so a value written inline is never echoed. Keep the inline `--passphrase` check ahead of the unknown-option check so its guidance message is unchanged. Keep the usage text and the CLI README consistent with the accepted sets and state that unknown options are rejected."
+    },
+    {
+      "heading": "Check",
+      "body": "Run the focused CLI tests, then `dotnet test Obfuscator.slnx` and `scripts/test-local.sh`."
+    },
+    {
+      "heading": "Git",
+      "body": "Do not change library (`Obfuscator/`) behaviour or option semantics; this slice only changes CLI argument parsing and its docs."
+    }
+  ],
+  "notes": []
+}

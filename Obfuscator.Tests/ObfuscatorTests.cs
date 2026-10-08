@@ -1610,6 +1610,124 @@ public sealed class ObfuscatorTests : IDisposable
         }
     }
 
+    [Theory]
+    [InlineData("--gpg-recipent", "someone@example.invalid", "Unknown option '--gpg-recipent' for 'obfuscate'.")]
+    [InlineData("--pasphrase-file", "cli-typo-passphrase.txt", "Unknown option '--pasphrase-file' for 'obfuscate'.")]
+    [InlineData("--pasphrase=cli-typo-secret-value", null, "Unknown option '--pasphrase' for 'obfuscate'.")]
+    [InlineData("--input=cli-typo-inline.csv", null, "Option '--input' for 'obfuscate' does not accept '=' syntax.")]
+    public void Cli_Obfuscate_UnknownOption_FailsWithoutWritingOrEchoingValue(string flag, string? value, string expectedMessage)
+    {
+        var inputPath = Path.Combine(_tempDir, "cli-typo-input.csv");
+        var obfuscatedPath = Path.Combine(_tempDir, "cli-typo-obfuscated.csv");
+        var manifestPath = Path.Combine(_tempDir, "cli-typo.obf");
+        File.WriteAllLines(inputPath, ["CustomerId", "ALPHA"], Encoding.UTF8);
+
+        List<string> args = ["obfuscate", "--input", inputPath, "--output", obfuscatedPath, "--manifest", manifestPath, flag];
+        if (value is not null)
+            args.Add(value);
+
+        var (exit, text) = RunCliCapturingOutput([.. args]);
+
+        Assert.Equal(1, exit);
+        Assert.Contains(expectedMessage, text, StringComparison.Ordinal);
+        Assert.DoesNotContain("cli-typo-secret-value", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("cli-typo-inline.csv", text, StringComparison.Ordinal);
+        Assert.False(File.Exists(obfuscatedPath));
+        Assert.False(File.Exists(manifestPath));
+    }
+
+    [Theory]
+    [InlineData("deobfuscate", "--gpg-recipient", "someone@example.invalid")]
+    [InlineData("deobfuscate", "--strict", null)]
+    [InlineData("generate", "--seed", "42")]
+    [InlineData("generate", "--manifest", "cli-wrong-command.obf")]
+    public void Cli_OptionFromAnotherCommand_IsRejected(string command, string flag, string? value)
+    {
+        var inputPath = Path.Combine(_tempDir, "cli-wrong-command-input.csv");
+        var outputPath = Path.Combine(_tempDir, "cli-wrong-command-output.csv");
+        var manifestPath = Path.Combine(_tempDir, "cli-wrong-command-in.obf");
+        File.WriteAllLines(inputPath, ["CustomerId", "ALPHA"], Encoding.UTF8);
+
+        List<string> args = command == "generate"
+            ? ["generate", "--config", inputPath, "--output", outputPath, flag]
+            : [command, "--input", inputPath, "--manifest", manifestPath, "--output", outputPath, flag];
+        if (value is not null)
+            args.Add(value);
+
+        var (exit, text) = RunCliCapturingOutput([.. args]);
+
+        Assert.Equal(1, exit);
+        Assert.Contains($"Unknown option '{flag}' for '{command}'.", text, StringComparison.Ordinal);
+        Assert.False(File.Exists(outputPath));
+    }
+
+    [Theory]
+    [InlineData("generate")]
+    [InlineData("obfuscate")]
+    [InlineData("deobfuscate")]
+    public void Cli_DocumentedOptions_AreAccepted(string command)
+    {
+        // Config and input are deliberately missing so each command stops right after
+        // parsing, before any generation, encryption, or gpg call.
+        var configPath = Path.Combine(_tempDir, "cli-accepted-missing-config.json");
+        var inputPath = Path.Combine(_tempDir, "cli-accepted-missing-input.csv");
+        var passphrasePath = Path.Combine(_tempDir, "cli-accepted-passphrase.txt");
+        File.WriteAllText(passphrasePath, "cli-accepted-passphrase", Encoding.UTF8);
+        var outputPath = Path.Combine(_tempDir, "cli-accepted", "out.csv");
+        var manifestPath = Path.Combine(_tempDir, "cli-accepted", "out.obf");
+
+        // Every option the usage text lists for the command; case-insensitive spelling is accepted as before.
+        string[] args = command switch
+        {
+            "generate" => ["generate", "--config", configPath, "--output", outputPath, "--create-output-dir", "--FORCE"],
+            "obfuscate" =>
+            [
+                "obfuscate", "--input", inputPath, "--output", outputPath, "--manifest", manifestPath,
+                "--create-output-dir", "--force", "--deterministic-key", "cli-accepted-key", "--string-mode", "mapping",
+                "--include", "CustomerId", "--exclude", "Other", "--allow-list", "--seed", "7",
+                "--passphrase-file", passphrasePath, "--passphrase-stdin", "--gpg-recipient", "someone@example.invalid",
+                "--preserve-blanks", "true", "--Strict"
+            ],
+            _ =>
+            [
+                "deobfuscate", "--input", inputPath, "--manifest", manifestPath, "--output", outputPath,
+                "--create-output-dir", "--force", "--passphrase-file", passphrasePath, "--passphrase-stdin",
+                "--deterministic-key", "cli-accepted-key", "--allow-mismatched-source"
+            ]
+        };
+
+        var (exit, text) = RunCliCapturingOutput(args);
+
+        Assert.Equal(1, exit);
+        Assert.Matches("(?i)not found|could not find file", text);
+        Assert.DoesNotContain("Unknown option", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("does not accept '=' syntax", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("requires a value", text, StringComparison.Ordinal);
+    }
+
+    private static (int Exit, string Text) RunCliCapturingOutput(string[] args)
+    {
+        using var stdout = new StringWriter();
+        using var stderr = new StringWriter();
+        var originalOut = Console.Out;
+        var originalError = Console.Error;
+        var originalIn = Console.In;
+        Console.SetOut(stdout);
+        Console.SetError(stderr);
+        Console.SetIn(new StringReader("cli-stdin-passphrase"));
+        try
+        {
+            var exit = ObfuscatorCliProgram.Run(args);
+            return (exit, stderr.ToString() + stdout.ToString());
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+            Console.SetError(originalError);
+            Console.SetIn(originalIn);
+        }
+    }
+
     [Fact]
     public void Obfuscate_ValueContradictingInferredKind_IsNotPassedThrough()
     {
