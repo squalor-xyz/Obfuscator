@@ -49,9 +49,7 @@ obfuscator obfuscate \
   --string-mode deterministic-token
 ```
 
-Supply the manifest passphrase with `OBFUSCATOR_PASSPHRASE`, `--passphrase-file <path>`, or `--passphrase-stdin`. Inline `--passphrase <secret>` is rejected because command-line arguments are visible in process lists. Prefer `OBFUSCATOR_DETERMINISTIC_KEY` over `--deterministic-key` for the same reason.
-
-Each command rejects any option it does not use, including options that belong to another command, so a typo such as `--gpg-recipent` fails before any output is written. Options take their value as the next argument; `--option=value` is not accepted.
+Supply the manifest passphrase with `OBFUSCATOR_PASSPHRASE`, `--passphrase-file <path>`, or `--passphrase-stdin`. Inline `--passphrase <secret>` is rejected because command-line arguments are visible in process lists; for the same reason, prefer `OBFUSCATOR_DETERMINISTIC_KEY` over `--deterministic-key <secret>`. Without a passphrase or `--gpg-recipient`, the manifest is written unencrypted. Each command rejects any option it does not use, including options that belong to another command, so a typo such as `--gpg-recipent` fails before any output is written. Options take their value as the next argument; `--option=value` is not accepted.
 
 Restore an obfuscated CSV:
 
@@ -79,21 +77,35 @@ Useful obfuscation options:
 - `--passphrase-file` / `--passphrase-stdin` / `OBFUSCATOR_PASSPHRASE` encrypt the manifest with AES-GCM. Inline `--passphrase` is not accepted.
 - `--gpg-recipient <recipient>` can be repeated to GPG-encrypt the manifest in place.
 - `--preserve-blanks true|false`
+- `--strict` fails when a value does not parse as its column's inferred kind, instead of falling back to string obfuscation.
 - `--create-output-dir` creates missing parent directories for `--output` and `--manifest`
+- `--force` overwrites an existing `--output` or `--manifest` file; without it, existing files are refused.
 
-Manifest notes:
+Deobfuscation options:
 
-- plain and AES-encrypted manifests can be written on one OS and read on another
-- `--gpg-recipient` requires `gpg` to be installed and available on `PATH`
+- `--passphrase-file` / `--passphrase-stdin` / `OBFUSCATOR_PASSPHRASE` decrypt an AES-GCM manifest.
+- `--deterministic-key <secret>` or `OBFUSCATOR_DETERMINISTIC_KEY` supplies the key used at obfuscation.
+- `--allow-mismatched-source` restores a CSV whose file name differs from the one recorded in the manifest.
+- `--create-output-dir` and `--force` behave as for obfuscation.
+
+Manifest compatibility:
+
+- `OBF_PLAIN_V2` (unencrypted), `OBF_AESGCM_V3` (passphrase), and `OBF_GPG_V2` (GPG) manifests start with a stable text header, so a manifest written on one OS can be read on another
+- `OBF_AES_V2` (AES-CBC) manifests from earlier versions are no longer read; re-obfuscate with a passphrase to get an AES-GCM manifest
 - deterministic tokens written before manifest version 2.1 (`OBF_TKN_`, AES-CBC with a fixed per-column IV, which leaks shared plaintext prefixes) can still be deobfuscated but are never written; re-obfuscate to get AES-SIV `OBF_TK2_` tokens
+- GPG manifests need GnuPG (`gpg`) on `PATH` both to write and to read them
 
 ## Security contract
 
-Obfuscation changes selected cell values for controlled development, testing, and data workflows. It is reversible when the required manifest and, for deterministic-token mode, the deterministic key are available. It transforms data; it does not encrypt the CSV or guarantee that a dataset is anonymous or safe to share.
+Obfuscation changes selected cell values for controlled development, testing, and data workflows. It is reversible when the manifest and, for columns transformed with a deterministic key, that key are available. It transforms data; it does not encrypt the CSV or guarantee that a dataset is anonymous or safe to share.
 
-The output retains CSV structure, including column names and row order. Excluded columns, preserved blank cells, and other untransformed values remain visible. Transformations can preserve relationships: repeated values remain equal, numeric transformations generally preserve ordering or its reversal, date shifts preserve time intervals except when values hit supported bounds, and deterministic tokens reveal equality and frequency within a run. Tokens use the per-manifest salt, so the same key does not create stable tokens across separate obfuscation runs. Deterministic tokens use AES-SIV (RFC 5297) deterministic authenticated encryption with a per-column key: equal values in a column give equal tokens, any other difference changes the whole token, and an edited token fails to deobfuscate. Tokens also reveal each value's UTF-8 length rounded up to 16 bytes. Auxiliary information may let a recipient infer original values.
+**What the output reveals.** The output keeps the CSV structure, including column names and row order. Excluded columns, preserved blank cells, and other untransformed values remain visible. Transformations can preserve relationships: repeated values remain equal, numeric transformations generally preserve ordering or its reversal, date shifts preserve time intervals except when values hit supported bounds, and deterministic tokens reveal equality and frequency within a run. A recipient with auxiliary information may infer original values even when direct values have changed.
 
-Treat the manifest as sensitive source data. Plain manifests can contain original values in mapping mode and include information needed to reverse transformations. AES-GCM or GPG can encrypt the manifest when configured; neither encrypts the CSV or protects the original input. The unkeyed manifest checksum detects accidental edits, not malicious tampering. Review each dataset's selected and retained columns, values, structure, and likely auxiliary information before sharing. The project makes no guarantee against reidentification or a determined recipient. The current implementation needs no external cryptography dependency.
+**Deterministic keys and tokens.** A deterministic key is stretched with PBKDF2-SHA256 (600,000 iterations) over the key and a random per-manifest salt, and each transform's key is derived from that with HKDF-SHA256. Because of the salt, the same key does not produce the same tokens or transforms across separate obfuscation runs. Deterministic tokens use AES-SIV (RFC 5297) deterministic authenticated encryption with a per-column key: equal values in a column give equal tokens, any other difference changes the whole token, and an edited token fails to deobfuscate. Tokens reveal each value's UTF-8 length rounded up to 16 bytes. Deobfuscating deterministic-token columns requires the same key. Without a key, numeric and date transforms come from `System.Random` (not a cryptographic generator; a seed makes them reproducible), mapping tokens are random GUIDs, and the manifest records what is needed to reverse them.
+
+**Manifest protection.** Treat the manifest as sensitive source data: mapping mode stores every distinct original value it maps, and every manifest holds what is needed to reverse the transformations. By default the manifest is written unencrypted (`OBF_PLAIN_V2`), and an unencrypted manifest next to the obfuscated CSV is not protection. A passphrase encrypts the manifest with AES-256-GCM under a key from PBKDF2-SHA256 (600,000 iterations, random salt). GPG recipients encrypt it with `gpg`; with both a passphrase and recipients, GPG wraps the AES-GCM manifest. Neither encrypts the CSV, protects the original input, or hides what can be inferred from the output. The manifest's unkeyed checksum detects accidental edits, not malicious tampering.
+
+**Before sharing.** Use obfuscation for controlled workflows where these residual disclosures are acceptable. Review each dataset's selected and retained columns, values, structure, and likely auxiliary information before sharing it. The project makes no guarantee against reidentification or a determined recipient. Cryptography uses only the .NET base class library; AES-SIV is implemented in this project on the .NET AES block cipher and tested against the RFC 4493 and RFC 5297 vectors.
 
 ## Config notes
 
@@ -106,6 +118,21 @@ Generation config supports:
 - per-column `values` for discrete sweep points
 - `generatedIdMode: "outer-group"` and `generatedIdMode: "inner-step"` for sweep IDs
 - `--create-output-dir` to create missing parent directories for output files instead of failing
+
+Generated data is synthetic. The generator builds every value from the JSON config alone and never reads an input CSV. It uses `System.Random`, which is not a cryptographic generator; set `seed` for reproducible output. Use generated datasets as fixtures, demos, and test inputs. They are not a source of secrets or keys, and they say nothing about whether a real dataset is safe to share.
+
+Generation configs are validated before any rows are generated or output is written. A config is rejected when:
+
+- a sweep axis is repeated (names compare case-insensitively), or an axis is also a `generatedIdMode` column
+- an axis repeats a value; on numeric columns values compare numerically, so `5` and `5.0` are duplicates
+- a numeric axis value does not parse as a finite number or lies outside `totalRangeMin`..`totalRangeMax`
+- `totalRangeMin` is greater than `totalRangeMax`, or an integer column's range does not fit its data type
+- only one of `idealRangeMin`/`idealRangeMax` is set, they are reversed, or they lie outside the total range
+- `truePercentage` or `percentageInIdealRange` is outside 0..100, or `randomStringLength` is negative
+- `dateMinUtc`/`dateMaxUtc` do not parse, or the minimum is after the maximum (missing bounds default to 2020-01-01 and 2020-01-31)
+- `tracksWith`/`tracksInverselyWith` names a missing, non-numeric, or later column, or the column itself
+- a `generatedIdMode` column is used with `rowMode: "fixed"`
+- the sweep expansion (the product of every axis's value count) or `nRows` exceeds `Array.MaxLength` (2,147,483,591) rows. The generator indexes rows with `int` and holds the row plan in memory, so this is the largest size it can represent. It is not a recommended size, and very large sweeps may still exhaust memory.
 
 The `ExampleConfig*.json` files live in the repo for reference. When using the installed tool elsewhere, pass your own config file path.
 
@@ -159,15 +186,15 @@ Key fields:
 
 - Reversible by manifest lookup.
 - Requires storing one entry per distinct original value in the manifest.
-- Works without a deterministic key.
+- Works without a deterministic key; with one, tokens are derived from the key and the per-manifest salt instead of random GUIDs.
 - Better for lower-cardinality columns.
 
 `deterministic-token`
 
-- Reversible using the shared deterministic key, without storing every distinct value in the manifest.
+- Reversible using the deterministic key, without storing every distinct value in the manifest.
 - Better for high-cardinality string columns.
-- Produces stable tokens for the same input value within the same column and key.
-- Requires passing the same `--deterministic-key` during deobfuscation.
+- Produces the same token for the same input value within one column of one obfuscation run; the per-manifest salt makes tokens differ across runs, even with the same key.
+- Requires a deterministic key; the same key (`OBFUSCATOR_DETERMINISTIC_KEY` or `--deterministic-key`) is needed during deobfuscation.
 
 `auto`
 

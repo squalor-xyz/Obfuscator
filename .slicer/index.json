@@ -2,7 +2,7 @@
   "version": 7,
   "id_prefix": "ob-",
   "id_width": 2,
-  "next_id": 17,
+  "next_id": 18,
   "preamble": "",
   "passes": [],
   "items": [
@@ -278,7 +278,7 @@
       "id": "ob-06",
       "title": "Document security guarantees and supported workflows",
       "short_title": "Document security guarantees and supported workflows",
-      "status": "open",
+      "status": "reviewing",
       "has_slice": true,
       "depends_on": [
         "ob-01",
@@ -287,8 +287,34 @@
         "ob-04",
         "ob-05"
       ],
-      "note_records": [],
-      "claim": null,
+      "note_records": [
+        {
+          "id": "3bac5600-ff79-4b33-9ad2-7d4d9d3db97a",
+          "kind": "",
+          "text": "**2026-10-08** — Ready for review: branch ob-06-security-docs, commit 51d2948. Docs only. Owner decisions: include Obfuscator.Cli/PackageReadme.md (added to Files); fold in ob-15 (retired); one canonical Security contract word for word in all four readmes. Changes: shared Security contract (plain-manifest default, PBKDF2-SHA256 600k for passphrase and deterministic key, HKDF per transform, GPG wraps AES-GCM, System.Random/GUIDs without a key), shared Manifest compatibility list, shared Generated data paragraph, shared CLI credential paragraph; CLI package readme gains obfuscate/deobfuscate example; CLI README string modes fixed for the per-manifest salt, option lists match --help (--strict, --force, deobfuscate options); generator validation list added to Obfuscator/PackageReadme.md and Obfuscator.Cli/README.md. Every crypto claim was checked against ManifestCrypto.cs/ObfuscationEngine.cs. Checks: script confirms contract section and shared blocks byte-identical across files and stale phrases gone; --help option set vs docs compared; dotnet test Obfuscator.slnx 132/132; scripts/test-local.sh exit 0 (packs both readmes); slicer check passed. Follow-up filed: ob-17 (plaintext manifest staged in shared temp before GPG).",
+          "created_at": "2026-10-08T13:18:41Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        },
+        {
+          "id": "128b048e-afc8-4f8a-8743-7c578883a924",
+          "kind": "",
+          "text": "**2026-10-08** — VERDICT: PASS - self-review (same session as the implementation); contract, compatibility and generated-data blocks re-verified byte-identical across all four readmes; dotnet test Obfuscator.slnx 132/132; scripts/test-local.sh exit 0; slicer check passed.",
+          "created_at": "2026-10-08T13:20:37Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        }
+      ],
+      "claim": {
+        "owner": "Jon R",
+        "at": "2026-10-08T13:20:05Z"
+      },
       "fields": {
         "size": "S",
         "flags": [],
@@ -305,7 +331,7 @@
         "importance": 2,
         "urgency": 2,
         "effort": null,
-        "attempts": 0
+        "attempts": 1
       }
     },
     {
@@ -593,7 +619,7 @@
       "id": "ob-15",
       "title": "Document generator config validation in package READMEs",
       "short_title": "Document generator config validation in package READMEs",
-      "status": "open",
+      "status": "retired",
       "has_slice": false,
       "depends_on": [],
       "note_records": [],
@@ -610,7 +636,7 @@
         "key": "",
         "pass": "",
         "group": "",
-        "reason": "",
+        "reason": "Folded into ob-06 (owner decision): package README validation docs are aligned there",
         "importance": 1,
         "urgency": 1,
         "effort": 1,
@@ -641,6 +667,34 @@
         "reason": "",
         "importance": 1,
         "urgency": 1,
+        "effort": 1,
+        "attempts": 0
+      }
+    },
+    {
+      "id": "ob-17",
+      "title": "Do not stage the manifest in shared temp before GPG encryption",
+      "short_title": "Do not stage the manifest in shared temp before GPG encryption",
+      "status": "open",
+      "has_slice": false,
+      "depends_on": [],
+      "note_records": [],
+      "claim": null,
+      "fields": {
+        "size": "S",
+        "flags": [],
+        "trees": [
+          "core"
+        ],
+        "trees_literal": false,
+        "findings": "Obfuscator/ManifestCrypto.cs:47-50 writes the pre-GPG manifest payload (plaintext JSON when no passphrase is set) to Path.GetTempPath() before gpg encrypts it, so an unencrypted copy briefly sits in the shared temp directory and survives a crash; stage it next to the destination or pipe it to gpg's stdin",
+        "discovered_from": "ob-06",
+        "key": "",
+        "pass": "",
+        "group": "",
+        "reason": "",
+        "importance": 3,
+        "urgency": 2,
         "effort": 1,
         "attempts": 0
       }
