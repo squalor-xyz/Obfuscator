@@ -227,7 +227,7 @@
       "id": "ob-05",
       "title": "Strengthen generator config and sweep validation",
       "short_title": "Strengthen generator config and sweep validation",
-      "status": "reviewing",
+      "status": "done",
       "has_slice": true,
       "depends_on": [],
       "note_records": [
@@ -254,10 +254,7 @@
           "stale_after": ""
         }
       ],
-      "claim": {
-        "owner": "Jon R",
-        "at": "2026-10-08T11:47:29Z"
-      },
+      "claim": null,
       "fields": {
         "size": "M",
         "flags": [],

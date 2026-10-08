@@ -60,3 +60,4 @@
 {"when": "2026-10-08T11:42:56Z", "item": "ob-05", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon R cleared", "by": "Jon R"}
 {"when": "2026-10-08T11:47:29Z", "item": "ob-05", "action": "status", "from": "review", "to": "reviewing", "note": "", "by": "Jon R"}
 {"when": "2026-10-08T11:48:30Z", "item": "ob-05", "action": "note", "from": "", "to": "", "note": "VERDICT: PASS - diff reviewed against DataGenerator behaviou", "by": "Jon R"}
+{"when": "2026-10-08T11:48:36Z", "item": "ob-05", "action": "status", "from": "reviewing", "to": "done", "note": "Reviewed and merged", "by": "Jon R"}
