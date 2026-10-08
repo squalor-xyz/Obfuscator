@@ -51,6 +51,8 @@ obfuscator obfuscate \
 
 Supply the manifest passphrase with `OBFUSCATOR_PASSPHRASE`, `--passphrase-file <path>`, or `--passphrase-stdin`. Inline `--passphrase <secret>` is rejected because command-line arguments are visible in process lists. Prefer `OBFUSCATOR_DETERMINISTIC_KEY` over `--deterministic-key` for the same reason.
 
+Each command rejects any option it does not use, including options that belong to another command, so a typo such as `--gpg-recipent` fails before any output is written. Options take their value as the next argument; `--option=value` is not accepted.
+
 Restore an obfuscated CSV:
 
 ```bash

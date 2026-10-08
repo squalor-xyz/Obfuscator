@@ -39,7 +39,7 @@ internal static class ObfuscatorCliProgram
 
     private static int RunGenerate(string[] args)
     {
-        var options = ParseOptions(args);
+        var options = ParseOptions(args, "generate", GenerateOptions);
         var config = RequireSingle(options, "--config");
         var output = RequireSingle(options, "--output");
         EnsureOutputDirectoryExists(output, options.ContainsKey("--create-output-dir"));
@@ -52,7 +52,7 @@ internal static class ObfuscatorCliProgram
 
     private static int RunObfuscate(string[] args)
     {
-        var options = ParseOptions(args);
+        var options = ParseOptions(args, "obfuscate", ObfuscateOptions);
         var output = RequireSingle(options, "--output");
         var manifest = RequireSingle(options, "--manifest");
 
@@ -86,7 +86,7 @@ internal static class ObfuscatorCliProgram
 
     private static int RunDeobfuscate(string[] args)
     {
-        var options = ParseOptions(args);
+        var options = ParseOptions(args, "deobfuscate", DeobfuscateOptions);
         var output = RequireSingle(options, "--output");
 
         EnsureOutputDirectoryExists(output, options.ContainsKey("--create-output-dir"));
@@ -121,7 +121,48 @@ internal static class ObfuscatorCliProgram
         "--preserve-blanks",
     };
 
-    private static Dictionary<string, List<string>> ParseOptions(string[] args)
+    private static readonly HashSet<string> GenerateOptions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "--config",
+        "--output",
+        "--create-output-dir",
+        "--force",
+    };
+
+    private static readonly HashSet<string> ObfuscateOptions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "--input",
+        "--output",
+        "--manifest",
+        "--create-output-dir",
+        "--force",
+        "--deterministic-key",
+        "--string-mode",
+        "--include",
+        "--exclude",
+        "--allow-list",
+        "--seed",
+        "--passphrase-file",
+        "--passphrase-stdin",
+        "--gpg-recipient",
+        "--preserve-blanks",
+        "--strict",
+    };
+
+    private static readonly HashSet<string> DeobfuscateOptions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "--input",
+        "--output",
+        "--manifest",
+        "--create-output-dir",
+        "--force",
+        "--passphrase-file",
+        "--passphrase-stdin",
+        "--deterministic-key",
+        "--allow-mismatched-source",
+    };
+
+    private static Dictionary<string, List<string>> ParseOptions(string[] args, string command, HashSet<string> acceptedOptions)
     {
         var result = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
 
@@ -137,6 +178,16 @@ internal static class ObfuscatorCliProgram
                 throw new InvalidOperationException(
                     "--passphrase is no longer supported because it exposes the secret in process lists. " +
                     "Use OBFUSCATOR_PASSPHRASE, --passphrase-file <path>, or --passphrase-stdin.");
+
+            // A mistyped option must fail rather than be ignored. Name only the part
+            // before '=' so an inline value is never echoed.
+            if (!acceptedOptions.Contains(token))
+            {
+                var name = token.Split('=', 2)[0];
+                if (name.Length < token.Length && acceptedOptions.Contains(name))
+                    throw new InvalidOperationException($"Option '{name}' for '{command}' does not accept '=' syntax.");
+                throw new InvalidOperationException($"Unknown option '{name}' for '{command}'.");
+            }
 
             if (!result.TryGetValue(token, out var values))
             {
@@ -301,6 +352,7 @@ internal static class ObfuscatorCliProgram
         Console.WriteLine();
         Console.WriteLine("The manifest passphrase can also come from OBFUSCATOR_PASSPHRASE.");
         Console.WriteLine("Inline --passphrase is not accepted because it is visible in process lists.");
+        Console.WriteLine("Each command rejects options it does not use. Pass values as '--option <value>'.");
     }
 
     private static void PrintBanner()

@@ -2,7 +2,7 @@
   "version": 7,
   "id_prefix": "ob-",
   "id_width": 2,
-  "next_id": 16,
+  "next_id": 17,
   "preamble": "",
   "passes": [],
   "items": [
@@ -312,11 +312,37 @@
       "id": "ob-07",
       "title": "Reject unrecognised CLI options",
       "short_title": "Reject unrecognised CLI options",
-      "status": "open",
-      "has_slice": false,
+      "status": "reviewing",
+      "has_slice": true,
       "depends_on": [],
-      "note_records": [],
-      "claim": null,
+      "note_records": [
+        {
+          "id": "74f8f790-3f55-4939-9a89-a959ecbb5e17",
+          "kind": "",
+          "text": "**2026-10-08** — Ready for review: branch ob-07-reject-unknown-options, commit 6c52900 (slice promoted from the row in this branch; owner chose name-only echo and per-command sets). Behaviour change: generate/obfuscate/deobfuscate each accept only their documented options; anything else fails with \"Unknown option '<name>' for '<command>'.\" before input is read or output written; <name> is cut at '=' so inline values are never echoed; '--known=value' gets \"does not accept '=' syntax\". Inline --passphrase message unchanged. Usage text and both READMEs updated. Checks: 8 new rejection tests red before, green after; CLI tests 20/20; dotnet test Obfuscator.slnx 132/132; scripts/test-local.sh exit 0; slicer check passed. Follow-up filed: ob-16 (--help after a command).",
+          "created_at": "2026-10-08T12:38:15Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        },
+        {
+          "id": "8fbfd80a-68ce-4ca7-9080-0f9cddcad8aa",
+          "kind": "",
+          "text": "**2026-10-08** — VERDICT: PASS - self-review (same session as the implementation); accepted option sets cross-checked against every key each command reads; dotnet test Obfuscator.slnx 132/132; scripts/test-local.sh exit 0; slicer check passed.",
+          "created_at": "2026-10-08T13:05:56Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        }
+      ],
+      "claim": {
+        "owner": "Jon R",
+        "at": "2026-10-08T13:05:24Z"
+      },
       "fields": {
         "size": "S",
         "flags": [],
@@ -333,7 +359,7 @@
         "importance": 3,
         "urgency": 2,
         "effort": 1,
-        "attempts": 0
+        "attempts": 1
       }
     },
     {
@@ -584,6 +610,34 @@
         "trees_literal": false,
         "findings": "Obfuscator/PackageReadme.md and Obfuscator.Cli/README.md describe rowMode/sweepAxes but not the validation rules ob-05 added to README.md",
         "discovered_from": "ob-05",
+        "key": "",
+        "pass": "",
+        "group": "",
+        "reason": "",
+        "importance": 1,
+        "urgency": 1,
+        "effort": 1,
+        "attempts": 0
+      }
+    },
+    {
+      "id": "ob-16",
+      "title": "Support --help after a command",
+      "short_title": "Support --help after a command",
+      "status": "open",
+      "has_slice": false,
+      "depends_on": [],
+      "note_records": [],
+      "claim": null,
+      "fields": {
+        "size": "S",
+        "flags": [],
+        "trees": [
+          "cli"
+        ],
+        "trees_literal": false,
+        "findings": "Obfuscator.Cli/ObfuscatorCliProgram.cs Run: help is recognised only as the first argument; 'obfuscate --help' now fails with Unknown option '--help' (before ob-07 it failed with a missing-option error)",
+        "discovered_from": "ob-07",
         "key": "",
         "pass": "",
         "group": "",
