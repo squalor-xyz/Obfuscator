@@ -227,14 +227,23 @@
       "id": "ob-05",
       "title": "Strengthen generator config and sweep validation",
       "short_title": "Strengthen generator config and sweep validation",
-      "status": "started",
+      "status": "review",
       "has_slice": true,
       "depends_on": [],
-      "note_records": [],
-      "claim": {
-        "owner": "Jon R",
-        "at": "2026-10-08T11:39:31Z"
-      },
+      "note_records": [
+        {
+          "id": "51ba82e3-3d93-42b8-868b-834ecd74c951",
+          "kind": "",
+          "text": "**2026-10-08** — Ready for review: branch ob-05-config-validation, commit 3fd7a8a. Behaviour change: ValidateConfig now rejects (instead of silently swapping/clamping) reversed ranges and dates, out-of-range percentages and ideal ranges; also rejects duplicate axes/values, bad numeric axis values, invalid tracksWith refs, generatedIdMode in fixed mode or on an axis, integer ranges outside type bounds, and sweep expansion or nRows > Array.MaxLength (checked long product, fails before output). Limit rationale documented in README. Generation output for valid configs unchanged. Checks: 23 new failing tests red before, green after; focused generator tests 47/47; golden fixture matches and file unchanged; dotnet test Obfuscator.slnx 121/121; scripts/test-local.sh exit 0. Follow-ups filed: ob-14 (sweep ID range saturation), ob-15 (package README validation docs).",
+          "created_at": "2026-10-08T11:42:55Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        }
+      ],
+      "claim": null,
       "fields": {
         "size": "M",
         "flags": [],
