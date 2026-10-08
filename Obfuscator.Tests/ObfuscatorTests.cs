@@ -910,6 +910,219 @@ public sealed class ObfuscatorTests : IDisposable
         Assert.Contains("must use a numeric integer type", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Theory]
+    [InlineData("duplicate-axis", "Duplicate sweep axis",
+        """
+        { "rowMode": "sweep", "sweepAxes": [ { "name": "P" }, { "name": "p" } ],
+          "columns": [ { "name": "P", "dataType": "double", "totalRangeMin": 0, "totalRangeMax": 10, "values": [ "0", "5" ] } ] }
+        """)]
+    [InlineData("duplicate-axis-value", "duplicate value",
+        """
+        { "rowMode": "sweep", "sweepAxes": [ { "name": "Site" } ],
+          "columns": [ { "name": "Site", "dataType": "string", "values": [ "A", "B", "A" ] } ] }
+        """)]
+    [InlineData("duplicate-numeric-axis-value", "duplicate value",
+        """
+        { "rowMode": "sweep", "sweepAxes": [ { "name": "P" } ],
+          "columns": [ { "name": "P", "dataType": "double", "totalRangeMin": 0, "totalRangeMax": 10, "values": [ "5", "5.0" ] } ] }
+        """)]
+    [InlineData("non-numeric-axis-value", "is not a valid number",
+        """
+        { "rowMode": "sweep", "sweepAxes": [ { "name": "P" } ],
+          "columns": [ { "name": "P", "dataType": "double", "totalRangeMin": 0, "totalRangeMax": 10, "values": [ "0", "five" ] } ] }
+        """)]
+    [InlineData("axis-value-out-of-range", "outside its total range",
+        """
+        { "rowMode": "sweep", "sweepAxes": [ { "name": "P" } ],
+          "columns": [ { "name": "P", "dataType": "double", "totalRangeMin": 0, "totalRangeMax": 10, "values": [ "0", "11" ] } ] }
+        """)]
+    [InlineData("axis-is-generated-id", "cannot be both a sweep axis and a generatedIdMode column",
+        """
+        { "rowMode": "sweep", "sweepAxes": [ { "name": "Id" } ],
+          "columns": [ { "name": "Id", "dataType": "int", "totalRangeMin": 1, "totalRangeMax": 10, "values": [ "1", "2" ], "generatedIdMode": "inner-step" } ] }
+        """)]
+    [InlineData("generated-id-in-fixed-mode", "requires rowMode 'sweep' or 'max'",
+        """
+        { "rowMode": "fixed", "nRows": 2,
+          "columns": [ { "name": "Id", "dataType": "int", "totalRangeMin": 1, "totalRangeMax": 10, "generatedIdMode": "outer-group" } ] }
+        """)]
+    [InlineData("tracks-unknown-column", "references unknown column",
+        """
+        { "rowMode": "fixed", "nRows": 2,
+          "columns": [ { "name": "A", "dataType": "double", "totalRangeMin": 0, "totalRangeMax": 1, "tracksWith": [ "Missing" ] } ] }
+        """)]
+    [InlineData("tracks-non-numeric-column", "references non-numeric column",
+        """
+        { "rowMode": "fixed", "nRows": 2,
+          "columns": [
+            { "name": "S", "dataType": "string", "staticValue": "x" },
+            { "name": "A", "dataType": "double", "totalRangeMin": 0, "totalRangeMax": 1, "tracksInverselyWith": [ "S" ] } ] }
+        """)]
+    [InlineData("tracks-itself", "cannot track itself",
+        """
+        { "rowMode": "fixed", "nRows": 2,
+          "columns": [ { "name": "A", "dataType": "double", "totalRangeMin": 0, "totalRangeMax": 1, "tracksWith": [ "a" ] } ] }
+        """)]
+    [InlineData("tracks-later-column", "must appear before it",
+        """
+        { "rowMode": "fixed", "nRows": 2,
+          "columns": [
+            { "name": "A", "dataType": "double", "totalRangeMin": 0, "totalRangeMax": 1, "tracksWith": [ "B" ] },
+            { "name": "B", "dataType": "double", "totalRangeMin": 0, "totalRangeMax": 1 } ] }
+        """)]
+    [InlineData("reversed-total-range", "TotalRangeMin greater than TotalRangeMax",
+        """
+        { "rowMode": "fixed", "nRows": 2,
+          "columns": [ { "name": "A", "dataType": "double", "totalRangeMin": 10, "totalRangeMax": 0 } ] }
+        """)]
+    [InlineData("one-sided-ideal-range", "both IdealRangeMin and IdealRangeMax, or neither",
+        """
+        { "rowMode": "fixed", "nRows": 2,
+          "columns": [ { "name": "A", "dataType": "double", "totalRangeMin": 0, "totalRangeMax": 10, "idealRangeMin": 2 } ] }
+        """)]
+    [InlineData("ideal-range-outside-total", "ideal range must lie within its total range",
+        """
+        { "rowMode": "fixed", "nRows": 2,
+          "columns": [ { "name": "A", "dataType": "double", "totalRangeMin": 0, "totalRangeMax": 10, "idealRangeMin": 2, "idealRangeMax": 12 } ] }
+        """)]
+    [InlineData("reversed-ideal-range", "IdealRangeMin greater than IdealRangeMax",
+        """
+        { "rowMode": "fixed", "nRows": 2,
+          "columns": [ { "name": "A", "dataType": "double", "totalRangeMin": 0, "totalRangeMax": 10, "idealRangeMin": 8, "idealRangeMax": 2 } ] }
+        """)]
+    [InlineData("true-percentage-above-100", "TruePercentage must be between 0 and 100",
+        """
+        { "rowMode": "fixed", "nRows": 2,
+          "columns": [ { "name": "B", "dataType": "boolean", "truePercentage": 101 } ] }
+        """)]
+    [InlineData("ideal-percentage-negative", "PercentageInIdealRange must be between 0 and 100",
+        """
+        { "rowMode": "fixed", "nRows": 2,
+          "columns": [ { "name": "A", "dataType": "double", "totalRangeMin": 0, "totalRangeMax": 10, "percentageInIdealRange": -1 } ] }
+        """)]
+    [InlineData("int-range-beyond-type", "does not fit data type 'int'",
+        """
+        { "rowMode": "fixed", "nRows": 2,
+          "columns": [ { "name": "A", "dataType": "int", "totalRangeMin": 0, "totalRangeMax": 3000000000 } ] }
+        """)]
+    [InlineData("negative-random-string-length", "RandomStringLength cannot be negative",
+        """
+        { "rowMode": "fixed", "nRows": 2,
+          "columns": [ { "name": "S", "dataType": "string", "randomString": true, "randomStringLength": -1 } ] }
+        """)]
+    [InlineData("bad-date", "is not a valid date",
+        """
+        { "rowMode": "fixed", "nRows": 2,
+          "columns": [ { "name": "D", "dataType": "datetime", "dateMinUtc": "not-a-date", "dateMaxUtc": "2026-01-01T00:00:00Z" } ] }
+        """)]
+    [InlineData("reversed-dates", "DateMinUtc is after DateMaxUtc",
+        """
+        { "rowMode": "fixed", "nRows": 2,
+          "columns": [ { "name": "D", "dataType": "datetime", "dateMinUtc": "2026-01-01T00:00:00Z", "dateMaxUtc": "2025-01-01T00:00:00Z" } ] }
+        """)]
+    [InlineData("nrows-beyond-limit", "exceeds the limit",
+        """
+        { "rowMode": "fixed", "nRows": 2147483647,
+          "columns": [ { "name": "A", "dataType": "double", "totalRangeMin": 0, "totalRangeMax": 1 } ] }
+        """)]
+    public void GetDataGenParametersFromConfig_WithInvalidConfig_Throws(string name, string expectedMessage, string json)
+    {
+        var configPath = WriteConfig(name + ".json", json);
+
+        var ex = Assert.Throws<InvalidOperationException>(() => _obfuscator.GetDataGenParametersFromConfig(configPath));
+
+        Assert.Contains(expectedMessage, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void GenerateCsv_WithNonFiniteRange_ThrowsBeforeWriting()
+    {
+        var outputPath = Path.Combine(_tempDir, "nan-range.csv");
+        var config = new DataGenConfig
+        {
+            RowMode = "fixed",
+            NRows = 2,
+            Columns = [new ColumnGenerationSpec { Name = "A", DataType = "double", TotalRangeMin = double.NaN, TotalRangeMax = 1 }]
+        };
+
+        var ex = Assert.Throws<InvalidOperationException>(() => _obfuscator.GenerateCsv(config, outputPath));
+
+        Assert.Contains("must be finite", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.False(File.Exists(outputPath));
+    }
+
+    [Theory]
+    [InlineData(8, 300, "overflows")]
+    [InlineData(3, 2000, "exceeds the limit")]
+    public void GenerateCsv_WithOversizedSweepExpansion_ThrowsBeforeWriting(int axisCount, int valuesPerAxis, string expectedMessage)
+    {
+        var outputPath = Path.Combine(_tempDir, "oversized-sweep.csv");
+        var values = Enumerable.Range(0, valuesPerAxis).Select(i => i.ToString(CultureInfo.InvariantCulture)).ToList();
+        var columns = Enumerable.Range(0, axisCount)
+            .Select(i => new ColumnGenerationSpec { Name = $"Axis{i}", DataType = "string", Values = values })
+            .ToList();
+        var config = new DataGenConfig
+        {
+            RowMode = "sweep",
+            SweepAxes = columns.Select(c => new SweepAxisSpec { Name = c.Name }).ToList(),
+            Columns = columns
+        };
+
+        var ex = Assert.Throws<InvalidOperationException>(() => _obfuscator.GenerateCsv(config, outputPath));
+
+        Assert.Contains("Sweep expansion", ex.Message, StringComparison.Ordinal);
+        Assert.Contains(expectedMessage, ex.Message, StringComparison.Ordinal);
+        Assert.False(File.Exists(outputPath));
+    }
+
+    [Theory]
+    [InlineData("ExampleConfig.json")]
+    [InlineData("ExampleConfigSemiconductor.json")]
+    [InlineData("ExampleConfigSemiconductorDemo.json")]
+    public void GetDataGenParametersFromConfig_ExampleConfigs_PassValidation(string fileName)
+    {
+        var configPath = Path.Combine(AppContext.BaseDirectory, fileName);
+        Assert.True(File.Exists(configPath), configPath);
+
+        var config = _obfuscator.GetDataGenParametersFromConfig(configPath);
+
+        Assert.NotEmpty(config.Columns);
+    }
+
+    [Theory]
+    [InlineData("sweep", 0)]
+    [InlineData("max", 10)]
+    public void GenerateCsv_WithSweepRowModesAndSeed_IsDeterministic(string rowMode, int nRows)
+    {
+        var outputPath1 = Path.Combine(_tempDir, $"{rowMode}-seeded-1.csv");
+        var outputPath2 = Path.Combine(_tempDir, $"{rowMode}-seeded-2.csv");
+        var config = new DataGenConfig
+        {
+            RowMode = rowMode,
+            NRows = nRows,
+            Seed = 42,
+            SweepAxes =
+            [
+                new SweepAxisSpec { Name = "Frequency(MHz)" },
+                new SweepAxisSpec { Name = "Pout(dBm)" }
+            ],
+            Columns =
+            [
+                new ColumnGenerationSpec { Name = "stimulusGrp(id)", DataType = "bigint", TotalRangeMin = 1, TotalRangeMax = 9999, GeneratedIdMode = "outer-group" },
+                new ColumnGenerationSpec { Name = "sweep(id)", DataType = "bigint", TotalRangeMin = 1, TotalRangeMax = 9999, GeneratedIdMode = "inner-step" },
+                new ColumnGenerationSpec { Name = "Frequency(MHz)", DataType = "double", TotalRangeMin = 2400, TotalRangeMax = 2450, Values = ["2400", "2450"] },
+                new ColumnGenerationSpec { Name = "Pout(dBm)", DataType = "double", TotalRangeMin = 0, TotalRangeMax = 10, Values = ["0", "5", "10"] },
+                new ColumnGenerationSpec { Name = "Gain(dB)", DataType = "double", TotalRangeMin = 5, TotalRangeMax = 35, IdealRangeMin = 18, IdealRangeMax = 28, TracksWith = ["Pout(dBm)"] }
+            ]
+        };
+
+        _obfuscator.GenerateCsv(config, outputPath1);
+        _obfuscator.GenerateCsv(config, outputPath2);
+
+        Assert.Equal(File.ReadAllBytes(outputPath1), File.ReadAllBytes(outputPath2));
+        Assert.Equal(rowMode == "max" ? 11 : 7, File.ReadAllLines(outputPath1).Length);
+    }
+
     [Fact]
     public void GenerateCsv_WithMaxRowModeAndLargeSweepExpansion_UsesSweepCardinality()
     {

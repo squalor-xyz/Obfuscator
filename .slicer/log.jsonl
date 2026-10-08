@@ -53,3 +53,10 @@
 {"when": "2026-10-08T11:24:03Z", "item": "ob-04", "action": "status", "from": "review", "to": "reviewing", "note": "", "by": "Jon R"}
 {"when": "2026-10-08T11:26:03Z", "item": "ob-04", "action": "note", "from": "", "to": "", "note": "VERDICT: PASS. Reviewed AesSiv.cs line-by-line against RFC 4", "by": "Jon R"}
 {"when": "2026-10-08T11:26:09Z", "item": "ob-04", "action": "status", "from": "reviewing", "to": "done", "note": "Reviewed and merged", "by": "Jon R"}
+{"when": "2026-10-08T11:39:31Z", "item": "ob-05", "action": "status", "from": "open", "to": "started", "note": "", "by": "Jon R"}
+{"when": "2026-10-08T11:42:45Z", "item": "ob-14", "action": "add", "from": "", "to": "open", "note": "Generated sweep IDs can exceed or saturate their configured range"}
+{"when": "2026-10-08T11:42:45Z", "item": "ob-15", "action": "add", "from": "", "to": "open", "note": "Document generator config validation in package READMEs"}
+{"when": "2026-10-08T11:42:55Z", "item": "ob-05", "action": "note", "from": "", "to": "", "note": "Ready for review: branch ob-05-config-validation, commit 3fd", "by": "Jon R"}
+{"when": "2026-10-08T11:42:56Z", "item": "ob-05", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon R cleared", "by": "Jon R"}
+{"when": "2026-10-08T11:47:29Z", "item": "ob-05", "action": "status", "from": "review", "to": "reviewing", "note": "", "by": "Jon R"}
+{"when": "2026-10-08T11:48:30Z", "item": "ob-05", "action": "note", "from": "", "to": "", "note": "VERDICT: PASS - diff reviewed against DataGenerator behaviou", "by": "Jon R"}

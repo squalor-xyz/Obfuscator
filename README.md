@@ -153,6 +153,19 @@ For sweep configs:
 - `generatedIdMode: "outer-group"` creates one ID per outer stimulus group
 - `generatedIdMode: "inner-step"` creates a 1-based counter for the innermost sweep axis
 
+Generation configs are validated before any rows are generated or output is written. A config is rejected when:
+
+- a sweep axis is repeated (names compare case-insensitively), or an axis is also a `generatedIdMode` column
+- an axis repeats a value; on numeric columns values compare numerically, so `5` and `5.0` are duplicates
+- a numeric axis value does not parse as a finite number or lies outside `totalRangeMin`..`totalRangeMax`
+- `totalRangeMin` is greater than `totalRangeMax`, or an integer column's range does not fit its data type
+- only one of `idealRangeMin`/`idealRangeMax` is set, they are reversed, or they lie outside the total range
+- `truePercentage` or `percentageInIdealRange` is outside 0..100, or `randomStringLength` is negative
+- `dateMinUtc`/`dateMaxUtc` do not parse, or the minimum is after the maximum (missing bounds default to 2020-01-01 and 2020-01-31)
+- `tracksWith`/`tracksInverselyWith` names a missing, non-numeric, or later column, or the column itself
+- a `generatedIdMode` column is used with `rowMode: "fixed"`
+- the sweep expansion (the product of every axis's value count) or `nRows` exceeds `Array.MaxLength` (2,147,483,591) rows. The generator indexes rows with `int` and holds the row plan in memory, so this is the largest size it can represent. It is not a recommended size, and very large sweeps may still exhaust memory.
+
 The example config paths above are repo-relative. If you are using the published packages outside this repo, point to your own config file.
 
 For CLI output paths:
