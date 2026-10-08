@@ -393,14 +393,23 @@
       "id": "ob-08",
       "title": "Move deterministic key off the command line",
       "short_title": "Move deterministic key off the command line",
-      "status": "started",
+      "status": "review",
       "has_slice": true,
       "depends_on": [],
-      "note_records": [],
-      "claim": {
-        "owner": "Jon R",
-        "at": "2026-10-08T13:33:20Z"
-      },
+      "note_records": [
+        {
+          "id": "72ab765c-8c1f-4e62-978c-2d4b0b7d2c53",
+          "kind": "",
+          "text": "**2026-10-08** — Ready for review: branch ob-08-deterministic-key-file, commit 3349420 (slice promoted on this branch). Behaviour change: obfuscate/deobfuscate reject --deterministic-key and --deterministic-key=<x> (case-insensitive) without echoing the value, naming OBFUSCATOR_DETERMINISTIC_KEY and --deterministic-key-file; new --deterministic-key-file <path> (trailing CR/LF trimmed) takes precedence over the env var; usage text, README.md, Obfuscator.Cli/README.md, PackageReadme.md and scripts/test-local.sh (now exports OBFUSCATOR_DETERMINISTIC_KEY) updated. Library API unchanged. Checks: new tests Cli_InlineDeterministicKey_IsRejectedWithoutEcho x5, Cli_DeterministicKeyFromFile_RoundTrips, Cli_DeterministicKeyFileFollowedByAnotherFlag_Fails and updated Cli_DocumentedOptions_AreAccepted failed before (9 failing), pass after; dotnet test Obfuscator.slnx 140/140; scripts/test-local.sh exit 0; slicer check passed. Breaking CLI change for anyone passing the key inline. No follow-ups filed.",
+          "created_at": "2026-10-08T13:34:58Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        }
+      ],
+      "claim": null,
       "fields": {
         "size": "S",
         "flags": [],
