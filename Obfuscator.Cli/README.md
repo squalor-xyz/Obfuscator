@@ -49,7 +49,7 @@ obfuscator obfuscate \
   --string-mode deterministic-token
 ```
 
-Supply the manifest passphrase with `OBFUSCATOR_PASSPHRASE`, `--passphrase-file <path>`, or `--passphrase-stdin`. Supply the deterministic key with `OBFUSCATOR_DETERMINISTIC_KEY` or `--deterministic-key-file <path>`. Inline `--passphrase <secret>` and `--deterministic-key <secret>` are rejected because command-line arguments are visible in process lists. Without a passphrase or `--gpg-recipient`, the manifest is written unencrypted. Each command rejects any option it does not use, including options that belong to another command, so a typo such as `--gpg-recipent` fails before any output is written. Options take their value as the next argument; `--option=value` is not accepted.
+Supply the manifest passphrase with `OBFUSCATOR_PASSPHRASE`, `--passphrase-file <path>`, or `--passphrase-stdin`. Supply the deterministic key with `OBFUSCATOR_DETERMINISTIC_KEY` or `--deterministic-key-file <path>`. Inline `--passphrase <secret>` and `--deterministic-key <secret>` are rejected because command-line arguments are visible in process lists. Without a passphrase or `--gpg-recipient`, the manifest is written unencrypted. Each command rejects any option it does not use, including options that belong to another command, so a typo such as `--gpg-recipent` fails before any output is written. Options take their value as the next argument; `--option=value` is not accepted. `--help` or `-h` anywhere after a command prints the usage and exits without reading or writing anything.
 
 Restore an obfuscated CSV:
 

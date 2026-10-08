@@ -19,6 +19,14 @@ internal static class ObfuscatorCliProgram
             return 0;
         }
 
+        // Help anywhere after a known command wins, before any option is parsed or echoed.
+        if (args[0].ToLowerInvariant() is "generate" or "obfuscate" or "deobfuscate"
+            && args[1..].Any(IsCommandHelp))
+        {
+            PrintUsage();
+            return 0;
+        }
+
         try
         {
             return args[0].ToLowerInvariant() switch
@@ -306,6 +314,10 @@ internal static class ObfuscatorCliProgram
     private static bool IsHelp(string arg)
         => arg is "-h" or "--help" or "help";
 
+    // Bare 'help' is excluded after a command because it could be a value.
+    private static bool IsCommandHelp(string arg)
+        => arg == "-h" || arg.Equals("--help", StringComparison.OrdinalIgnoreCase);
+
     private static void EnsureOutputDirectoryExists(string outputPath, bool createOutputDirectory)
     {
         var fullOutputPath = Path.GetFullPath(outputPath);
@@ -339,6 +351,7 @@ internal static class ObfuscatorCliProgram
         Console.WriteLine("  obfuscator generate --config <file.json> --output <file.csv> [--create-output-dir] [--force]");
         Console.WriteLine("  obfuscator obfuscate --input <file.csv> --output <file.csv> --manifest <file.obf> [options]");
         Console.WriteLine("  obfuscator deobfuscate --input <file.csv> --manifest <file.obf> --output <file.csv> [options]");
+        Console.WriteLine("  obfuscator [<command>] --help");
         Console.WriteLine();
         Console.WriteLine("Output options:");
         Console.WriteLine("  --create-output-dir");

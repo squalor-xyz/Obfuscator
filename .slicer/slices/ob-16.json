@@ -1,0 +1,41 @@
+{
+  "id": "ob-16",
+  "title": "Support --help after a command",
+  "lead": [
+    "`obfuscator <command> --help` (or `-h`) prints the usage text and exits 0 instead of failing with an unknown-option error."
+  ],
+  "depends_note": null,
+  "findings_note": "Obfuscator.Cli/ObfuscatorCliProgram.cs Run: help is recognised only as the first argument; 'obfuscate --help' now fails with Unknown option '--help' (before ob-07 it failed with a missing-option error)",
+  "size": "S",
+  "flags": [],
+  "trees_note": "cli",
+  "trees_plural": false,
+  "boundary": "**Not in this slice:** per-command help text (the full usage is printed); bare `help` after a command; help for an unknown command (still fails with \"Unknown command.\"); library (`Obfuscator/`) changes.",
+  "sections": [
+    {
+      "heading": "Why",
+      "body": "Help is recognised only as the first argument (`Run` checks `IsHelp(args[0])`). Since ob-07, `obfuscator obfuscate --help` fails with `Unknown option '--help' for 'obfuscate'.` and exit 1, although asking a command for help is the most common way users discover its options."
+    },
+    {
+      "heading": "Files",
+      "body": "Obfuscator.Cli/ObfuscatorCliProgram.cs; Obfuscator.Tests/ObfuscatorTests.cs; Obfuscator.Cli/README.md, Obfuscator.Cli/PackageReadme.md and README.md where they describe help."
+    },
+    {
+      "heading": "Failing tests",
+      "body": "- `generate --help`, `obfuscate --help`, `deobfuscate -h` print the usage text to stdout and exit 0.\n- Help anywhere after a known command wins, including in a value slot: `obfuscate --input missing.csv --help` and `obfuscate --output --help` exit 0, print usage, and read or write no files.\n- Help wins over other argument errors on the same line (unknown option, inline `--passphrase=...`) without echoing any value.\n- Case follows option matching: `--HELP` after a command is help.\n- Bare `help` after a command is not help (still rejected as before).\n- An unknown command with `--help` still fails with \"Unknown command.\" and exit 1.\n- Existing top-level `--help`, `-h`, `help` and no-argument behaviour is unchanged."
+    },
+    {
+      "heading": "Implement",
+      "body": "In `Run`, after the command name matches a known command and before its options are parsed, return `PrintUsage()` with exit 0 when any later argument is `--help` (case-insensitive, like options) or `-h`. Leave `IsHelp` and the top-level check as they are. Mention `obfuscator <command> --help` in the usage text and in the docs that show `obfuscator --help`."
+    },
+    {
+      "heading": "Check",
+      "body": "Run the focused CLI tests, then `dotnet test Obfuscator.slnx` and `scripts/test-local.sh`."
+    },
+    {
+      "heading": "Git",
+      "body": "Only CLI argument handling, its tests and docs change."
+    }
+  ],
+  "notes": []
+}
