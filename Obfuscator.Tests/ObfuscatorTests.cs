@@ -1296,6 +1296,27 @@ public sealed class ObfuscatorTests : IDisposable
     }
 
     [Fact]
+    public void FloatingColumn_CellWhoseOutputExceedsParseBounds_RoundTrips()
+    {
+        var inputPath = Path.Combine(_tempDir, "float-wide.csv");
+        var obfuscatedPath = Path.Combine(_tempDir, "float-wide-obfuscated.csv");
+        var manifestPath = Path.Combine(_tempDir, "float-wide.obf");
+        var restoredPath = Path.Combine(_tempDir, "float-wide-restored.csv");
+        // Each input is within ExactDecimal's bounds, but x * Scale + Shift spans more than 1000 digits.
+        string[] lines = ["Amount", "1234.5", "1e-1000", "-7" + new string('3', 999)];
+        File.WriteAllLines(inputPath, lines, Encoding.UTF8);
+
+        var manifest = _obfuscator.ObfuscateCsv(inputPath, obfuscatedPath, manifestPath,
+            new ObfuscationOptions { DeterministicKey = "unit-test-key" });
+        _obfuscator.DeobfuscateCsv(obfuscatedPath, manifestPath, restoredPath, deterministicKey: "unit-test-key");
+
+        Assert.Equal(2, manifest.UnparsedValueCounts["Amount"]);
+        var restored = File.ReadAllLines(restoredPath, Encoding.UTF8);
+        for (var i = 1; i < lines.Length; i++)
+            Assert.Equal(ExactDecimal.Parse(lines[i]).ToString(), ExactDecimal.Parse(restored[i]).ToString());
+    }
+
+    [Fact]
     public void ExactFloat_QuantizesScaleAndShift()
     {
         var spec = new ColumnObfuscationSpec { Name = "F" };

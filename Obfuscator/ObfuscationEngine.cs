@@ -237,7 +237,7 @@ internal sealed class ObfuscationEngine
                 if (!row.TryGetValue(spec.Name, out var value) || string.IsNullOrWhiteSpace(value))
                     continue;
 
-                var parses = ParsesAsKind(value, spec.Kind);
+                var parses = ParsesAsKind(value, spec);
                 if (!parses)
                     counts[spec.Name] = counts.GetValueOrDefault(spec.Name) + 1;
 
@@ -254,13 +254,13 @@ internal sealed class ObfuscationEngine
             spec.StringMap = BuildStringMap(spec.Name, distinctValuesByColumn[spec.Name]);
     }
 
-    private static bool ParsesAsKind(string value, ObfuscatedColumnKind kind)
+    private static bool ParsesAsKind(string value, ColumnObfuscationSpec spec)
     {
-        return kind switch
+        return spec.Kind switch
         {
             ObfuscatedColumnKind.Boolean => ParsingUtility.TryParseBoolean(value, out _),
             ObfuscatedColumnKind.Integer => ParsingUtility.TryParseInteger(value, out _),
-            ObfuscatedColumnKind.Floating => ExactDecimal.TryParse(value, out _),
+            ObfuscatedColumnKind.Floating => TryObfuscateExactFloat(value, spec, out _),
             ObfuscatedColumnKind.DateTime => ParsingUtility.TryParseDateTime(value, out _),
             ObfuscatedColumnKind.String => true,
             _ => true
@@ -445,12 +445,7 @@ internal sealed class ObfuscationEngine
     internal string ObfuscateFloating(string value, ColumnObfuscationSpec spec)
     {
         if (spec.FloatScheme is not null)
-        {
-            var (scale, shift) = GetExactFloatTransform(spec);
-            if (!ExactDecimal.TryParse(value, out var x))
-                return ObfuscateString(value, spec);
-            return x.Multiply(scale).Add(shift).ToString();
-        }
+            return TryObfuscateExactFloat(value, spec, out var result) ? result : ObfuscateString(value, spec);
 
         if (!double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var n))
             return ObfuscateString(value, spec);
@@ -481,6 +476,22 @@ internal sealed class ObfuscationEngine
         if (!double.IsFinite(x))
             throw new InvalidOperationException($"Column '{spec.Name}' deobfuscation produced a non-finite value.");
         return x.ToString("G17", CultureInfo.InvariantCulture);
+    }
+
+    // Also the unparsed test for floating columns, so a cell that cannot round-trip is mapped like any
+    // other non-numeric value. The output must itself parse: deobfuscate would otherwise take the
+    // string path and write the obfuscated value back unchanged.
+    private static bool TryObfuscateExactFloat(string value, ColumnObfuscationSpec spec, out string result)
+    {
+        result = string.Empty;
+        var (scale, shift) = GetExactFloatTransform(spec);
+        if (!ExactDecimal.TryParse(value, out var x))
+            return false;
+        var y = x.Multiply(scale).Add(shift).ToString();
+        if (!ExactDecimal.TryParse(y, out _))
+            return false;
+        result = y;
+        return true;
     }
 
     private static (ExactDecimal Scale, ExactDecimal Shift) GetExactFloatTransform(ColumnObfuscationSpec spec)
