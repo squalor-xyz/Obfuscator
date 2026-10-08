@@ -856,11 +856,70 @@
       "id": "ob-18",
       "title": "Reject a whitespace-only OBFUSCATOR_DETERMINISTIC_KEY",
       "short_title": "Reject a whitespace-only OBFUSCATOR_DETERMINISTIC_KEY",
-      "status": "open",
-      "has_slice": false,
+      "status": "reviewing",
+      "has_slice": true,
       "depends_on": [],
-      "note_records": [],
-      "claim": null,
+      "note_records": [
+        {
+          "id": "a1c38a1e-e6a9-48ce-9f93-3d22723a0b03",
+          "kind": "",
+          "text": "**2026-10-08** — Ready for review: branch ob-18-blank-env-key, commit bfe70e7. Behaviour: obfuscate and deobfuscate fail with \"Deterministic key is blank. Unset OBFUSCATOR_DETERMINISTIC_KEY or supply a value.\" when the variable is whitespace-only, before any output; an empty value is still unset (owner decision); no README change (owner decision). Checks: 3 new whitespace InlineData cases failed on main and pass on the branch, plus an empty-is-unset test; dotnet test Obfuscator.slnx 190/190 passed; scripts/test-local.sh exit 0; slicer check passed. Follow-ups: none filed.",
+          "created_at": "2026-10-08T16:38:37Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        },
+        {
+          "id": "a428b5fc-d220-4089-9fd4-6f094e0b0855",
+          "kind": "",
+          "text": "**2026-10-08** — VERDICT: FAIL - Cli_EmptyDeterministicKeyEnvironment_IsTreatedAsUnset does not test an empty value: .NET SetEnvironmentVariable(name, \"\") deletes the variable, so it only covers unset. Fix behaviour is correct (installed CLI: empty env exit 0, whitespace env exit 1 with the blank-key message); dotnet test 190/190, test-local.sh exit 0.",
+          "created_at": "2026-10-08T16:40:39Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        },
+        {
+          "id": "df68942a-6f91-4f68-abe7-31d67fffaf2f",
+          "kind": "",
+          "text": "**2026-10-08** — Correction to the FAIL verdict: it was wrong. On .NET 10.0.12, SetEnvironmentVariable(name, \"\") leaves the variable set to an empty string (verified with dotnet fsi: GetEnvironmentVariable returns \"\", not null), so Cli_EmptyDeterministicKeyEnvironment_IsTreatedAsUnset does test an empty value. No code or test change; branch content is unchanged from 2405637.",
+          "created_at": "2026-10-08T16:41:05Z",
+          "attempt": 2,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        },
+        {
+          "id": "f2eaf700-0de3-4821-8932-3f30d3c059c9",
+          "kind": "",
+          "text": "**2026-10-08** — Ready for review: branch ob-18-blank-env-key, code commit bfe70e7 (unchanged). Checks: dotnet test Obfuscator.slnx 190/190; scripts/test-local.sh exit 0; installed CLI with empty env exits 0, with whitespace env exits 1 with the blank-key message; slicer check passed. Follow-ups: none.",
+          "created_at": "2026-10-08T16:41:05Z",
+          "attempt": 2,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        },
+        {
+          "id": "e6b0283e-d39b-4776-be22-548513b398d6",
+          "kind": "",
+          "text": "**2026-10-08** — VERDICT: PASS - diff matches slice scope; dotnet test 190/190; scripts/test-local.sh exit 0; installed CLI: empty env exit 0, whitespace env exit 1 with blank-key message",
+          "created_at": "2026-10-08T16:41:36Z",
+          "attempt": 2,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        }
+      ],
+      "claim": {
+        "owner": "Jon R",
+        "at": "2026-10-08T16:41:11Z"
+      },
       "fields": {
         "size": "S",
         "flags": [],
@@ -878,7 +937,7 @@
         "importance": 2,
         "urgency": 1,
         "effort": 1,
-        "attempts": 0
+        "attempts": 2
       }
     }
   ],

@@ -1981,6 +1981,58 @@ public sealed class ObfuscatorTests : IDisposable
         Assert.False(File.Exists(outputPath));
     }
 
+    [Theory]
+    [InlineData("obfuscate", "   ")]
+    [InlineData("obfuscate", "\n")]
+    [InlineData("deobfuscate", " \r\n")]
+    public void Cli_BlankDeterministicKeyEnvironment_IsRejected(string command, string value)
+    {
+        var inputPath = Path.Combine(_tempDir, "blank-env-key-input.csv");
+        var outputPath = Path.Combine(_tempDir, "blank-env-key-output.csv");
+        var manifestPath = Path.Combine(_tempDir, "blank-env-key.obf");
+        File.WriteAllLines(inputPath, ["CustomerId", "ALPHA"], Encoding.UTF8);
+        var previous = Environment.GetEnvironmentVariable("OBFUSCATOR_DETERMINISTIC_KEY");
+        Environment.SetEnvironmentVariable("OBFUSCATOR_DETERMINISTIC_KEY", value);
+        try
+        {
+            // Auto string mode would otherwise fall back to mapping and report success.
+            var (exit, text) = RunCliCapturingOutput(
+                [command, "--input", inputPath, "--output", outputPath, "--manifest", manifestPath]);
+
+            Assert.Equal(1, exit);
+            Assert.Contains("Deterministic key is blank.", text, StringComparison.Ordinal);
+            Assert.Contains("OBFUSCATOR_DETERMINISTIC_KEY", text, StringComparison.Ordinal);
+            Assert.False(File.Exists(outputPath));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("OBFUSCATOR_DETERMINISTIC_KEY", previous);
+        }
+    }
+
+    [Fact]
+    public void Cli_EmptyDeterministicKeyEnvironment_IsTreatedAsUnset()
+    {
+        var inputPath = Path.Combine(_tempDir, "empty-env-key-input.csv");
+        var outputPath = Path.Combine(_tempDir, "empty-env-key-output.csv");
+        var manifestPath = Path.Combine(_tempDir, "empty-env-key.obf");
+        File.WriteAllLines(inputPath, ["CustomerId", "ALPHA"], Encoding.UTF8);
+        var previous = Environment.GetEnvironmentVariable("OBFUSCATOR_DETERMINISTIC_KEY");
+        Environment.SetEnvironmentVariable("OBFUSCATOR_DETERMINISTIC_KEY", "");
+        try
+        {
+            var (exit, _) = RunCliCapturingOutput(
+                ["obfuscate", "--input", inputPath, "--output", outputPath, "--manifest", manifestPath]);
+
+            Assert.Equal(0, exit);
+            Assert.True(File.Exists(outputPath));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("OBFUSCATOR_DETERMINISTIC_KEY", previous);
+        }
+    }
+
     [Fact]
     public void Cli_DeterministicKeyFileFollowedByAnotherFlag_Fails()
     {
