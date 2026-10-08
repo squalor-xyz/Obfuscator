@@ -69,3 +69,4 @@
 {"when": "2026-10-08T12:38:15Z", "item": "ob-07", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon R cleared", "by": "Jon R"}
 {"when": "2026-10-08T13:05:24Z", "item": "ob-07", "action": "status", "from": "review", "to": "reviewing", "note": "", "by": "Jon R"}
 {"when": "2026-10-08T13:05:56Z", "item": "ob-07", "action": "note", "from": "", "to": "", "note": "VERDICT: PASS - self-review (same session as the implementat", "by": "Jon R"}
+{"when": "2026-10-08T13:05:56Z", "item": "ob-07", "action": "status", "from": "reviewing", "to": "done", "note": "Reviewed and merged", "by": "Jon R"}

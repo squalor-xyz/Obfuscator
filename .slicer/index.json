@@ -312,7 +312,7 @@
       "id": "ob-07",
       "title": "Reject unrecognised CLI options",
       "short_title": "Reject unrecognised CLI options",
-      "status": "reviewing",
+      "status": "done",
       "has_slice": true,
       "depends_on": [],
       "note_records": [
@@ -339,10 +339,7 @@
           "stale_after": ""
         }
       ],
-      "claim": {
-        "owner": "Jon R",
-        "at": "2026-10-08T13:05:24Z"
-      },
+      "claim": null,
       "fields": {
         "size": "S",
         "flags": [],
