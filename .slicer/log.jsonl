@@ -134,3 +134,5 @@
 {"when": "2026-10-08T15:12:01Z", "item": "ob-12", "action": "edit", "from": "", "to": "", "note": "boundary"}
 {"when": "2026-10-08T15:17:12Z", "item": "ob-12", "action": "note", "from": "", "to": "", "note": "Ready for review: branch ob-12-link-aliases, commit 2eed47b.", "by": "Jon R"}
 {"when": "2026-10-08T15:17:13Z", "item": "ob-12", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon R cleared", "by": "Jon R"}
+{"when": "2026-10-08T15:18:54Z", "item": "ob-12", "action": "status", "from": "review", "to": "reviewing", "note": "", "by": "Jon R"}
+{"when": "2026-10-08T15:19:50Z", "item": "ob-12", "action": "note", "from": "", "to": "", "note": "VERDICT: PASS - diff matches slice scope; dotnet test 181/18", "by": "Jon R"}

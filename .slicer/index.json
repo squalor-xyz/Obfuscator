@@ -601,7 +601,7 @@
       "id": "ob-12",
       "title": "Detect symlink and hard-link aliases between input, output, and manifest",
       "short_title": "Detect symlink and hard-link aliases between input, output, and manifest",
-      "status": "review",
+      "status": "reviewing",
       "has_slice": true,
       "depends_on": [],
       "note_records": [
@@ -615,9 +615,23 @@
           "verified_by": "",
           "verified_at": "",
           "stale_after": ""
+        },
+        {
+          "id": "58122e11-b46f-4cc0-8d78-77b85c245109",
+          "kind": "",
+          "text": "**2026-10-08** — VERDICT: PASS - diff matches slice scope; dotnet test 181/181 passed, scripts/test-local.sh exit 0. Hard-link README claim verified manually with the packed CLI: input hard-linked as both --output and --manifest, obfuscate --force left the input hash unchanged, outputs replaced the links, and deobfuscate round-tripped identically.",
+          "created_at": "2026-10-08T15:19:50Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
         }
       ],
-      "claim": null,
+      "claim": {
+        "owner": "Jon R",
+        "at": "2026-10-08T15:18:54Z"
+      },
       "fields": {
         "size": "S",
         "flags": [],
