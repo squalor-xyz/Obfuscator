@@ -1,0 +1,41 @@
+{
+  "id": "ob-17",
+  "title": "Do not stage the manifest in shared temp before GPG encryption",
+  "lead": [
+    "GPG encryption of the manifest takes its input on stdin and returns armored output on stdout, so no unencrypted manifest, and no intermediate file, is ever written to disk."
+  ],
+  "depends_note": null,
+  "findings_note": "Obfuscator/ManifestCrypto.cs:47-50 writes the pre-GPG manifest payload (plaintext JSON when no passphrase is set) to Path.GetTempPath() before gpg encrypts it, so an unencrypted copy briefly sits in the shared temp directory and survives a crash; stage it next to the destination or pipe it to gpg's stdin",
+  "size": "S",
+  "flags": [],
+  "trees_note": "core",
+  "trees_plural": false,
+  "boundary": "**Not in this slice:** the decrypt path (it only writes ciphertext to temp); gpg timeout or trust-model changes; manifest format changes.",
+  "sections": [
+    {
+      "heading": "Why",
+      "body": "`ManifestCrypto.WriteManifestTo` writes the pre-GPG payload to `Path.GetTempPath()/obf-plain-*.tmp` and passes that path to `gpg`. With no passphrase the payload is the plaintext manifest, which in mapping mode holds every original value. It sits in the shared temp directory while gpg runs and survives if the process crashes or is killed. `GpgEncryptTo` also writes gpg's output to `destPath + \".gpg\"` before copying it."
+    },
+    {
+      "heading": "Files",
+      "body": "Obfuscator/ManifestCrypto.cs; Obfuscator.Tests/ObfuscatorTests.cs."
+    },
+    {
+      "heading": "Failing tests",
+      "body": "On Unix with gpg available: obfuscate with a GPG recipient through a `gpg` wrapper on `PATH` that, at invocation time, searches `TMPDIR` and the output directory for a marker value from the input and then runs the real gpg. Before the fix the wrapper finds the marker; after it, the wrapper finds nothing and the manifest still round-trips. Existing GPG round-trip and GPG-failure tests keep passing."
+    },
+    {
+      "heading": "Implement",
+      "body": "Give `RunGpg` an optional stdin payload: redirect standard input with UTF-8 (no BOM), start the stdout/stderr reads before writing so a full pipe cannot deadlock, write the payload, and close stdin. `GpgEncryptTo` takes the payload string and runs `gpg --batch --yes --trust-model always --armor --encrypt --recipient ... ` with no input file and no `--output`, so the armor comes back on stdout; it writes the `OBF_GPG_V2` header plus armor to the destination. Remove the `obf-plain-*` temp file and the `.gpg` side file."
+    },
+    {
+      "heading": "Check",
+      "body": "Run the GPG tests and the full solution suite, then `scripts/test-local.sh`."
+    },
+    {
+      "heading": "Git",
+      "body": "Keep the manifest format (`OBF_GPG_V2` + ASCII armor) unchanged so existing manifests still read."
+    }
+  ],
+  "notes": []
+}

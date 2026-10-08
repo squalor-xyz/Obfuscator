@@ -44,18 +44,7 @@ internal static class ManifestCrypto
 
         if (gpgRecipients is { Count: > 0 })
         {
-            var tmp = Path.Combine(Path.GetTempPath(), "obf-plain-" + Guid.NewGuid().ToString("N") + ".tmp");
-            try
-            {
-                File.WriteAllText(tmp, payload, Utf8NoBom);
-                GpgEncryptTo(tmp, destPath, gpgRecipients);
-            }
-            finally
-            {
-                if (File.Exists(tmp))
-                    File.Delete(tmp);
-            }
-
+            GpgEncryptTo(payload, destPath, gpgRecipients);
             return;
         }
 
@@ -195,12 +184,14 @@ internal static class ManifestCrypto
         return false;
     }
 
-    private static void GpgEncryptTo(string sourcePath, string destPath, IReadOnlyList<string> recipients)
+    // The payload goes to gpg on stdin and the armor comes back on stdout, so the
+    // unencrypted manifest is never written to disk.
+    private static void GpgEncryptTo(string payload, string destPath, IReadOnlyList<string> recipients)
     {
-        var output = destPath + ".gpg";
         var psi = new ProcessStartInfo
         {
             FileName = "gpg",
+            RedirectStandardInput = true,
             RedirectStandardError = true,
             RedirectStandardOutput = true,
             UseShellExecute = false
@@ -216,24 +207,12 @@ internal static class ManifestCrypto
             psi.ArgumentList.Add("--recipient");
             psi.ArgumentList.Add(r);
         }
-        psi.ArgumentList.Add("--output");
-        psi.ArgumentList.Add(output);
-        psi.ArgumentList.Add(sourcePath);
 
-        try
-        {
-            var (exit, _, _) = RunGpg(psi);
-            if (exit != 0)
-                throw new InvalidOperationException("gpg encrypt failed.");
+        var (exit, armored, _) = RunGpg(psi, payload);
+        if (exit != 0)
+            throw new InvalidOperationException("gpg encrypt failed.");
 
-            var armored = File.ReadAllText(output, Utf8NoBom);
-            File.WriteAllText(destPath, $"{GpgHeader}{HeaderSeparator}{armored}", Utf8NoBom);
-        }
-        finally
-        {
-            if (File.Exists(output))
-                File.Delete(output);
-        }
+        File.WriteAllText(destPath, $"{GpgHeader}{HeaderSeparator}{armored}", Utf8NoBom);
     }
 
     private static string GpgDecryptArmored(string armored)
@@ -271,10 +250,12 @@ internal static class ManifestCrypto
         return stdout;
     }
 
-    private static (int Exit, string Stdout, string Stderr) RunGpg(ProcessStartInfo psi)
+    private static (int Exit, string Stdout, string Stderr) RunGpg(ProcessStartInfo psi, string? stdin = null)
     {
         psi.StandardOutputEncoding = Utf8NoBom;
         psi.StandardErrorEncoding = Utf8NoBom;
+        if (psi.RedirectStandardInput)
+            psi.StandardInputEncoding = Utf8NoBom;
 
         Process? process;
         try
@@ -293,6 +274,21 @@ internal static class ManifestCrypto
         {
             var stdoutTask = process.StandardOutput.ReadToEndAsync();
             var stderrTask = process.StandardError.ReadToEndAsync();
+
+            // Reads are already running, so a full stdout pipe cannot block this write.
+            if (stdin is not null)
+            {
+                try
+                {
+                    process.StandardInput.Write(stdin);
+                    process.StandardInput.Close();
+                }
+                catch (IOException)
+                {
+                    // gpg exited early (for example, an unknown recipient); its exit code reports why.
+                }
+            }
+
             if (!process.WaitForExit(30_000))
             {
                 try
