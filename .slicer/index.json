@@ -519,14 +519,23 @@
       "id": "ob-10",
       "title": "Fix absolute local path link in README Local development",
       "short_title": "Fix absolute local path link in README Local development",
-      "status": "started",
+      "status": "review",
       "has_slice": true,
       "depends_on": [],
-      "note_records": [],
-      "claim": {
-        "owner": "Jon R",
-        "at": "2026-10-08T14:49:05Z"
-      },
+      "note_records": [
+        {
+          "id": "9f7e3c3a-77ae-481e-910f-64648fce98ad",
+          "kind": "",
+          "text": "**2026-10-08** — Ready for review: branch ob-10-readme-link (0ff66f1 claim, 14c4e22 fix). Behaviour change: README Local development links to Obfuscator.Cli/README.md (relative) instead of /Users/jon/code/squalor-xyz/obfuscator/Obfuscator.Cli/README.md. Checks: rg for ](/ in *.md outside .slicer finds nothing; Obfuscator.Cli/README.md exists; slicer check passed. Docs-only, so dotnet test and test-local.sh not run. No follow-ups filed.",
+          "created_at": "2026-10-08T14:49:16Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        }
+      ],
+      "claim": null,
       "fields": {
         "size": "S",
         "flags": [],
