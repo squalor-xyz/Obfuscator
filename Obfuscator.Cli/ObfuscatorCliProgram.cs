@@ -231,7 +231,13 @@ internal static class ObfuscatorCliProgram
     {
         var file = GetSingle(options, "--deterministic-key-file");
         if (!string.IsNullOrEmpty(file))
-            return File.ReadAllText(file).TrimEnd('\r', '\n');
+        {
+            // A blank key would silently fall back to unkeyed transforms; fail like a blank passphrase.
+            var key = File.ReadAllText(file).TrimEnd('\r', '\n');
+            if (string.IsNullOrWhiteSpace(key))
+                throw new InvalidOperationException("Deterministic key is blank. Omit --deterministic-key-file or supply a value.");
+            return key;
+        }
         var env = Environment.GetEnvironmentVariable("OBFUSCATOR_DETERMINISTIC_KEY");
         return string.IsNullOrEmpty(env) ? null : env;
     }

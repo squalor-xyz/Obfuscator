@@ -2,7 +2,7 @@
   "version": 8,
   "id_prefix": "ob-",
   "id_width": 2,
-  "next_id": 18,
+  "next_id": 19,
   "preamble": "",
   "passes": [],
   "items": [
@@ -393,7 +393,7 @@
       "id": "ob-08",
       "title": "Move deterministic key off the command line",
       "short_title": "Move deterministic key off the command line",
-      "status": "open",
+      "status": "started",
       "has_slice": true,
       "depends_on": [],
       "note_records": [
@@ -420,7 +420,10 @@
           "stale_after": ""
         }
       ],
-      "claim": null,
+      "claim": {
+        "owner": "Jon R",
+        "at": "2026-10-08T13:37:46Z"
+      },
       "fields": {
         "size": "S",
         "flags": [],
@@ -438,7 +441,7 @@
         "importance": 2,
         "urgency": 2,
         "effort": 1,
-        "attempts": 1
+        "attempts": 2
       }
     },
     {
@@ -746,6 +749,35 @@
         "urgency": 2,
         "effort": 1,
         "attempts": 1
+      }
+    },
+    {
+      "id": "ob-18",
+      "title": "Reject a whitespace-only OBFUSCATOR_DETERMINISTIC_KEY",
+      "short_title": "Reject a whitespace-only OBFUSCATOR_DETERMINISTIC_KEY",
+      "status": "open",
+      "has_slice": false,
+      "depends_on": [],
+      "note_records": [],
+      "claim": null,
+      "fields": {
+        "size": "S",
+        "flags": [],
+        "trees": [
+          "cli"
+        ],
+        "trees_literal": false,
+        "findings": "Obfuscator.Cli/ObfuscatorCliProgram.cs ResolveDeterministicKey returns a whitespace-only env value, and Obfuscator/ObfuscationEngine.cs:34 treats it as no key, so auto string mode silently falls back to mapping; a blank --deterministic-key-file is rejected since ob-08",
+        "discovered_from": "ob-08",
+        "cites": [],
+        "key": "",
+        "pass": "",
+        "group": "",
+        "reason": "",
+        "importance": 2,
+        "urgency": 1,
+        "effort": 1,
+        "attempts": 0
       }
     }
   ],

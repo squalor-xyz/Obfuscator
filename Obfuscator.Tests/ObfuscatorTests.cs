@@ -1709,6 +1709,29 @@ public sealed class ObfuscatorTests : IDisposable
         Assert.Equal(File.ReadAllLines(inputPath, Encoding.UTF8), File.ReadAllLines(restoredPath, Encoding.UTF8));
     }
 
+    [Theory]
+    [InlineData("obfuscate", "")]
+    [InlineData("obfuscate", "\n")]
+    [InlineData("obfuscate", "  \r\n")]
+    [InlineData("deobfuscate", "\n")]
+    public void Cli_BlankDeterministicKeyFile_IsRejected(string command, string contents)
+    {
+        var inputPath = Path.Combine(_tempDir, "blank-key-input.csv");
+        var outputPath = Path.Combine(_tempDir, "blank-key-output.csv");
+        var manifestPath = Path.Combine(_tempDir, "blank-key.obf");
+        var keyPath = Path.Combine(_tempDir, "blank-key.txt");
+        File.WriteAllLines(inputPath, ["CustomerId", "ALPHA"], Encoding.UTF8);
+        File.WriteAllText(keyPath, contents);
+
+        // Auto string mode would otherwise fall back to mapping and report success.
+        var (exit, text) = RunCliCapturingOutput(
+            [command, "--input", inputPath, "--output", outputPath, "--manifest", manifestPath, "--deterministic-key-file", keyPath]);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("Deterministic key is blank.", text, StringComparison.Ordinal);
+        Assert.False(File.Exists(outputPath));
+    }
+
     [Fact]
     public void Cli_DeterministicKeyFileFollowedByAnotherFlag_Fails()
     {
