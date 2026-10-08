@@ -194,7 +194,7 @@ dotnet test Obfuscator.Tests/Obfuscator.Tests.csproj
 
 The local smoke-test script packs both projects with version `0.0.0-local` so temp installs do not look like real releases.
 
-For deeper CLI and config examples, see [Obfuscator.Cli/README.md](/Users/jon/code/squalor-xyz/obfuscator/Obfuscator.Cli/README.md).
+For deeper CLI and config examples, see [Obfuscator.Cli/README.md](Obfuscator.Cli/README.md).
 
 ## Release flow
 
