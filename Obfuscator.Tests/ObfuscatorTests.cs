@@ -348,7 +348,7 @@ public sealed class ObfuscatorTests : IDisposable
         Assert.Equal(rows[0][1], rows[2][1]);
         // The same value in different columns must not be joinable.
         Assert.NotEqual(rows[0][0], rows[0][1]);
-        Assert.Equal("2.1", manifest.Version);
+        Assert.Equal("2.2", manifest.Version);
         Assert.All(manifest.Columns, c => Assert.Equal("aes-siv-cmac-256/v1", c.TokenScheme));
     }
 
@@ -1242,6 +1242,193 @@ public sealed class ObfuscatorTests : IDisposable
         var ex = Assert.Throws<InvalidOperationException>(() => engine.DeobfuscateInteger("10", spec));
         Assert.Contains("Scale", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void FloatingColumn_RoundTripsToSameNumericValue()
+    {
+        var inputPath = Path.Combine(_tempDir, "float-input.csv");
+        var obfuscatedPath = Path.Combine(_tempDir, "float-obfuscated.csv");
+        var manifestPath = Path.Combine(_tempDir, "float.obf");
+        var restoredPath = Path.Combine(_tempDir, "float-restored.csv");
+        string[] values = ["131.60538314346292", "0.1", "-2.5e-10", "1000.000001", "\"1,234.5\"", "3E2", "-0", "0.30000000000000004"];
+        File.WriteAllLines(inputPath, ["Amount", .. values], Encoding.UTF8);
+
+        _obfuscator.ObfuscateCsv(inputPath, obfuscatedPath, manifestPath,
+            new ObfuscationOptions { DeterministicKey = "unit-test-key" });
+        _obfuscator.DeobfuscateCsv(obfuscatedPath, manifestPath, restoredPath, deterministicKey: "unit-test-key");
+
+        var restored = File.ReadAllLines(restoredPath, Encoding.UTF8)[1..];
+        Assert.Equal(values.Length, restored.Length);
+        for (var i = 0; i < values.Length; i++)
+            Assert.Equal(ParseNumber(values[i]), ParseNumber(restored[i]));
+    }
+
+    [Theory]
+    [InlineData(1.5, 0.0)]
+    [InlineData(-9.87654321, 123456.789)]
+    [InlineData(10.0, -1e-6)]
+    [InlineData(-2.0000001, 3.3e15)]
+    [InlineData(7.25, 1e300)]
+    [InlineData(4.0, double.PositiveInfinity)]
+    public void ExactFloat_RoundTripsSameNumericValueAcrossTransforms(double scale, double shift)
+    {
+        var spec = new ColumnObfuscationSpec { Name = "F", Kind = ObfuscatedColumnKind.Floating };
+        ObfuscationEngine.SetExactFloatTransform(spec, scale, shift);
+        var engine = new ObfuscationEngine();
+        var random = new Random(13);
+        var values = new List<string>
+        {
+            "0", "-0", "5e-324", "4.9406564584124654E-324", "1e-30", "1e300", "-1.7976931348623157E+308",
+            "131.60538314346292", "0.30000000000000004", "1,234,567.25", " 42 ", "+.5", "7.", "1.50", "-3E-2"
+        };
+        for (var i = 0; i < 200; i++)
+            values.Add(BitConverter.Int64BitsToDouble(random.NextInt64()).ToString("R", CultureInfo.InvariantCulture));
+
+        foreach (var value in values.Where(v => double.IsFinite(double.Parse(v, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture))))
+        {
+            var obfuscated = engine.ObfuscateFloating(value, spec);
+            var restored = engine.DeobfuscateFloating(obfuscated, spec);
+            Assert.Equal(ExactDecimal.Parse(value).ToString(), restored);
+            Assert.Equal(
+                double.Parse(value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture),
+                double.Parse(restored, NumberStyles.Float, CultureInfo.InvariantCulture));
+        }
+    }
+
+    [Fact]
+    public void FloatingColumn_CellWhoseOutputExceedsParseBounds_RoundTrips()
+    {
+        var inputPath = Path.Combine(_tempDir, "float-wide.csv");
+        var obfuscatedPath = Path.Combine(_tempDir, "float-wide-obfuscated.csv");
+        var manifestPath = Path.Combine(_tempDir, "float-wide.obf");
+        var restoredPath = Path.Combine(_tempDir, "float-wide-restored.csv");
+        // Each input is within ExactDecimal's bounds, but x * Scale + Shift spans more than 1000 digits.
+        string[] lines = ["Amount", "1234.5", "1e-1000", "-7" + new string('3', 999)];
+        File.WriteAllLines(inputPath, lines, Encoding.UTF8);
+
+        var manifest = _obfuscator.ObfuscateCsv(inputPath, obfuscatedPath, manifestPath,
+            new ObfuscationOptions { DeterministicKey = "unit-test-key" });
+        _obfuscator.DeobfuscateCsv(obfuscatedPath, manifestPath, restoredPath, deterministicKey: "unit-test-key");
+
+        Assert.Equal(2, manifest.UnparsedValueCounts["Amount"]);
+        var restored = File.ReadAllLines(restoredPath, Encoding.UTF8);
+        for (var i = 1; i < lines.Length; i++)
+            Assert.Equal(ExactDecimal.Parse(lines[i]).ToString(), ExactDecimal.Parse(restored[i]).ToString());
+    }
+
+    [Fact]
+    public void ExactFloat_QuantizesScaleAndShift()
+    {
+        var spec = new ColumnObfuscationSpec { Name = "F" };
+        ObfuscationEngine.SetExactFloatTransform(spec, -3.141592653589793, 98765.4321);
+
+        Assert.Equal(ObfuscationEngine.ExactFloatScheme, spec.FloatScheme);
+        Assert.Equal("-3.1416", spec.ExactScale);
+        Assert.Equal("98770", spec.ExactShift);
+        Assert.Equal(-3.1416, spec.Scale);
+        Assert.Equal(98770, spec.Shift);
+    }
+
+    [Theory]
+    [InlineData("0", "0")]
+    [InlineData("-0.000", "0")]
+    [InlineData("1.50", "1.5")]
+    [InlineData("1,000.25", "1000.25")]
+    [InlineData("12e3", "12000")]
+    [InlineData("0.000123", "0.000123")]
+    [InlineData("1e300", "1E+300")]
+    [InlineData("-1.25e-30", "-1.25E-30")]
+    [InlineData("1234567890123456789012345", "1234567890123456789012345")]
+    public void ExactDecimal_ParsesAndFormatsNormalized(string input, string expected)
+    {
+        Assert.True(ExactDecimal.TryParse(input, out var value));
+        Assert.Equal(expected, value.ToString());
+        Assert.True(ExactDecimal.TryParse(value.ToString(), out var reparsed));
+        Assert.Equal(value.ToString(), reparsed.ToString());
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("NaN")]
+    [InlineData("Infinity")]
+    [InlineData("-")]
+    [InlineData(".")]
+    [InlineData("1e")]
+    [InlineData("1e-99999999")]
+    [InlineData("1e1200")]
+    [InlineData("1.2.3")]
+    [InlineData(",5")]
+    [InlineData("0x10")]
+    public void ExactDecimal_RejectsNonNumbersAndUnboundedValues(string input)
+    {
+        Assert.False(ExactDecimal.TryParse(input, out _));
+    }
+
+    [Fact]
+    public void ExactDecimal_TryParse_RejectsTooManyDigits()
+    {
+        Assert.False(ExactDecimal.TryParse(new string('7', 1001), out _));
+        Assert.True(ExactDecimal.TryParse(new string('7', 1000), out _));
+    }
+
+    [Fact]
+    public void ExactFloat_EditedCell_ThrowsWithoutEchoingValue()
+    {
+        var spec = new ColumnObfuscationSpec { Name = "F", Kind = ObfuscatedColumnKind.Floating };
+        ObfuscationEngine.SetExactFloatTransform(spec, 3.0, 0.0);
+        var engine = new ObfuscationEngine();
+
+        var ex = Assert.Throws<InvalidOperationException>(() => engine.DeobfuscateFloating("1000000.0000001", spec));
+        Assert.Contains("'F'", ex.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("1000000", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExactFloat_UnknownScheme_Throws()
+    {
+        var spec = new ColumnObfuscationSpec { Name = "F", FloatScheme = "exact-decimal/v9", ExactScale = "2", ExactShift = "1" };
+        var engine = new ObfuscationEngine();
+
+        var ex = Assert.Throws<InvalidOperationException>(() => engine.DeobfuscateFloating("3", spec));
+        Assert.Contains("exact-decimal/v9", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void LegacyFloatSpec_UsesDoubleTransformAndOmitsNewFields()
+    {
+        var spec = new ColumnObfuscationSpec { Name = "F", Kind = ObfuscatedColumnKind.Floating, Scale = 2.5, Shift = 10 };
+        var engine = new ObfuscationEngine();
+
+        Assert.Equal((2.5 * 2.5 + 10).ToString("G17", CultureInfo.InvariantCulture), engine.ObfuscateFloating("2.5", spec));
+        Assert.Equal("2.5", engine.DeobfuscateFloating("16.25", spec));
+
+        // Pre-2.2 manifests have no such keys, so their integrity JSON must not gain them.
+        var json = JsonSerializer.Serialize(spec);
+        Assert.DoesNotContain("FloatScheme", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("ExactScale", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("ExactShift", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FloatingColumn_UnboundedCell_IsUnparsedAndRoundTrips()
+    {
+        var inputPath = Path.Combine(_tempDir, "float-unbounded.csv");
+        var obfuscatedPath = Path.Combine(_tempDir, "float-unbounded-obfuscated.csv");
+        var manifestPath = Path.Combine(_tempDir, "float-unbounded.obf");
+        var restoredPath = Path.Combine(_tempDir, "float-unbounded-restored.csv");
+        File.WriteAllLines(inputPath, ["Amount", "1.5", "1e-99999999", "2.25"], Encoding.UTF8);
+
+        var manifest = _obfuscator.ObfuscateCsv(inputPath, obfuscatedPath, manifestPath, new ObfuscationOptions());
+        _obfuscator.DeobfuscateCsv(obfuscatedPath, manifestPath, restoredPath);
+
+        Assert.Equal(ObfuscatedColumnKind.Floating, manifest.Columns.Single().Kind);
+        Assert.Equal(1, manifest.UnparsedValueCounts["Amount"]);
+        Assert.StartsWith("OBF_", File.ReadAllLines(obfuscatedPath, Encoding.UTF8)[2], StringComparison.Ordinal);
+        Assert.Equal(["Amount", "1.5", "1e-99999999", "2.25"], File.ReadAllLines(restoredPath, Encoding.UTF8));
+    }
+
+    private static decimal ParseNumber(string value)
+        => decimal.Parse(value.Trim('"'), NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture);
 
     [Fact]
     public void GenerateCsv_WithIdealRangeAndSeed_IsDeterministic()

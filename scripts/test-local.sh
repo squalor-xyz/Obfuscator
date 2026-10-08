@@ -19,6 +19,29 @@ LOCAL_VERSION="0.0.0-local"
 export OBFUSCATOR_PASSPHRASE="local-test-passphrase"
 export OBFUSCATOR_DETERMINISTIC_KEY="local-test-key"
 
+# Restored cells must equal the source byte-for-byte, except numbers, which only need the same value
+# (deobfuscate normalizes floating-point text, e.g. 5.0 -> 5). The sample CSVs have no quoted fields.
+assert_restored() {
+  if [ "$(wc -l < "$1")" -ne "$(wc -l < "$2")" ]; then
+    echo "Restored CSV $2 has a different line count from $1" >&2
+    return 1
+  fi
+  awk -F, '
+    function numeric(v) { return v ~ /^[-+]?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][-+]?[0-9]+)?$/ }
+    NR == FNR { source[FNR] = $0; next }
+    {
+      n = split(source[FNR], cell, ",")
+      if (n != NF) { printf "line %d: %d columns, expected %d\n", FNR, NF, n; bad = 1; next }
+      for (i = 1; i <= NF; i++)
+        if (cell[i] != $i && !(numeric(cell[i]) && numeric($i) && cell[i] + 0 == $i + 0)) {
+          printf "line %d column %d: restored value differs from source\n", FNR, i
+          bad = 1
+        }
+    }
+    END { exit bad }
+  ' "$1" "$2" >&2
+}
+
 rm -rf "$ARTIFACTS_DIR"
 mkdir -p "$NUGET_DIR" "$TOOL_DIR"
 
@@ -76,6 +99,7 @@ echo "==> Deobfuscating sample CSV"
   --output "$RESTORED_CSV"
 
 test -f "$RESTORED_CSV"
+assert_restored "$GENERATED_CSV" "$RESTORED_CSV"
 
 echo "==> Obfuscating semiconductor sample CSV"
 "$TOOL_DIR/obfuscator" obfuscate \
@@ -93,6 +117,7 @@ echo "==> Deobfuscating semiconductor sample CSV"
   --output "$SEMICONDUCTOR_RESTORED_CSV"
 
 test -f "$SEMICONDUCTOR_RESTORED_CSV"
+assert_restored "$SEMICONDUCTOR_CSV" "$SEMICONDUCTOR_RESTORED_CSV"
 
 echo
 echo "Local test completed successfully."

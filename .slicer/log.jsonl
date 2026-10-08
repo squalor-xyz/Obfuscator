@@ -105,3 +105,13 @@
 {"when": "2026-10-08T13:40:27Z", "item": "ob-11", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon R cleared", "by": "Jon R"}
 {"when": "2026-10-08T13:42:04Z", "item": "ob-11", "action": "status", "from": "review", "to": "reviewing", "note": "", "by": "Jon R"}
 {"when": "2026-10-08T13:43:02Z", "item": "ob-11", "action": "status", "from": "reviewing", "to": "done", "note": "Reviewed and merged", "by": "Jon R"}
+{"when": "2026-10-08T14:32:17Z", "item": "ob-13", "action": "promote", "from": "", "to": "", "note": ""}
+{"when": "2026-10-08T14:32:20Z", "item": "ob-13", "action": "status", "from": "open", "to": "started", "note": "", "by": "Jon R"}
+{"when": "2026-10-08T14:37:07Z", "item": "ob-13", "action": "note", "from": "", "to": "", "note": "Ready for review: branch ob-13-exact-floats (f40d59c claim, ", "by": "Jon R"}
+{"when": "2026-10-08T14:37:07Z", "item": "ob-13", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon R cleared", "by": "Jon R"}
+{"when": "2026-10-08T14:45:33Z", "item": "ob-13", "action": "status", "from": "review", "to": "reviewing", "note": "", "by": "Jon R"}
+{"when": "2026-10-08T14:46:38Z", "item": "ob-13", "action": "reject", "from": "reviewing", "to": "open", "note": "VERDICT: FAIL - obfuscate bounds only the input cell, not the output: a cell within ExactDecimal limits (e.g. 1e-1000 against shift ~1e3, or a 1000-digit value) produces y with more than 1000 significant digits, which deobfuscate cannot parse, so it falls through to the string path and the obfuscated value is written back as the 'restored' value with no error. Reproduced with a CSV round-trip test (restored cell is the obfuscated value).", "by": "Jon R"}
+{"when": "2026-10-08T14:46:47Z", "item": "ob-13", "action": "status", "from": "open", "to": "started", "note": "", "by": "Jon R"}
+{"when": "2026-10-08T14:47:50Z", "item": "ob-13", "action": "note", "from": "", "to": "", "note": "Ready for review: branch ob-13-exact-floats, fix commit 1240", "by": "Jon R"}
+{"when": "2026-10-08T14:47:50Z", "item": "ob-13", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon R cleared", "by": "Jon R"}
+{"when": "2026-10-08T14:48:03Z", "item": "ob-13", "action": "status", "from": "review", "to": "reviewing", "note": "", "by": "Jon R"}

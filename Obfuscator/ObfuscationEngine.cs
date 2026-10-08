@@ -19,6 +19,8 @@ internal sealed class ObfuscationEngine
     // Pre-2.1 manifests: AES-CBC with a fixed per-column IV. Decrypt-only; never written.
     private const string LegacyCbcTokenPrefix = "OBF_TKN_";
     private const int LegacyCbcTokenIvLengthBytes = 16;
+    // Written by current builds for floating columns: exact decimal y = x * ExactScale + ExactShift.
+    internal const string ExactFloatScheme = "exact-decimal/v1";
     private const int TokenPaddingBlockBytes = 16;
     private const long IntegerSafeMagnitude = 1L << 53;
     private const int DateShiftRangeHalfWidthDays = 3650;
@@ -188,8 +190,10 @@ internal sealed class ObfuscationEngine
                 break;
 
             case ObfuscatedColumnKind.Floating:
-                spec.Scale = GetDeterministicScale(header);
-                spec.Shift = GetDeterministicShift(header, ObservedAbsMax(values, integer: false));
+                SetExactFloatTransform(
+                    spec,
+                    GetDeterministicScale(header),
+                    GetDeterministicShift(header, ObservedAbsMax(values, integer: false)));
                 spec.NumericTypeHint = "floating";
                 break;
 
@@ -233,7 +237,7 @@ internal sealed class ObfuscationEngine
                 if (!row.TryGetValue(spec.Name, out var value) || string.IsNullOrWhiteSpace(value))
                     continue;
 
-                var parses = ParsesAsKind(value, spec.Kind);
+                var parses = ParsesAsKind(value, spec);
                 if (!parses)
                     counts[spec.Name] = counts.GetValueOrDefault(spec.Name) + 1;
 
@@ -250,13 +254,13 @@ internal sealed class ObfuscationEngine
             spec.StringMap = BuildStringMap(spec.Name, distinctValuesByColumn[spec.Name]);
     }
 
-    private static bool ParsesAsKind(string value, ObfuscatedColumnKind kind)
+    private static bool ParsesAsKind(string value, ColumnObfuscationSpec spec)
     {
-        return kind switch
+        return spec.Kind switch
         {
             ObfuscatedColumnKind.Boolean => ParsingUtility.TryParseBoolean(value, out _),
             ObfuscatedColumnKind.Integer => ParsingUtility.TryParseInteger(value, out _),
-            ObfuscatedColumnKind.Floating => ParsingUtility.TryParseFloating(value, out _),
+            ObfuscatedColumnKind.Floating => TryObfuscateExactFloat(value, spec, out _),
             ObfuscatedColumnKind.DateTime => ParsingUtility.TryParseDateTime(value, out _),
             ObfuscatedColumnKind.String => true,
             _ => true
@@ -416,8 +420,33 @@ internal sealed class ObfuscationEngine
         return ((long)Math.Round(x)).ToString(CultureInfo.InvariantCulture);
     }
 
-    private string ObfuscateFloating(string value, ColumnObfuscationSpec spec)
+    // Quantizes Scale to 4 decimal places and Shift to 4 significant digits so both are short exact
+    // decimals; the double fields keep the same quantized values for readers of the manifest.
+    internal static void SetExactFloatTransform(ColumnObfuscationSpec spec, double scale, double shift)
     {
+        var scaleTenThousandths = (long)Math.Round(scale * 10_000, MidpointRounding.AwayFromZero);
+        var exactScale = new ExactDecimal(scaleTenThousandths, -4);
+
+        var exactShift = new ExactDecimal(0, 0);
+        if (double.IsFinite(shift) && shift != 0)
+        {
+            var exponent = (int)Math.Floor(Math.Log10(Math.Abs(shift))) - 3;
+            var mantissa = (long)Math.Round(shift / Math.Pow(10, exponent), MidpointRounding.AwayFromZero);
+            exactShift = new ExactDecimal(mantissa, exponent);
+        }
+
+        spec.FloatScheme = ExactFloatScheme;
+        spec.ExactScale = exactScale.ToString();
+        spec.ExactShift = exactShift.ToString();
+        spec.Scale = double.Parse(spec.ExactScale, CultureInfo.InvariantCulture);
+        spec.Shift = double.Parse(spec.ExactShift, CultureInfo.InvariantCulture);
+    }
+
+    internal string ObfuscateFloating(string value, ColumnObfuscationSpec spec)
+    {
+        if (spec.FloatScheme is not null)
+            return TryObfuscateExactFloat(value, spec, out var result) ? result : ObfuscateString(value, spec);
+
         if (!double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var n))
             return ObfuscateString(value, spec);
         var y = (n * spec.Scale) + spec.Shift;
@@ -426,14 +455,53 @@ internal sealed class ObfuscationEngine
         return y.ToString("G17", CultureInfo.InvariantCulture);
     }
 
-    private string DeobfuscateFloating(string value, ColumnObfuscationSpec spec)
+    internal string DeobfuscateFloating(string value, ColumnObfuscationSpec spec)
     {
+        if (spec.FloatScheme is not null)
+        {
+            var (scale, shift) = GetExactFloatTransform(spec);
+            if (!ExactDecimal.TryParse(value, out var obfuscated))
+                return DeobfuscateString(value, spec);
+            // Never echo the value: an edited cell may still hold sensitive digits.
+            if (!obfuscated.Subtract(shift).TryDivideExact(scale, out var original))
+                throw new InvalidOperationException(
+                    $"Column '{spec.Name}': value was not produced by this manifest (wrong manifest, or the CSV was edited).");
+            return original.ToString();
+        }
+
+        // Pre-2.2 manifests: the double transform below does not restore every value exactly.
         if (!double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var n))
             return DeobfuscateString(value, spec);
         var x = (n - spec.Shift) / spec.Scale;
         if (!double.IsFinite(x))
             throw new InvalidOperationException($"Column '{spec.Name}' deobfuscation produced a non-finite value.");
         return x.ToString("G17", CultureInfo.InvariantCulture);
+    }
+
+    // Also the unparsed test for floating columns, so a cell that cannot round-trip is mapped like any
+    // other non-numeric value. The output must itself parse: deobfuscate would otherwise take the
+    // string path and write the obfuscated value back unchanged.
+    private static bool TryObfuscateExactFloat(string value, ColumnObfuscationSpec spec, out string result)
+    {
+        result = string.Empty;
+        var (scale, shift) = GetExactFloatTransform(spec);
+        if (!ExactDecimal.TryParse(value, out var x))
+            return false;
+        var y = x.Multiply(scale).Add(shift).ToString();
+        if (!ExactDecimal.TryParse(y, out _))
+            return false;
+        result = y;
+        return true;
+    }
+
+    private static (ExactDecimal Scale, ExactDecimal Shift) GetExactFloatTransform(ColumnObfuscationSpec spec)
+    {
+        if (!string.Equals(spec.FloatScheme, ExactFloatScheme, StringComparison.Ordinal))
+            throw new InvalidOperationException($"Column '{spec.Name}' uses unsupported float scheme '{spec.FloatScheme}'.");
+        if (!ExactDecimal.TryParse(spec.ExactScale, out var scale) || scale.Mantissa.IsZero
+            || !ExactDecimal.TryParse(spec.ExactShift, out var shift))
+            throw new InvalidOperationException($"Column '{spec.Name}' has an invalid exact scale or shift.");
+        return (scale, shift);
     }
 
     private string ObfuscateDateTime(string value, ColumnObfuscationSpec spec)
