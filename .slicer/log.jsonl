@@ -103,3 +103,4 @@
 {"when": "2026-10-08T13:40:13Z", "item": "ob-11", "action": "status", "from": "open", "to": "started", "note": "", "by": "Jon R"}
 {"when": "2026-10-08T13:40:26Z", "item": "ob-11", "action": "note", "from": "", "to": "", "note": "Ready for review: branch ob-11-review-render, commit d688a38", "by": "Jon R"}
 {"when": "2026-10-08T13:40:27Z", "item": "ob-11", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon R cleared", "by": "Jon R"}
+{"when": "2026-10-08T13:42:04Z", "item": "ob-11", "action": "status", "from": "review", "to": "reviewing", "note": "", "by": "Jon R"}
