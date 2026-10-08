@@ -519,7 +519,7 @@
       "id": "ob-10",
       "title": "Fix absolute local path link in README Local development",
       "short_title": "Fix absolute local path link in README Local development",
-      "status": "reviewing",
+      "status": "done",
       "has_slice": true,
       "depends_on": [],
       "note_records": [
@@ -535,10 +535,7 @@
           "stale_after": ""
         }
       ],
-      "claim": {
-        "owner": "Jon R",
-        "at": "2026-10-08T14:51:04Z"
-      },
+      "claim": null,
       "fields": {
         "size": "S",
         "flags": [],
