@@ -618,7 +618,7 @@
       "id": "ob-13",
       "title": "Floating-point columns do not round-trip exactly",
       "short_title": "Floating-point columns do not round-trip exactly",
-      "status": "reviewing",
+      "status": "done",
       "has_slice": true,
       "depends_on": [],
       "note_records": [
@@ -656,10 +656,7 @@
           "stale_after": ""
         }
       ],
-      "claim": {
-        "owner": "Jon R",
-        "at": "2026-10-08T14:48:03Z"
-      },
+      "claim": null,
       "fields": {
         "size": "S",
         "flags": [],
