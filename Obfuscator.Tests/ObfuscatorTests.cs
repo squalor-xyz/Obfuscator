@@ -230,7 +230,7 @@ public sealed class ObfuscatorTests : IDisposable
         Assert.Equal(original, restored);
         Assert.Null(customerSpec.StringMap);
         Assert.Equal(StringObfuscationMode.DeterministicToken, customerSpec.StringMode);
-        Assert.StartsWith("OBF_TKN_", obfuscatedLines[1].Split(',')[0], StringComparison.Ordinal);
+        Assert.StartsWith("OBF_TK2_", obfuscatedLines[1].Split(',')[0], StringComparison.Ordinal);
         Assert.Equal(obfuscatedLines[1].Split(',')[0], obfuscatedLines[2].Split(',')[0]);
         Assert.NotEqual(obfuscatedLines[1].Split(',')[0], obfuscatedLines[3].Split(',')[0]);
     }
@@ -273,6 +273,195 @@ public sealed class ObfuscatorTests : IDisposable
         var lines = File.ReadAllLines(Path.Combine(_tempDir, "join-out.csv"), Encoding.UTF8);
         Assert.Equal(lines[1], lines[2]);
         Assert.NotEqual(lines[1], lines[3]);
+    }
+
+    [Theory]
+    [InlineData("", "bb1d6929e95937287fa37d129b756746")]
+    [InlineData("6bc1bee22e409f96e93d7e117393172a", "070a16b46b4d4144f79bdd9dd04a287c")]
+    [InlineData("6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411", "dfa66747de9ae63030ca32611497c827")]
+    [InlineData("6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17ad2b417be66c3710", "51f0bebf7e3b9d92fc49741779363cfe")]
+    public void AesCmac_Rfc4493Vectors(string messageHex, string expectedHex)
+    {
+        // AesSiv keys CMAC with the leftmost half of its key; the rightmost half is unused here.
+        var key = Convert.FromHexString("2b7e151628aed2a6abf7158809cf4f3c" + new string('0', 32));
+        using var siv = new AesSiv(key);
+
+        Assert.Equal(expectedHex, Convert.ToHexString(siv.Cmac(Convert.FromHexString(messageHex))), ignoreCase: true);
+    }
+
+    [Fact]
+    public void AesSiv_Rfc5297A1_DeterministicVector()
+    {
+        using var siv = new AesSiv(Convert.FromHexString("fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"));
+        var ad = Convert.FromHexString("101112131415161718191a1b1c1d1e1f2021222324252627");
+        var plaintext = Convert.FromHexString("112233445566778899aabbccddee");
+        var expected = "85632d07c6e8f37f950acd320a2ecc9340c02b9690c4dc04daef7f6afe5c";
+
+        var output = siv.Encrypt(plaintext, ad);
+
+        Assert.Equal(expected, Convert.ToHexString(output), ignoreCase: true);
+        Assert.Equal(plaintext, siv.Decrypt(output, ad));
+    }
+
+    [Fact]
+    public void AesSiv_Rfc5297A2_MultipleAssociatedDataVector()
+    {
+        using var siv = new AesSiv(Convert.FromHexString("7f7e7d7c7b7a79787776757473727170404142434445464748494a4b4c4d4e4f"));
+        var ad1 = Convert.FromHexString("00112233445566778899aabbccddeeffdeaddadadeaddadaffeeddccbbaa99887766554433221100");
+        var ad2 = Convert.FromHexString("102030405060708090a0");
+        var nonce = Convert.FromHexString("09f911029d74e35bd84156c5635688c0");
+        var plaintext = Convert.FromHexString("7468697320697320736f6d6520706c61696e7465787420746f20656e6372797074207573696e67205349562d414553");
+        var expected = "7bdb6e3b432667eb06f4d14bff2fbd0fcb900f2fddbe404326601965c889bf17dba77ceb094fa663b7a3f748ba8af829ea64ad544a272e9c485b62a3fd5c0d";
+
+        var output = siv.Encrypt(plaintext, ad1, ad2, nonce);
+
+        Assert.Equal(expected, Convert.ToHexString(output), ignoreCase: true);
+        Assert.Equal(plaintext, siv.Decrypt(output, ad1, ad2, nonce));
+    }
+
+    [Fact]
+    public void AesSiv_TamperedInputOrAssociatedData_Throws()
+    {
+        using var siv = new AesSiv(Convert.FromHexString("fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"));
+        var ad = "column"u8.ToArray();
+        var output = siv.Encrypt("a value longer than one block"u8, ad);
+
+        for (var i = 0; i < output.Length; i++)
+        {
+            var tampered = (byte[])output.Clone();
+            tampered[i] ^= 0x01;
+            Assert.Throws<CryptographicException>(() => siv.Decrypt(tampered, ad));
+        }
+
+        Assert.Throws<CryptographicException>(() => siv.Decrypt(output, "other"u8.ToArray()));
+        Assert.Throws<CryptographicException>(() => siv.Decrypt(output.AsSpan(0, 15), ad));
+    }
+
+    [Fact]
+    public void DeterministicToken_EqualityDistinctnessAndColumnSeparation()
+    {
+        var (lines, manifest) = ObfuscateWithTokens("token-scope", ["A,B", "ALPHA,ALPHA", "ALPHA,BETA", "BETA,ALPHA"]);
+        var rows = lines.Skip(1).Select(l => l.Split(',')).ToList();
+
+        Assert.Equal(rows[0][0], rows[1][0]);
+        Assert.NotEqual(rows[0][0], rows[2][0]);
+        Assert.Equal(rows[0][1], rows[2][1]);
+        // The same value in different columns must not be joinable.
+        Assert.NotEqual(rows[0][0], rows[0][1]);
+        Assert.Equal("2.1", manifest.Version);
+        Assert.All(manifest.Columns, c => Assert.Equal("aes-siv-cmac-256/v1", c.TokenScheme));
+    }
+
+    [Fact]
+    public void DeterministicToken_SharedPlaintextPrefix_DoesNotShareTokenPrefix()
+    {
+        // Under the old fixed-IV CBC tokens these two values shared their first ciphertext block.
+        var (lines, _) = ObfuscateWithTokens("token-prefix", ["Id", "CUSTOMER-0000000000000001", "CUSTOMER-0000000000000002"]);
+        var a = DecodeTokenPayload(lines[1]);
+        var b = DecodeTokenPayload(lines[2]);
+
+        Assert.False(a.AsSpan(0, 16).SequenceEqual(b.AsSpan(0, 16)));
+        Assert.False(a.AsSpan(16, 16).SequenceEqual(b.AsSpan(16, 16)));
+    }
+
+    [Theory]
+    [InlineData("abcdefghijklmno", 16)]
+    [InlineData("abcdefghijklmnop", 32)]
+    [InlineData("abcdefghijklmnopq", 32)]
+    [InlineData("Zürich 東京 ✓", 32)]
+    [InlineData("x", 16)]
+    public void DeterministicToken_RoundTripsAndPadsTo16ByteBuckets(string value, int ciphertextLength)
+    {
+        var inputPath = Path.Combine(_tempDir, "token-pad-input.csv");
+        var obfuscatedPath = Path.Combine(_tempDir, "token-pad-obfuscated.csv");
+        var manifestPath = Path.Combine(_tempDir, "token-pad.obf");
+        var restoredPath = Path.Combine(_tempDir, "token-pad-restored.csv");
+        File.WriteAllLines(inputPath, ["Value", value], Encoding.UTF8);
+        _obfuscator.ObfuscateCsv(inputPath, obfuscatedPath, manifestPath, TokenOptions());
+
+        _obfuscator.DeobfuscateCsv(obfuscatedPath, manifestPath, restoredPath, deterministicKey: "unit-test-key");
+
+        Assert.Equal(16 + ciphertextLength, DecodeTokenPayload(File.ReadAllLines(obfuscatedPath, Encoding.UTF8)[1]).Length);
+        Assert.Equal(File.ReadAllLines(inputPath, Encoding.UTF8), File.ReadAllLines(restoredPath, Encoding.UTF8));
+    }
+
+    [Fact]
+    public void DeterministicToken_TamperedToken_ThrowsWithoutEchoingValues()
+    {
+        var obfuscatedPath = Path.Combine(_tempDir, "token-tamper-obfuscated.csv");
+        var manifestPath = Path.Combine(_tempDir, "token-tamper.obf");
+        var inputPath = Path.Combine(_tempDir, "token-tamper-input.csv");
+        File.WriteAllLines(inputPath, ["CustomerId", "SECRET-CUSTOMER"], Encoding.UTF8);
+        _obfuscator.ObfuscateCsv(inputPath, obfuscatedPath, manifestPath, TokenOptions());
+
+        var lines = File.ReadAllLines(obfuscatedPath, Encoding.UTF8);
+        var token = lines[1];
+        var i = "OBF_TK2_".Length + 4;
+        lines[1] = token[..i] + (token[i] == 'A' ? 'B' : 'A') + token[(i + 1)..];
+        File.WriteAllLines(obfuscatedPath, lines, Encoding.UTF8);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _obfuscator.DeobfuscateCsv(obfuscatedPath, manifestPath, Path.Combine(_tempDir, "token-tamper-restored.csv"), deterministicKey: "unit-test-key"));
+
+        Assert.Contains("failed authentication", ex.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("SECRET", ex.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain(lines[1], ex.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain(token, ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DeterministicToken_WrongKey_Throws()
+    {
+        var obfuscatedPath = Path.Combine(_tempDir, "token-wrong-key-obfuscated.csv");
+        var manifestPath = Path.Combine(_tempDir, "token-wrong-key.obf");
+        var inputPath = Path.Combine(_tempDir, "token-wrong-key-input.csv");
+        File.WriteAllLines(inputPath, ["CustomerId", "ALPHA"], Encoding.UTF8);
+        _obfuscator.ObfuscateCsv(inputPath, obfuscatedPath, manifestPath, TokenOptions());
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _obfuscator.DeobfuscateCsv(obfuscatedPath, manifestPath, Path.Combine(_tempDir, "token-wrong-key-restored.csv"), deterministicKey: "other-key"));
+
+        Assert.Contains("failed authentication", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DeterministicToken_LegacyCbcManifest_StillDeobfuscates()
+    {
+        // Fixture written by the pre-AES-SIV build (main @ fc19ca7) with key "unit-test-key".
+        var fixtures = Path.Combine(AppContext.BaseDirectory, "Fixtures");
+        var restoredPath = Path.Combine(_tempDir, "legacy-restored.csv");
+
+        _obfuscator.DeobfuscateCsv(
+            Path.Combine(fixtures, "legacy-token-v2.csv"),
+            Path.Combine(fixtures, "legacy-token-v2.obf"),
+            restoredPath,
+            deterministicKey: "unit-test-key");
+
+        Assert.Equal(
+            File.ReadAllLines(Path.Combine(fixtures, "legacy-token-v2.source.csv"), Encoding.UTF8),
+            File.ReadAllLines(restoredPath, Encoding.UTF8));
+    }
+
+    private static ObfuscationOptions TokenOptions() => new()
+    {
+        DeterministicKey = "unit-test-key",
+        StringMode = StringObfuscationMode.DeterministicToken
+    };
+
+    private (string[] Lines, ObfuscationManifest Manifest) ObfuscateWithTokens(string name, string[] csvLines)
+    {
+        var inputPath = Path.Combine(_tempDir, name + "-input.csv");
+        var outputPath = Path.Combine(_tempDir, name + "-output.csv");
+        File.WriteAllLines(inputPath, csvLines, Encoding.UTF8);
+        var manifest = _obfuscator.ObfuscateCsv(inputPath, outputPath, Path.Combine(_tempDir, name + ".obf"), TokenOptions());
+        return (File.ReadAllLines(outputPath, Encoding.UTF8), manifest);
+    }
+
+    private static byte[] DecodeTokenPayload(string token)
+    {
+        Assert.StartsWith("OBF_TK2_", token, StringComparison.Ordinal);
+        var b64 = token["OBF_TK2_".Length..].Replace('-', '+').Replace('_', '/');
+        return Convert.FromBase64String(b64.PadRight(b64.Length + ((4 - (b64.Length % 4)) % 4), '='));
     }
 
     [Fact]
@@ -515,7 +704,7 @@ public sealed class ObfuscatorTests : IDisposable
         var obfuscatedValues = obfuscatedLines[2].Split(',');
         var restoredValues = restoredLines[2].Split(',');
 
-        Assert.StartsWith("OBF_TKN_", obfuscatedValues[0], StringComparison.Ordinal);
+        Assert.StartsWith("OBF_TK2_", obfuscatedValues[0], StringComparison.Ordinal);
         Assert.Equal(string.Empty, restoredValues[0]);
         Assert.Equal("east", restoredValues[1]);
     }

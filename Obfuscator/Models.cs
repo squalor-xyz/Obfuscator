@@ -192,7 +192,8 @@ public enum ObfuscatedColumnKind
 public sealed class ObfuscationManifest
 {
     // Version of the manifest schema, not the package version.
-    public string Version { get; set; } = "2.0";
+    // 2.1: deterministic-token columns record TokenScheme (AES-SIV). 2.0 manifests have none (legacy CBC tokens).
+    public string Version { get; set; } = "2.1";
     public DateTimeOffset CreatedUtc { get; set; } = DateTimeOffset.UtcNow;
     public string SourceFileName { get; set; } = string.Empty;
     public string ObfuscatedFileName { get; set; } = string.Empty;
@@ -234,6 +235,11 @@ public sealed class ColumnObfuscationSpec
     // string substitution
     public Dictionary<string, string>? StringMap { get; set; }
     public StringObfuscationMode StringMode { get; set; } = StringObfuscationMode.Auto;
+
+    // Deterministic-token construction. Null on pre-2.1 manifests means legacy AES-CBC tokens,
+    // which can only be decrypted. Omitted from integrity JSON when null so old checksums still verify.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? TokenScheme { get; set; }
 
     // datetime reversible transform:
     // obfuscatedTicks = originalTicks + DateShiftTicks

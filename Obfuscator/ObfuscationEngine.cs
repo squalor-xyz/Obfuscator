@@ -13,14 +13,20 @@ namespace Squalor.Obfuscator;
 
 internal sealed class ObfuscationEngine
 {
-    private const string DeterministicTokenPrefix = "OBF_TKN_";
+    // Written by current builds: AES-SIV (RFC 5297) over the PKCS7-padded UTF-8 value.
+    internal const string DeterministicTokenPrefix = "OBF_TK2_";
+    internal const string DeterministicTokenScheme = "aes-siv-cmac-256/v1";
+    // Pre-2.1 manifests: AES-CBC with a fixed per-column IV. Decrypt-only; never written.
+    private const string LegacyCbcTokenPrefix = "OBF_TKN_";
+    private const int LegacyCbcTokenIvLengthBytes = 16;
+    private const int TokenPaddingBlockBytes = 16;
     private const long IntegerSafeMagnitude = 1L << 53;
-    private const int DeterministicTokenIvLengthBytes = 16;
     private const int DateShiftRangeHalfWidthDays = 3650;
     private const int DateShiftRangeWidthDays = DateShiftRangeHalfWidthDays * 2;
     private readonly Random _random;
     private readonly string? _deterministicKey;
     private byte[]? _masterKey;
+    private readonly Dictionary<string, AesSiv> _tokenCiphers = new(StringComparer.Ordinal);
 
     public ObfuscationEngine(int? seed = null, string? deterministicKey = null)
     {
@@ -166,6 +172,8 @@ internal sealed class ObfuscationEngine
             return spec;
 
         spec.StringMode = ResolveStringMode(options);
+        if (spec.StringMode == StringObfuscationMode.DeterministicToken)
+            spec.TokenScheme = DeterministicTokenScheme;
 
         switch (kind)
         {
@@ -490,33 +498,77 @@ internal sealed class ObfuscationEngine
 
     private string ObfuscateDeterministicToken(string value, ColumnObfuscationSpec spec)
     {
-        using var aes = Aes.Create();
-        aes.KeySize = 256;
-        aes.Mode = CipherMode.CBC;
-        aes.Padding = PaddingMode.PKCS7;
-        aes.Key = DeriveDeterministicTokenKey(spec.Name);
-        aes.IV = DeriveDeterministicTokenIv(spec.Name);
-
-        using var encryptor = aes.CreateEncryptor();
         var plainBytes = Encoding.UTF8.GetBytes(value);
-        var cipherBytes = encryptor.TransformFinalBlock(plainBytes, 0, plainBytes.Length);
+        var padLength = TokenPaddingBlockBytes - (plainBytes.Length % TokenPaddingBlockBytes);
+        var padded = new byte[plainBytes.Length + padLength];
+        plainBytes.CopyTo(padded, 0);
+        padded.AsSpan(plainBytes.Length).Fill((byte)padLength);
+
+        var cipherBytes = GetTokenCipher(spec.Name).Encrypt(padded, Encoding.UTF8.GetBytes(spec.Name));
         return DeterministicTokenPrefix + Base64UrlEncode(cipherBytes);
     }
 
     private string DeobfuscateDeterministicToken(string value, ColumnObfuscationSpec spec)
     {
+        if (spec.TokenScheme is null)
+            return DeobfuscateLegacyCbcToken(value, spec);
+        if (!string.Equals(spec.TokenScheme, DeterministicTokenScheme, StringComparison.Ordinal))
+            throw new InvalidOperationException($"Column '{spec.Name}' uses unsupported token scheme '{spec.TokenScheme}'.");
         if (!value.StartsWith(DeterministicTokenPrefix, StringComparison.Ordinal))
+            return value;
+
+        // Never echo the token or a partial plaintext: either may be sensitive.
+        byte[] padded;
+        try
+        {
+            var cipherBytes = Base64UrlDecode(value[DeterministicTokenPrefix.Length..]);
+            padded = GetTokenCipher(spec.Name).Decrypt(cipherBytes, Encoding.UTF8.GetBytes(spec.Name));
+        }
+        catch (Exception ex) when (ex is FormatException or CryptographicException)
+        {
+            throw new InvalidOperationException(
+                $"Column '{spec.Name}': deterministic token failed authentication (wrong key, or the CSV was edited).");
+        }
+
+        var padLength = padded.Length == 0 ? 0 : padded[^1];
+        if (padLength < 1 || padLength > TokenPaddingBlockBytes || padLength > padded.Length
+            || padded.AsSpan(padded.Length - padLength).ContainsAnyExcept((byte)padLength))
+        {
+            throw new InvalidOperationException($"Column '{spec.Name}': deterministic token has invalid padding.");
+        }
+
+        return Encoding.UTF8.GetString(padded, 0, padded.Length - padLength);
+    }
+
+    private AesSiv GetTokenCipher(string header)
+    {
+        if (!_tokenCiphers.TryGetValue(header, out var cipher))
+        {
+            var key = Expand($"{header}|token-siv", AesSiv.KeySizeBytes);
+            cipher = new AesSiv(key);
+            CryptographicOperations.ZeroMemory(key);
+            _tokenCiphers[header] = cipher;
+        }
+
+        return cipher;
+    }
+
+    // Restores tokens from manifests written before AES-SIV (no TokenScheme). The fixed IV leaks
+    // shared plaintext prefixes, so this path only decrypts; new tokens always use AES-SIV.
+    private string DeobfuscateLegacyCbcToken(string value, ColumnObfuscationSpec spec)
+    {
+        if (!value.StartsWith(LegacyCbcTokenPrefix, StringComparison.Ordinal))
             return value;
 
         using var aes = Aes.Create();
         aes.KeySize = 256;
         aes.Mode = CipherMode.CBC;
         aes.Padding = PaddingMode.PKCS7;
-        aes.Key = DeriveDeterministicTokenKey(spec.Name);
-        aes.IV = DeriveDeterministicTokenIv(spec.Name);
+        aes.Key = Expand($"{spec.Name}|token-key", 32);
+        aes.IV = Expand($"{spec.Name}|token-iv", LegacyCbcTokenIvLengthBytes);
 
         using var decryptor = aes.CreateDecryptor();
-        var cipherBytes = Base64UrlDecode(value[DeterministicTokenPrefix.Length..]);
+        var cipherBytes = Base64UrlDecode(value[LegacyCbcTokenPrefix.Length..]);
         var plainBytes = decryptor.TransformFinalBlock(cipherBytes, 0, cipherBytes.Length);
         return Encoding.UTF8.GetString(plainBytes);
     }
@@ -538,12 +590,6 @@ internal sealed class ObfuscationEngine
 
         return map;
     }
-
-    private byte[] DeriveDeterministicTokenKey(string header)
-        => Expand($"{header}|token-key", 32);
-
-    private byte[] DeriveDeterministicTokenIv(string header)
-        => Expand($"{header}|token-iv", DeterministicTokenIvLengthBytes);
 
     private static string Base64UrlEncode(byte[] bytes)
         => Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
@@ -625,6 +671,9 @@ internal sealed class ObfuscationEngine
     private void BindCrypto(ObfuscationManifest manifest)
     {
         _masterKey = null;
+        foreach (var cipher in _tokenCiphers.Values)
+            cipher.Dispose();
+        _tokenCiphers.Clear();
         if (_deterministicKey is null)
             return;
         if (string.IsNullOrEmpty(manifest.Salt))

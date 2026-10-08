@@ -89,6 +89,7 @@ Manifest notes:
 
 - plain (`OBF_PLAIN_V2`) and AES-GCM (`OBF_AESGCM_V3`) manifests use a stable text header, so a manifest written on one OS can be read on another
 - new passphrase-protected writes use AES-GCM. `OBF_AES_V2` (CBC) is unsupported; re-obfuscate to GCM. `OBF_GPG_V2` is unchanged.
+- deterministic tokens written before manifest version 2.1 (`OBF_TKN_`, AES-CBC with a fixed per-column IV, which leaks shared plaintext prefixes) can still be deobfuscated but are never written; re-obfuscate to get AES-SIV `OBF_TK2_` tokens
 - `--gpg-recipient` support is optional and requires `gpg` to be installed and available on `PATH`
 - **The manifest is the plaintext.** Mapping mode stores the full original-to-token map. An unencrypted `.obf` next to the obfuscated CSV is not protection.
 
@@ -96,11 +97,11 @@ Manifest notes:
 
 Obfuscation changes selected cell values to support controlled development, testing, and data workflows. It is reversible when the required manifest and, for deterministic-token mode, the deterministic key are available. This is data transformation, not encryption of the CSV or a guarantee that a dataset is anonymous or safe to share.
 
-The output retains the CSV structure, including column names and row order. Excluded columns, preserved blank cells, and other untransformed values remain visible. Transformations can also preserve useful relationships: repeated values remain equal; numeric transformations generally preserve ordering or its reversal; date shifts preserve time intervals except when values hit supported bounds; and deterministic tokens reveal equality and frequency within a run. Tokens are derived using the per-manifest salt, so the same key does not create stable tokens across separate obfuscation runs. Deterministic tokens use AES-CBC with a fixed per-column IV, which also leaks shared plaintext block prefixes. A recipient with auxiliary information may infer original values even when direct values have changed.
+The output retains the CSV structure, including column names and row order. Excluded columns, preserved blank cells, and other untransformed values remain visible. Transformations can also preserve useful relationships: repeated values remain equal; numeric transformations generally preserve ordering or its reversal; date shifts preserve time intervals except when values hit supported bounds; and deterministic tokens reveal equality and frequency within a run. Tokens are derived using the per-manifest salt, so the same key does not create stable tokens across separate obfuscation runs. Deterministic tokens use AES-SIV (RFC 5297) deterministic authenticated encryption with a per-column key: equal values in a column give equal tokens, any other difference changes the whole token, and an edited token fails to deobfuscate. Tokens also reveal each value's UTF-8 length rounded up to 16 bytes. A recipient with auxiliary information may infer original values even when direct values have changed.
 
 Treat the manifest as sensitive source data. Plain manifests can contain original values in mapping mode and include information needed to reverse transformations. AES-GCM or GPG can encrypt the manifest when configured; that does not encrypt the CSV, protect the original input, or hide information inferable from the output. The unkeyed manifest checksum detects accidental edits, not malicious tampering.
 
-Use obfuscation for controlled workflows where these residual disclosures are acceptable. Review selected and retained columns, values, structure, and likely auxiliary information for each dataset before sharing it. The project makes no guarantee against reidentification or a determined recipient. No external cryptography dependency is required by the current implementation; existing manifest formats and compatibility behavior remain unchanged.
+Use obfuscation for controlled workflows where these residual disclosures are acceptable. Review selected and retained columns, values, structure, and likely auxiliary information for each dataset before sharing it. The project makes no guarantee against reidentification or a determined recipient. No external cryptography dependency is required by the current implementation; AES-SIV is implemented in-repo on the .NET AES block cipher and checked against the RFC 4493 and RFC 5297 test vectors.
 
 ## Data generation modes
 
