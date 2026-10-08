@@ -167,3 +167,4 @@
 {"when": "2026-10-08T16:41:05Z", "item": "ob-18", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon R cleared", "by": "Jon R"}
 {"when": "2026-10-08T16:41:11Z", "item": "ob-18", "action": "status", "from": "review", "to": "reviewing", "note": "", "by": "Jon R"}
 {"when": "2026-10-08T16:41:36Z", "item": "ob-18", "action": "note", "from": "", "to": "", "note": "VERDICT: PASS - diff matches slice scope; dotnet test 190/19", "by": "Jon R"}
+{"when": "2026-10-08T16:41:36Z", "item": "ob-18", "action": "status", "from": "reviewing", "to": "done", "note": "Reviewed and merged", "by": "Jon R"}

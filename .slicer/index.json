@@ -856,7 +856,7 @@
       "id": "ob-18",
       "title": "Reject a whitespace-only OBFUSCATOR_DETERMINISTIC_KEY",
       "short_title": "Reject a whitespace-only OBFUSCATOR_DETERMINISTIC_KEY",
-      "status": "reviewing",
+      "status": "done",
       "has_slice": true,
       "depends_on": [],
       "note_records": [
@@ -916,10 +916,7 @@
           "stale_after": ""
         }
       ],
-      "claim": {
-        "owner": "Jon R",
-        "at": "2026-10-08T16:41:11Z"
-      },
+      "claim": null,
       "fields": {
         "size": "S",
         "flags": [],
