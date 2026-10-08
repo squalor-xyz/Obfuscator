@@ -10,11 +10,11 @@ Make CSV obfuscation and restoration safer to use for library and CLI users, whi
 
 Do not claim obfuscation alone provides cryptographic secrecy. Do not require encrypted manifests by default. Do not target a 1.0 release in this roadmap.
 
-18 items · — 5 · done 12 · retired 1
+18 items · — 4 · done 12 · retired 1 · reviewing 1
 
 | # | Slice | Title | Size | Effort | Trees | Findings | Status |
 |---|---|---|---|---|---|---|---|
-| 1 | ob-10 | Fix absolute local path link in README Local development | S | 1 | docs | README.md:177 links to /Users/jon/code/squalor-xyz/obfuscator/Obfuscator.Cli/README.md; broken on GitHub and for every other clone | — |
+| 1 | [ob-10](slices/ob-10.md) | Fix absolute local path link in README Local development | S | 1 | docs | README.md:177 links to /Users/jon/code/squalor-xyz/obfuscator/Obfuscator.Cli/README.md; broken on GitHub and for every other clone | reviewing |
 | 2 | ob-12 | Detect symlink and hard-link aliases between input, output, and manifest | S | 1 | core | Obfuscator/FileWrite.cs: SamePath compares Path.GetFullPath case-insensitively only; a symlinked or hard-linked path to the same file is not rejected · discovered from ob-03 | — |
 | 3 | ob-14 | Generated sweep IDs can exceed or saturate their configured range | S | 1 | generator | Obfuscator/DataGenerator.cs:280 outer-group IDs clamp at TotalRangeMax, so groups past the range share one ID; Obfuscator/DataGenerator.cs:101 inner-step IDs ignore TotalRangeMax and type bounds · discovered from ob-05 | — |
 | 4 | ob-15 | Document generator config validation in package READMEs | S | 1 | docs | Obfuscator/PackageReadme.md and Obfuscator.Cli/README.md describe rowMode/sweepAxes but not the validation rules ob-05 added to README.md · Folded into ob-06 (owner decision): package README validation docs are aligned there · discovered from ob-05 | retired |

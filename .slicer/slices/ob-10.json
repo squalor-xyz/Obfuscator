@@ -1,0 +1,41 @@
+{
+  "id": "ob-10",
+  "title": "Fix absolute local path link in README Local development",
+  "lead": [
+    "The README's link to the CLI README is relative, so it resolves on GitHub, in NuGet-adjacent views, and in any clone."
+  ],
+  "depends_note": null,
+  "findings_note": "README.md:177 links to /Users/jon/code/squalor-xyz/obfuscator/Obfuscator.Cli/README.md; broken on GitHub and for every other clone",
+  "size": "S",
+  "flags": [],
+  "trees_note": "docs",
+  "trees_plural": false,
+  "boundary": "**Not in this slice:** other README wording or structure; links in other documents (none are absolute).",
+  "sections": [
+    {
+      "heading": "Why",
+      "body": "`README.md` Local development links to `/Users/jon/code/squalor-xyz/obfuscator/Obfuscator.Cli/README.md`, an absolute path on one machine (with the wrong case for the repo directory), so the link is broken everywhere else."
+    },
+    {
+      "heading": "Files",
+      "body": "README.md."
+    },
+    {
+      "heading": "Failing tests",
+      "body": ""
+    },
+    {
+      "heading": "Implement",
+      "body": "Change the link target to `Obfuscator.Cli/README.md`."
+    },
+    {
+      "heading": "Check",
+      "body": "`rg -n '\\]\\(/' -g '*.md'` outside `.slicer/` and `.worktrees/` finds no absolute links; `Obfuscator.Cli/README.md` exists at that relative path; `slicer check` passes."
+    },
+    {
+      "heading": "Git",
+      "body": ""
+    }
+  ],
+  "notes": []
+}
