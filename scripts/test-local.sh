@@ -15,9 +15,9 @@ SEMICONDUCTOR_OBFUSCATED_CSV="$ARTIFACTS_DIR/fake-semiconductor.obfuscated.csv"
 SEMICONDUCTOR_MANIFEST_FILE="$ARTIFACTS_DIR/fake-semiconductor.obf"
 SEMICONDUCTOR_RESTORED_CSV="$ARTIFACTS_DIR/fake-semiconductor.deobfuscated.csv"
 LOCAL_VERSION="0.0.0-local"
-DETERMINISTIC_KEY="local-test-key"
-# The CLI reads the manifest passphrase from the environment; inline --passphrase is rejected.
+# The CLI reads both secrets from the environment; inline --passphrase and --deterministic-key are rejected.
 export OBFUSCATOR_PASSPHRASE="local-test-passphrase"
+export OBFUSCATOR_DETERMINISTIC_KEY="local-test-key"
 
 rm -rf "$ARTIFACTS_DIR"
 mkdir -p "$NUGET_DIR" "$TOOL_DIR"
@@ -64,8 +64,7 @@ echo "==> Obfuscating sample CSV"
 "$TOOL_DIR/obfuscator" obfuscate \
   --input "$GENERATED_CSV" \
   --output "$OBFUSCATED_CSV" \
-  --manifest "$MANIFEST_FILE" \
-  --deterministic-key "$DETERMINISTIC_KEY"
+  --manifest "$MANIFEST_FILE"
 
 test -f "$OBFUSCATED_CSV"
 test -f "$MANIFEST_FILE"
@@ -74,8 +73,7 @@ echo "==> Deobfuscating sample CSV"
 "$TOOL_DIR/obfuscator" deobfuscate \
   --input "$OBFUSCATED_CSV" \
   --manifest "$MANIFEST_FILE" \
-  --output "$RESTORED_CSV" \
-  --deterministic-key "$DETERMINISTIC_KEY"
+  --output "$RESTORED_CSV"
 
 test -f "$RESTORED_CSV"
 
@@ -83,8 +81,7 @@ echo "==> Obfuscating semiconductor sample CSV"
 "$TOOL_DIR/obfuscator" obfuscate \
   --input "$SEMICONDUCTOR_CSV" \
   --output "$SEMICONDUCTOR_OBFUSCATED_CSV" \
-  --manifest "$SEMICONDUCTOR_MANIFEST_FILE" \
-  --deterministic-key "$DETERMINISTIC_KEY"
+  --manifest "$SEMICONDUCTOR_MANIFEST_FILE"
 
 test -f "$SEMICONDUCTOR_OBFUSCATED_CSV"
 test -f "$SEMICONDUCTOR_MANIFEST_FILE"
@@ -93,8 +90,7 @@ echo "==> Deobfuscating semiconductor sample CSV"
 "$TOOL_DIR/obfuscator" deobfuscate \
   --input "$SEMICONDUCTOR_OBFUSCATED_CSV" \
   --manifest "$SEMICONDUCTOR_MANIFEST_FILE" \
-  --output "$SEMICONDUCTOR_RESTORED_CSV" \
-  --deterministic-key "$DETERMINISTIC_KEY"
+  --output "$SEMICONDUCTOR_RESTORED_CSV"
 
 test -f "$SEMICONDUCTOR_RESTORED_CSV"
 

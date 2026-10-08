@@ -1,0 +1,41 @@
+{
+  "id": "ob-08",
+  "title": "Move deterministic key off the command line",
+  "lead": [
+    "The CLI refuses an inline deterministic key, the same way ob-02 refused an inline passphrase, and reads the key from `--deterministic-key-file <path>` or `OBFUSCATOR_DETERMINISTIC_KEY`."
+  ],
+  "depends_note": null,
+  "findings_note": "Obfuscator.Cli/ObfuscatorCliProgram.cs ResolveDeterministicKey; --deterministic-key <secret> is visible in process lists like the removed --passphrase; scripts/test-local.sh and README examples use it",
+  "size": "S",
+  "flags": [],
+  "trees_note": "cli,docs",
+  "trees_plural": false,
+  "boundary": "**Not in this slice:** a stdin source for the key; library API changes; key format or derivation changes.",
+  "sections": [
+    {
+      "heading": "Why",
+      "body": "`--deterministic-key <secret>` puts the key in argv, where other local users can read it from process lists, just as the removed `--passphrase` did. The docs only say \"prefer\" the environment variable, and `scripts/test-local.sh` still passes the key inline."
+    },
+    {
+      "heading": "Files",
+      "body": "Obfuscator.Cli/ObfuscatorCliProgram.cs; Obfuscator.Tests/ObfuscatorTests.cs; scripts/test-local.sh; README.md; Obfuscator.Cli/README.md; Obfuscator.Cli/PackageReadme.md."
+    },
+    {
+      "heading": "Failing tests",
+      "body": "- `Cli_InlineDeterministicKey_IsRejectedWithoutEcho` (theory: `--deterministic-key <v>`, `--DETERMINISTIC-KEY <v>`, `--deterministic-key=<v>`) for obfuscate and deobfuscate: exit 1, the value never appears in stdout or stderr, the message names `OBFUSCATOR_DETERMINISTIC_KEY` and `--deterministic-key-file`, and no output is written.\n- `Cli_DeterministicKeyFromFile_RoundTrips`: obfuscate with `--string-mode deterministic-token --deterministic-key-file <path>` (file ends with a newline) and deobfuscate with the same file restores the input.\n- `Cli_DeterministicKeyFileFollowedByAnotherFlag_Fails`: `--deterministic-key-file` with no value reports \"requires a value\".\n- `Cli_DocumentedOptions_AreAccepted` lists `--deterministic-key-file` instead of `--deterministic-key`."
+    },
+    {
+      "heading": "Implement",
+      "body": "In `ParseOptions`, reject `--deterministic-key` and `--deterministic-key=...` (case-insensitive) before the accepted-option check, without echoing a value, and name the alternatives. Remove `--deterministic-key` from the option sets and add `--deterministic-key-file` as a value option for obfuscate and deobfuscate. `ResolveDeterministicKey` reads the file first (trimming trailing CR/LF, as `ResolvePassphrase` does), then the environment variable. Update the usage text, the three READMEs, and `scripts/test-local.sh` (use the environment variable)."
+    },
+    {
+      "heading": "Check",
+      "body": "Run the new CLI tests and the full solution suite, then `scripts/test-local.sh`."
+    },
+    {
+      "heading": "Git",
+      "body": "One commit for code, tests, docs, and script, plus the `.slicer/` changes. The library API (`ObfuscationOptions.DeterministicKey`, `DeobfuscateCsv(deterministicKey:)`) is unchanged."
+    }
+  ],
+  "notes": []
+}

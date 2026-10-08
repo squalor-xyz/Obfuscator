@@ -49,7 +49,7 @@ obfuscator obfuscate \
   --string-mode deterministic-token
 ```
 
-Supply the manifest passphrase with `OBFUSCATOR_PASSPHRASE`, `--passphrase-file <path>`, or `--passphrase-stdin`. Inline `--passphrase <secret>` is rejected because command-line arguments are visible in process lists; for the same reason, prefer `OBFUSCATOR_DETERMINISTIC_KEY` over `--deterministic-key <secret>`. Without a passphrase or `--gpg-recipient`, the manifest is written unencrypted. Each command rejects any option it does not use, including options that belong to another command, so a typo such as `--gpg-recipent` fails before any output is written. Options take their value as the next argument; `--option=value` is not accepted.
+Supply the manifest passphrase with `OBFUSCATOR_PASSPHRASE`, `--passphrase-file <path>`, or `--passphrase-stdin`. Supply the deterministic key with `OBFUSCATOR_DETERMINISTIC_KEY` or `--deterministic-key-file <path>`. Inline `--passphrase <secret>` and `--deterministic-key <secret>` are rejected because command-line arguments are visible in process lists. Without a passphrase or `--gpg-recipient`, the manifest is written unencrypted. Each command rejects any option it does not use, including options that belong to another command, so a typo such as `--gpg-recipent` fails before any output is written. Options take their value as the next argument; `--option=value` is not accepted.
 
 Restore an obfuscated CSV:
 
@@ -69,7 +69,7 @@ Supported commands:
 
 Useful obfuscation options:
 
-- `--deterministic-key <secret>` derives transforms from the key plus the **per-manifest salt**. The same key does not produce the same tokens across two separate obfuscate runs.
+- `--deterministic-key-file <path>` / `OBFUSCATOR_DETERMINISTIC_KEY` derive transforms from the key plus the **per-manifest salt**. The same key does not produce the same tokens across two separate obfuscate runs.
 - `--string-mode auto|mapping|deterministic-token`
 - `--include <colA,colB>` and `--exclude <colA,colB>`
 - `--allow-list` means only included columns are obfuscated.
@@ -84,7 +84,7 @@ Useful obfuscation options:
 Deobfuscation options:
 
 - `--passphrase-file` / `--passphrase-stdin` / `OBFUSCATOR_PASSPHRASE` decrypt an AES-GCM manifest.
-- `--deterministic-key <secret>` or `OBFUSCATOR_DETERMINISTIC_KEY` supplies the key used at obfuscation.
+- `--deterministic-key-file <path>` / `OBFUSCATOR_DETERMINISTIC_KEY` supply the key used at obfuscation. Inline `--deterministic-key` is not accepted.
 - `--allow-mismatched-source` restores a CSV whose file name differs from the one recorded in the manifest.
 - `--create-output-dir` and `--force` behave as for obfuscation.
 
@@ -194,7 +194,7 @@ Key fields:
 - Reversible using the deterministic key, without storing every distinct value in the manifest.
 - Better for high-cardinality string columns.
 - Produces the same token for the same input value within one column of one obfuscation run; the per-manifest salt makes tokens differ across runs, even with the same key.
-- Requires a deterministic key; the same key (`OBFUSCATOR_DETERMINISTIC_KEY` or `--deterministic-key`) is needed during deobfuscation.
+- Requires a deterministic key; the same key (`OBFUSCATOR_DETERMINISTIC_KEY` or `--deterministic-key-file`) is needed during deobfuscation.
 
 `auto`
 
