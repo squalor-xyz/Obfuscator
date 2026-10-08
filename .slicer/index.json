@@ -786,7 +786,7 @@
       "id": "ob-16",
       "title": "Support --help after a command",
       "short_title": "Support --help after a command",
-      "status": "review",
+      "status": "reviewing",
       "has_slice": true,
       "depends_on": [],
       "note_records": [
@@ -802,7 +802,10 @@
           "stale_after": ""
         }
       ],
-      "claim": null,
+      "claim": {
+        "owner": "Jon R",
+        "at": "2026-10-08T17:39:46Z"
+      },
       "fields": {
         "size": "S",
         "flags": [],
