@@ -132,6 +132,7 @@ Generation configs are validated before any rows are generated or output is writ
 - `dateMinUtc`/`dateMaxUtc` do not parse, or the minimum is after the maximum (missing bounds default to 2020-01-01 and 2020-01-31)
 - `tracksWith`/`tracksInverselyWith` names a missing, non-numeric, or later column, or the column itself
 - a `generatedIdMode` column is used with `rowMode: "fixed"`
+- a `generatedIdMode` column's `totalRangeMin`..`totalRangeMax` cannot hold the IDs it needs: one per combination of the outer axes' values for `outer-group`, or one per innermost axis value for `inner-step`. IDs start at `totalRangeMin`, and each `outer-group` column counts its groups separately.
 - the sweep expansion (the product of every axis's value count) or `nRows` exceeds `Array.MaxLength` (2,147,483,591) rows. The generator indexes rows with `int` and holds the row plan in memory, so this is the largest size it can represent. It is not a recommended size, and very large sweeps may still exhaust memory.
 
 The `ExampleConfig*.json` files live in the repo for reference. When using the installed tool elsewhere, pass your own config file path.

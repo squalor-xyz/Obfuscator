@@ -25,7 +25,7 @@ internal sealed class DataGenerator
     private const double IdealRangeCoverage = 0.8;
     private const double OuterRangeCoverage = 1.0 - IdealRangeCoverage;
     private readonly Random _random;
-    private long _sequenceCounter = 1;
+    private readonly Dictionary<string, long> _outerGroupCountByColumn = new(StringComparer.OrdinalIgnoreCase);
 
     public DataGenerator(int? seed = null)
     {
@@ -270,16 +270,12 @@ internal sealed class DataGenerator
         return formatted;
     }
 
+    // Each outer-group column counts its own groups; ValidateConfig guarantees the range holds them all.
     private double NextSequenceValue(ColumnGenerationSpec col)
     {
-        var baseValue = col.TotalRangeMin ?? 1.0;
-        var value = baseValue + (_sequenceCounter - 1);
-        _sequenceCounter++;
-
-        if (col.TotalRangeMax.HasValue)
-            value = Math.Min(value, col.TotalRangeMax.Value);
-
-        return value;
+        _outerGroupCountByColumn.TryGetValue(col.Name, out var used);
+        _outerGroupCountByColumn[col.Name] = used + 1;
+        return (col.TotalRangeMin ?? 1.0) + used;
     }
 
     private IEnumerable<RowContext> GenerateSweepRowContexts(

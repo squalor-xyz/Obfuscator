@@ -110,6 +110,36 @@ public sealed class ObfuscatorTests : IDisposable
     }
 
     [Fact]
+    public void GenerateCsvFromConfig_WithExactSweepIdRanges_UsesEveryIdOncePerColumn()
+    {
+        var configPath = WriteConfig("exact-id-ranges.json", """
+        {
+          "rowMode": "max",
+          "nRows": 12,
+          "sweepAxes": [ { "name": "T" }, { "name": "P" } ],
+          "columns": [
+            { "name": "GrpA", "dataType": "int", "totalRangeMin": 1, "totalRangeMax": 3, "generatedIdMode": "outer-group" },
+            { "name": "GrpB", "dataType": "int", "totalRangeMin": 100, "totalRangeMax": 102, "generatedIdMode": "outer-group" },
+            { "name": "Step", "dataType": "int", "totalRangeMin": 7, "totalRangeMax": 8, "generatedIdMode": "inner-step" },
+            { "name": "T", "dataType": "string", "values": [ "a", "b", "c" ] },
+            { "name": "P", "dataType": "string", "values": [ "x", "y" ] }
+          ]
+        }
+        """);
+        var outputPath = Path.Combine(_tempDir, "exact-id-ranges.csv");
+
+        _obfuscator.GenerateCsvFromConfig(configPath, outputPath);
+
+        var rows = File.ReadAllLines(outputPath)[1..].Select(line => string.Join(",", line.Split(',')[..3]));
+        Assert.Equal(
+            [
+                "1,100,7", "1,100,8", "2,101,7", "2,101,8", "3,102,7", "3,102,8",
+                "1,100,7", "1,100,8", "2,101,7", "2,101,8", "3,102,7", "3,102,8"
+            ],
+            rows);
+    }
+
+    [Fact]
     public void GenerateCsvFromConfig_WithRowModeMax_RepeatsSweepPatternUpToNRows()
     {
         var configPath = Path.Combine(_tempDir, "max-sweep-config.json");
@@ -945,6 +975,38 @@ public sealed class ObfuscatorTests : IDisposable
         """
         { "rowMode": "fixed", "nRows": 2,
           "columns": [ { "name": "Id", "dataType": "int", "totalRangeMin": 1, "totalRangeMax": 10, "generatedIdMode": "outer-group" } ] }
+        """)]
+    [InlineData("outer-group-range-too-small", "needs 3 IDs but its range 1..2 holds 2",
+        """
+        { "rowMode": "sweep", "sweepAxes": [ { "name": "T" }, { "name": "P" } ],
+          "columns": [
+            { "name": "Grp", "dataType": "int", "totalRangeMin": 1, "totalRangeMax": 2, "generatedIdMode": "outer-group" },
+            { "name": "T", "dataType": "string", "values": [ "a", "b", "c" ] },
+            { "name": "P", "dataType": "string", "values": [ "x", "y" ] } ] }
+        """)]
+    [InlineData("outer-group-range-too-small-max-mode", "needs 4 IDs but its range 5..7 holds 3",
+        """
+        { "rowMode": "max", "nRows": 20, "sweepAxes": [ { "name": "T" }, { "name": "F" }, { "name": "P" } ],
+          "columns": [
+            { "name": "Grp", "dataType": "int", "totalRangeMin": 5, "totalRangeMax": 7, "generatedIdMode": "outer-group" },
+            { "name": "T", "dataType": "string", "values": [ "a", "b" ] },
+            { "name": "F", "dataType": "string", "values": [ "c", "d" ] },
+            { "name": "P", "dataType": "string", "values": [ "x" ] } ] }
+        """)]
+    [InlineData("inner-step-range-too-small", "needs 3 IDs but its range 1..2 holds 2",
+        """
+        { "rowMode": "sweep", "sweepAxes": [ { "name": "P" } ],
+          "columns": [
+            { "name": "Step", "dataType": "int", "totalRangeMin": 1, "totalRangeMax": 2, "generatedIdMode": "inner-step" },
+            { "name": "P", "dataType": "string", "values": [ "x", "y", "z" ] } ] }
+        """)]
+    [InlineData("inner-step-range-too-small-max-mode", "needs 2 IDs but its range 9..9 holds 1",
+        """
+        { "rowMode": "max", "nRows": 10, "sweepAxes": [ { "name": "T" }, { "name": "P" } ],
+          "columns": [
+            { "name": "Step", "dataType": "int", "totalRangeMin": 9, "totalRangeMax": 9, "generatedIdMode": "inner-step" },
+            { "name": "T", "dataType": "string", "values": [ "a", "b", "c" ] },
+            { "name": "P", "dataType": "string", "values": [ "x", "y" ] } ] }
         """)]
     [InlineData("tracks-unknown-column", "references unknown column",
         """

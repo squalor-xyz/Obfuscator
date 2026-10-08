@@ -235,6 +235,36 @@ public sealed class Obfuscator
 
         if (sweepRowCount > Array.MaxLength)
             throw new InvalidOperationException($"Sweep expansion of {sweepRowCount} rows exceeds the limit of {Array.MaxLength} rows.");
+
+        ValidateGeneratedIdRanges(config, byName);
+    }
+
+    // outer-group needs one ID per combination of the outer axes; inner-step needs one per innermost value.
+    // Called after the sweep expansion check, so the group count fits in a long.
+    private static void ValidateGeneratedIdRanges(
+        DataGenConfig config,
+        IReadOnlyDictionary<string, ColumnGenerationSpec> byName)
+    {
+        long outerGroupCount = 1;
+        foreach (var axis in config.SweepAxes.Take(config.SweepAxes.Count - 1))
+            outerGroupCount *= byName[axis.Name].Values.Count;
+        long innerStepCount = byName[config.SweepAxes[^1].Name].Values.Count;
+
+        foreach (var col in config.Columns.Where(c => !string.IsNullOrWhiteSpace(c.GeneratedIdMode)))
+        {
+            var needed = col.GeneratedIdMode!.Equals("outer-group", StringComparison.OrdinalIgnoreCase)
+                ? outerGroupCount
+                : innerStepCount;
+            var min = col.TotalRangeMin!.Value;
+            var max = col.TotalRangeMax!.Value;
+            if (min + needed - 1 > max)
+            {
+                throw new InvalidOperationException(
+                    $"generatedIdMode column '{col.Name}' needs {needed} IDs but its range " +
+                    $"{min.ToString(CultureInfo.InvariantCulture)}..{max.ToString(CultureInfo.InvariantCulture)} " +
+                    $"holds {(max - min + 1).ToString(CultureInfo.InvariantCulture)}.");
+            }
+        }
     }
 
     private static void ValidateRanges(ColumnGenerationSpec col)
