@@ -548,14 +548,23 @@
       "id": "ob-11",
       "title": "Render after reviewer claim in CONTRIBUTING step 8",
       "short_title": "Render after reviewer claim in CONTRIBUTING step 8",
-      "status": "started",
+      "status": "review",
       "has_slice": true,
       "depends_on": [],
-      "note_records": [],
-      "claim": {
-        "owner": "Jon R",
-        "at": "2026-10-08T13:40:13Z"
-      },
+      "note_records": [
+        {
+          "id": "6c269b4b-3a8d-45b5-bc4c-9e4c42bb92ac",
+          "kind": "",
+          "text": "**2026-10-08** — Ready for review: branch ob-11-review-render, commit d688a38 (slice promoted on this branch). CONTRIBUTING step 8 now runs 'slicer --root .worktrees/ob-NN render' right after the 'next --status review --start' claim, and the following sentence says why. Evidence for the gap: landing ob-17 and ob-08 this session, the claim left ROADMAP.md/ROADMAP.html stale and 'slicer check' failed until 'slicer render'. Checks: slicer check passed; doc-only, no code tests affected. The slice Check (follow step 8 literally on a review item, then slicer check) is for the reviewer to run on this item's own claim. No follow-ups filed.",
+          "created_at": "2026-10-08T13:40:26Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        }
+      ],
+      "claim": null,
       "fields": {
         "size": "S",
         "flags": [],
