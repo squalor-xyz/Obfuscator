@@ -856,7 +856,7 @@
       "id": "ob-18",
       "title": "Reject a whitespace-only OBFUSCATOR_DETERMINISTIC_KEY",
       "short_title": "Reject a whitespace-only OBFUSCATOR_DETERMINISTIC_KEY",
-      "status": "open",
+      "status": "review",
       "has_slice": true,
       "depends_on": [],
       "note_records": [
@@ -881,6 +881,28 @@
           "verified_by": "",
           "verified_at": "",
           "stale_after": ""
+        },
+        {
+          "id": "df68942a-6f91-4f68-abe7-31d67fffaf2f",
+          "kind": "",
+          "text": "**2026-10-08** — Correction to the FAIL verdict: it was wrong. On .NET 10.0.12, SetEnvironmentVariable(name, \"\") leaves the variable set to an empty string (verified with dotnet fsi: GetEnvironmentVariable returns \"\", not null), so Cli_EmptyDeterministicKeyEnvironment_IsTreatedAsUnset does test an empty value. No code or test change; branch content is unchanged from 2405637.",
+          "created_at": "2026-10-08T16:41:05Z",
+          "attempt": 2,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        },
+        {
+          "id": "f2eaf700-0de3-4821-8932-3f30d3c059c9",
+          "kind": "",
+          "text": "**2026-10-08** — Ready for review: branch ob-18-blank-env-key, code commit bfe70e7 (unchanged). Checks: dotnet test Obfuscator.slnx 190/190; scripts/test-local.sh exit 0; installed CLI with empty env exits 0, with whitespace env exits 1 with the blank-key message; slicer check passed. Follow-ups: none.",
+          "created_at": "2026-10-08T16:41:05Z",
+          "attempt": 2,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
         }
       ],
       "claim": null,
@@ -901,7 +923,7 @@
         "importance": 2,
         "urgency": 1,
         "effort": 1,
-        "attempts": 1
+        "attempts": 2
       }
     }
   ],
