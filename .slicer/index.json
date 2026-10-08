@@ -786,14 +786,23 @@
       "id": "ob-16",
       "title": "Support --help after a command",
       "short_title": "Support --help after a command",
-      "status": "started",
+      "status": "review",
       "has_slice": true,
       "depends_on": [],
-      "note_records": [],
-      "claim": {
-        "owner": "Jon R",
-        "at": "2026-10-08T16:50:32Z"
-      },
+      "note_records": [
+        {
+          "id": "b0310e24-be5c-46b7-a4d6-49313febb8c7",
+          "kind": "",
+          "text": "**2026-10-08** — Ready for review: branch ob-16-help-after-command, commit 3f39046 (slice promoted from the row in this branch; owner chose full usage, help anywhere after a command, -h/--help only). Behaviour change: after generate/obfuscate/deobfuscate, any '-h' or '--help' (case-insensitive) prints the full usage and exits 0 before options are parsed, so nothing is read, written, or echoed, and other argument errors on the line are skipped. Bare 'help' after a command and an unknown command with --help still fail as before. Usage text gains 'obfuscator [<command>] --help'; README.md, Obfuscator.Cli/README.md and PackageReadme.md gain one sentence. Checks: focused Help tests (15) pass; dotnet test Obfuscator.slnx 204/204 passed; scripts/test-local.sh exit 0; installed tool 'obfuscator obfuscate --help' prints usage. No follow-up items filed.",
+          "created_at": "2026-10-08T16:52:43Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        }
+      ],
+      "claim": null,
       "fields": {
         "size": "S",
         "flags": [],
