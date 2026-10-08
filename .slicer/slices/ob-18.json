@@ -1,0 +1,39 @@
+{
+  "id": "ob-18",
+  "title": "Reject a whitespace-only OBFUSCATOR_DETERMINISTIC_KEY",
+  "lead": [],
+  "depends_note": null,
+  "findings_note": "Obfuscator.Cli/ObfuscatorCliProgram.cs ResolveDeterministicKey returns a whitespace-only env value, and Obfuscator/ObfuscationEngine.cs:34 treats it as no key, so auto string mode silently falls back to mapping; a blank --deterministic-key-file is rejected since ob-08",
+  "size": "S",
+  "flags": [],
+  "trees_note": "cli",
+  "trees_plural": false,
+  "boundary": "Not in this slice: an empty OBFUSCATOR_DETERMINISTIC_KEY (stays unset), OBFUSCATOR_PASSPHRASE handling, the library ObfuscationEngine blank-key fallback, and README changes.",
+  "sections": [
+    {
+      "heading": "Why",
+      "body": "ResolveDeterministicKey returns a whitespace-only OBFUSCATOR_DETERMINISTIC_KEY unchanged, and ObfuscationEngine treats a whitespace-only key as no key, so auto string mode silently falls back to mapping and reports success. A blank --deterministic-key-file is already rejected (ob-08); the environment variable should fail the same way."
+    },
+    {
+      "heading": "Files",
+      "body": "Obfuscator.Cli/ObfuscatorCliProgram.cs; Obfuscator.Tests/ObfuscatorTests.cs."
+    },
+    {
+      "heading": "Failing tests",
+      "body": "obfuscate and deobfuscate with OBFUSCATOR_DETERMINISTIC_KEY set to a whitespace-only value (spaces, newline) exit 1 with \"Deterministic key is blank.\" and write no output. An empty value is still treated as unset and obfuscate succeeds."
+    },
+    {
+      "heading": "Implement",
+      "body": "In ResolveDeterministicKey, keep returning null for an unset or empty variable, and throw the same \"Deterministic key is blank.\" InvalidOperationException for a whitespace-only value, with a message naming OBFUSCATOR_DETERMINISTIC_KEY instead of --deterministic-key-file."
+    },
+    {
+      "heading": "Check",
+      "body": "Run the new environment-variable tests and the existing blank key-file and key round-trip tests, then dotnet test Obfuscator.slnx and scripts/test-local.sh."
+    },
+    {
+      "heading": "Git",
+      "body": ""
+    }
+  ],
+  "notes": []
+}

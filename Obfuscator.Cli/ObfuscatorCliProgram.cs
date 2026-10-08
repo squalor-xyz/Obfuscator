@@ -239,7 +239,11 @@ internal static class ObfuscatorCliProgram
             return key;
         }
         var env = Environment.GetEnvironmentVariable("OBFUSCATOR_DETERMINISTIC_KEY");
-        return string.IsNullOrEmpty(env) ? null : env;
+        if (string.IsNullOrEmpty(env))
+            return null;
+        if (string.IsNullOrWhiteSpace(env))
+            throw new InvalidOperationException("Deterministic key is blank. Unset OBFUSCATOR_DETERMINISTIC_KEY or supply a value.");
+        return env;
     }
 
     private static string RequireSingle(Dictionary<string, List<string>> options, string name)
