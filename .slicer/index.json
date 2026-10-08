@@ -618,7 +618,7 @@
       "id": "ob-13",
       "title": "Floating-point columns do not round-trip exactly",
       "short_title": "Floating-point columns do not round-trip exactly",
-      "status": "started",
+      "status": "review",
       "has_slice": true,
       "depends_on": [],
       "note_records": [
@@ -643,12 +643,20 @@
           "verified_by": "",
           "verified_at": "",
           "stale_after": ""
+        },
+        {
+          "id": "4039d7f9-a904-49ec-b10b-8d8fef7f5b16",
+          "kind": "",
+          "text": "**2026-10-08** — Ready for review: branch ob-13-exact-floats, fix commit 124024d after review failure 10e2d22. Change: new TryObfuscateExactFloat transforms a cell only when its output also parses within ExactDecimal bounds, and is the unparsed test for floating columns (ParsesAsKind now takes the spec), so such cells are mapped/tokenized and counted like other non-numeric values instead of being written back unchanged on deobfuscate. README bound sentence now covers the transformed value. Checks: new FloatingColumn_CellWhoseOutputExceedsParseBounds_RoundTrips (1e-1000 and a 1000-digit value) failed before the fix (restored cell was the obfuscated value) and passes, with UnparsedValueCounts 2; dotnet test Obfuscator.slnx 178/178; scripts/test-local.sh exit 0 with assert_restored; slicer check passed.",
+          "created_at": "2026-10-08T14:47:50Z",
+          "attempt": 2,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
         }
       ],
-      "claim": {
-        "owner": "Jon R",
-        "at": "2026-10-08T14:46:47Z"
-      },
+      "claim": null,
       "fields": {
         "size": "S",
         "flags": [],
