@@ -278,7 +278,7 @@
       "id": "ob-06",
       "title": "Document security guarantees and supported workflows",
       "short_title": "Document security guarantees and supported workflows",
-      "status": "reviewing",
+      "status": "done",
       "has_slice": true,
       "depends_on": [
         "ob-01",
@@ -311,10 +311,7 @@
           "stale_after": ""
         }
       ],
-      "claim": {
-        "owner": "Jon R",
-        "at": "2026-10-08T13:20:05Z"
-      },
+      "claim": null,
       "fields": {
         "size": "S",
         "flags": [],
