@@ -157,3 +157,5 @@
 {"when": "2026-10-08T16:37:47Z", "item": "ob-18", "action": "edit", "from": "", "to": "", "note": "Implement"}
 {"when": "2026-10-08T16:37:47Z", "item": "ob-18", "action": "edit", "from": "", "to": "", "note": "Check"}
 {"when": "2026-10-08T16:37:47Z", "item": "ob-18", "action": "status", "from": "open", "to": "started", "note": "", "by": "Jon R"}
+{"when": "2026-10-08T16:38:37Z", "item": "ob-18", "action": "note", "from": "", "to": "", "note": "Ready for review: branch ob-18-blank-env-key, commit bfe70e7", "by": "Jon R"}
+{"when": "2026-10-08T16:38:38Z", "item": "ob-18", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon R cleared", "by": "Jon R"}
