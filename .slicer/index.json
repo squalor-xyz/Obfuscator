@@ -786,11 +786,14 @@
       "id": "ob-16",
       "title": "Support --help after a command",
       "short_title": "Support --help after a command",
-      "status": "open",
-      "has_slice": false,
+      "status": "started",
+      "has_slice": true,
       "depends_on": [],
       "note_records": [],
-      "claim": null,
+      "claim": {
+        "owner": "Jon R",
+        "at": "2026-10-08T16:50:32Z"
+      },
       "fields": {
         "size": "S",
         "flags": [],
@@ -808,7 +811,7 @@
         "importance": 1,
         "urgency": 1,
         "effort": 1,
-        "attempts": 0
+        "attempts": 1
       }
     },
     {

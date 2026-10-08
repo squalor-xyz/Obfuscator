@@ -2192,6 +2192,72 @@ public sealed class ObfuscatorTests : IDisposable
         Assert.DoesNotContain("requires a value", text, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("--help")]
+    [InlineData("-h")]
+    [InlineData("help")]
+    public void Cli_TopLevelHelp_PrintsUsage(string flag)
+    {
+        var (exit, text) = RunCliCapturingOutput([flag]);
+
+        Assert.Equal(0, exit);
+        Assert.Contains("Usage:", text, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("generate", "--help")]
+    [InlineData("obfuscate", "--help")]
+    [InlineData("deobfuscate", "-h")]
+    [InlineData("OBFUSCATE", "--HELP")]
+    public void Cli_HelpAfterCommand_PrintsUsage(string command, string flag)
+    {
+        var (exit, text) = RunCliCapturingOutput([command, flag]);
+
+        Assert.Equal(0, exit);
+        Assert.Contains("Usage:", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Unknown option", text, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("--input", "cli-help-missing.csv", "--help")]
+    [InlineData("--output", "--help")]
+    [InlineData("--pasphrase=cli-help-secret-value", "-h")]
+    [InlineData("--passphrase=cli-help-secret-value", "--help")]
+    [InlineData("not-a-flag", "--help")]
+    public void Cli_HelpAnywhereAfterCommand_WinsWithoutReadingWritingOrEchoing(params string[] rest)
+    {
+        var outputPath = Path.Combine(_tempDir, "cli-help-out", "out.csv");
+        var manifestPath = Path.Combine(_tempDir, "cli-help-out", "out.obf");
+        string[] args = ["obfuscate", "--output", outputPath, "--manifest", manifestPath, "--create-output-dir", .. rest];
+
+        var (exit, text) = RunCliCapturingOutput(args);
+
+        Assert.Equal(0, exit);
+        Assert.Contains("Usage:", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("cli-help-secret-value", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("not-a-flag", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("cli-help-missing.csv", text, StringComparison.Ordinal);
+        Assert.False(Directory.Exists(Path.Combine(_tempDir, "cli-help-out")));
+    }
+
+    [Fact]
+    public void Cli_BareHelpAfterCommand_IsNotHelp()
+    {
+        var (exit, text) = RunCliCapturingOutput(["obfuscate", "help"]);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("Options must start with '--'", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Cli_UnknownCommandWithHelp_StillFails()
+    {
+        var (exit, text) = RunCliCapturingOutput(["not-a-command", "--help"]);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("Unknown command.", text, StringComparison.Ordinal);
+    }
+
     private static (int Exit, string Text) RunCliCapturingOutput(string[] args)
     {
         using var stdout = new StringWriter();

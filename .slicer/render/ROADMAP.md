@@ -10,12 +10,12 @@ Make CSV obfuscation and restoration safer to use for library and CLI users, whi
 
 Do not claim obfuscation alone provides cryptographic secrecy. Do not require encrypted manifests by default. Do not target a 1.0 release in this roadmap.
 
-18 items · — 1 · done 16 · retired 1
+18 items · done 16 · retired 1 · started 1
 
 | # | Slice | Title | Size | Effort | Trees | Findings | Status |
 |---|---|---|---|---|---|---|---|
 | 1 | ob-15 | Document generator config validation in package READMEs | S | 1 | docs | Obfuscator/PackageReadme.md and Obfuscator.Cli/README.md describe rowMode/sweepAxes but not the validation rules ob-05 added to README.md · Folded into ob-06 (owner decision): package README validation docs are aligned there · discovered from ob-05 | retired |
-| 2 | ob-16 | Support --help after a command | S | 1 | cli | Obfuscator.Cli/ObfuscatorCliProgram.cs Run: help is recognised only as the first argument; 'obfuscate --help' now fails with Unknown option '--help' (before ob-07 it failed with a missing-option error) · discovered from ob-07 | — |
+| 2 | [ob-16](slices/ob-16.md) | Support --help after a command | S | 1 | cli | Obfuscator.Cli/ObfuscatorCliProgram.cs Run: help is recognised only as the first argument; 'obfuscate --help' now fails with Unknown option '--help' (before ob-07 it failed with a missing-option error) · discovered from ob-07 | started |
 
 ---
 
