@@ -688,14 +688,23 @@
       "id": "ob-17",
       "title": "Do not stage the manifest in shared temp before GPG encryption",
       "short_title": "Do not stage the manifest in shared temp before GPG encryption",
-      "status": "started",
+      "status": "review",
       "has_slice": true,
       "depends_on": [],
-      "note_records": [],
-      "claim": {
-        "owner": "Jon R",
-        "at": "2026-10-08T13:23:07Z"
-      },
+      "note_records": [
+        {
+          "id": "5b8db62a-5672-4a7b-b7ce-b97d34de46e9",
+          "kind": "",
+          "text": "**2026-10-08** — Ready for review: branch ob-17-gpg-stdin, commit 4c116de (slice promoted from the row on this branch). Behaviour change: ManifestCrypto.GpgEncryptTo pipes the payload to gpg stdin and reads ASCII armor from stdout; the obf-plain-*.tmp file in shared temp and the destPath.gpg side file are gone; RunGpg gained an optional stdin payload written after the stdout/stderr reads start. OBF_GPG_V2 format unchanged. Checks: new test Manifest_GpgEncrypt_WritesNoPlaintextToDiskWhileGpgRuns (POSIX gpg wrapper scans TMPDIR and output dir at invocation) logged 'found' before, 'clean' after, and round-trips; GPG tests 3/3; dotnet test Obfuscator.slnx 133/133; scripts/test-local.sh exit 0; slicer check passed. Residual: the stdin write is synchronous, so the 30 s gpg timeout only starts once gpg has taken the whole payload; --batch means gpg should not stall waiting on a prompt. No follow-ups filed.",
+          "created_at": "2026-10-08T13:24:25Z",
+          "attempt": 1,
+          "by": "Jon R",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        }
+      ],
+      "claim": null,
       "fields": {
         "size": "S",
         "flags": [],
