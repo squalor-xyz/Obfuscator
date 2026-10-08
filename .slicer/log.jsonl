@@ -159,3 +159,5 @@
 {"when": "2026-10-08T16:37:47Z", "item": "ob-18", "action": "status", "from": "open", "to": "started", "note": "", "by": "Jon R"}
 {"when": "2026-10-08T16:38:37Z", "item": "ob-18", "action": "note", "from": "", "to": "", "note": "Ready for review: branch ob-18-blank-env-key, commit bfe70e7", "by": "Jon R"}
 {"when": "2026-10-08T16:38:38Z", "item": "ob-18", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon R cleared", "by": "Jon R"}
+{"when": "2026-10-08T16:39:04Z", "item": "ob-18", "action": "status", "from": "review", "to": "reviewing", "note": "", "by": "Jon R"}
+{"when": "2026-10-08T16:40:39Z", "item": "ob-18", "action": "reject", "from": "reviewing", "to": "open", "note": "VERDICT: FAIL - Cli_EmptyDeterministicKeyEnvironment_IsTreatedAsUnset does not test an empty value: .NET SetEnvironmentVariable(name, \"\") deletes the variable, so it only covers unset. Fix behaviour is correct (installed CLI: empty env exit 0, whitespace env exit 1 with the blank-key message); dotnet test 190/190, test-local.sh exit 0.", "by": "Jon R"}
