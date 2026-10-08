@@ -62,7 +62,7 @@ obfuscator generate \
 
 `ExampleConfigSemiconductor.golden.csv` and suite/databall `fixtures/semiconductor-sweep.csv` stay frozen. Do not regenerate them from the demo config.
 
-Obfuscate and restore a CSV. Supply the manifest passphrase through `OBFUSCATOR_PASSPHRASE`, `--passphrase-file <path>`, or `--passphrase-stdin`:
+Obfuscate and restore a CSV, reading the passphrase and deterministic key from the environment:
 
 ```bash
 export OBFUSCATOR_PASSPHRASE
@@ -81,27 +81,28 @@ obfuscator deobfuscate \
   --create-output-dir
 ```
 
-The CLI rejects inline `--passphrase <secret>` because command-line arguments are visible in process lists. Each command also rejects any option it does not use, so a typo such as `--gpg-recipent` fails instead of writing an unprotected manifest. Options take their value as the next argument; `--option=value` is not accepted. The library `ObfuscationOptions.Passphrase` and `DeobfuscateCsv(passphrase:)` APIs are unchanged.
+Supply the manifest passphrase with `OBFUSCATOR_PASSPHRASE`, `--passphrase-file <path>`, or `--passphrase-stdin`. Inline `--passphrase <secret>` is rejected because command-line arguments are visible in process lists; for the same reason, prefer `OBFUSCATOR_DETERMINISTIC_KEY` over `--deterministic-key <secret>`. Without a passphrase or `--gpg-recipient`, the manifest is written unencrypted. Each command rejects any option it does not use, including options that belong to another command, so a typo such as `--gpg-recipent` fails before any output is written. Options take their value as the next argument; `--option=value` is not accepted. The library `ObfuscationOptions.Passphrase` and `DeobfuscateCsv(passphrase:)` APIs take secrets directly; read them from the environment or a secret store rather than hard-coding them.
 
 Existing `--output` and `--manifest` files are refused unless you pass `--force`. `--input`, `--output`, and `--manifest` must be three different files: paths are compared after `Path.GetFullPath`, ignoring case on every OS (symlinks and hard links are not resolved). Obfuscate stages the CSV and the manifest next to their targets and publishes them only after both are complete. If either fails, neither is published and any files they would have replaced are restored. Generate and deobfuscate write their single output to `path.tmp`, then `File.Move`. The input CSV delimiter is stored on the manifest and restored on deobfuscate.
 
-Manifest notes:
+Manifest compatibility:
 
-- plain (`OBF_PLAIN_V2`) and AES-GCM (`OBF_AESGCM_V3`) manifests use a stable text header, so a manifest written on one OS can be read on another
-- new passphrase-protected writes use AES-GCM. `OBF_AES_V2` (CBC) is unsupported; re-obfuscate to GCM. `OBF_GPG_V2` is unchanged.
+- `OBF_PLAIN_V2` (unencrypted), `OBF_AESGCM_V3` (passphrase), and `OBF_GPG_V2` (GPG) manifests start with a stable text header, so a manifest written on one OS can be read on another
+- `OBF_AES_V2` (AES-CBC) manifests from earlier versions are no longer read; re-obfuscate with a passphrase to get an AES-GCM manifest
 - deterministic tokens written before manifest version 2.1 (`OBF_TKN_`, AES-CBC with a fixed per-column IV, which leaks shared plaintext prefixes) can still be deobfuscated but are never written; re-obfuscate to get AES-SIV `OBF_TK2_` tokens
-- `--gpg-recipient` support is optional and requires `gpg` to be installed and available on `PATH`
-- **The manifest is the plaintext.** Mapping mode stores the full original-to-token map. An unencrypted `.obf` next to the obfuscated CSV is not protection.
+- GPG manifests need GnuPG (`gpg`) on `PATH` both to write and to read them
 
 ## Security contract
 
-Obfuscation changes selected cell values to support controlled development, testing, and data workflows. It is reversible when the required manifest and, for deterministic-token mode, the deterministic key are available. This is data transformation, not encryption of the CSV or a guarantee that a dataset is anonymous or safe to share.
+Obfuscation changes selected cell values for controlled development, testing, and data workflows. It is reversible when the manifest and, for columns transformed with a deterministic key, that key are available. It transforms data; it does not encrypt the CSV or guarantee that a dataset is anonymous or safe to share.
 
-The output retains the CSV structure, including column names and row order. Excluded columns, preserved blank cells, and other untransformed values remain visible. Transformations can also preserve useful relationships: repeated values remain equal; numeric transformations generally preserve ordering or its reversal; date shifts preserve time intervals except when values hit supported bounds; and deterministic tokens reveal equality and frequency within a run. Tokens are derived using the per-manifest salt, so the same key does not create stable tokens across separate obfuscation runs. Deterministic tokens use AES-SIV (RFC 5297) deterministic authenticated encryption with a per-column key: equal values in a column give equal tokens, any other difference changes the whole token, and an edited token fails to deobfuscate. Tokens also reveal each value's UTF-8 length rounded up to 16 bytes. A recipient with auxiliary information may infer original values even when direct values have changed.
+**What the output reveals.** The output keeps the CSV structure, including column names and row order. Excluded columns, preserved blank cells, and other untransformed values remain visible. Transformations can preserve relationships: repeated values remain equal, numeric transformations generally preserve ordering or its reversal, date shifts preserve time intervals except when values hit supported bounds, and deterministic tokens reveal equality and frequency within a run. A recipient with auxiliary information may infer original values even when direct values have changed.
 
-Treat the manifest as sensitive source data. Plain manifests can contain original values in mapping mode and include information needed to reverse transformations. AES-GCM or GPG can encrypt the manifest when configured; that does not encrypt the CSV, protect the original input, or hide information inferable from the output. The unkeyed manifest checksum detects accidental edits, not malicious tampering.
+**Deterministic keys and tokens.** A deterministic key is stretched with PBKDF2-SHA256 (600,000 iterations) over the key and a random per-manifest salt, and each transform's key is derived from that with HKDF-SHA256. Because of the salt, the same key does not produce the same tokens or transforms across separate obfuscation runs. Deterministic tokens use AES-SIV (RFC 5297) deterministic authenticated encryption with a per-column key: equal values in a column give equal tokens, any other difference changes the whole token, and an edited token fails to deobfuscate. Tokens reveal each value's UTF-8 length rounded up to 16 bytes. Deobfuscating deterministic-token columns requires the same key. Without a key, numeric and date transforms come from `System.Random` (not a cryptographic generator; a seed makes them reproducible), mapping tokens are random GUIDs, and the manifest records what is needed to reverse them.
 
-Use obfuscation for controlled workflows where these residual disclosures are acceptable. Review selected and retained columns, values, structure, and likely auxiliary information for each dataset before sharing it. The project makes no guarantee against reidentification or a determined recipient. No external cryptography dependency is required by the current implementation; AES-SIV is implemented in-repo on the .NET AES block cipher and checked against the RFC 4493 and RFC 5297 test vectors.
+**Manifest protection.** Treat the manifest as sensitive source data: mapping mode stores every distinct original value it maps, and every manifest holds what is needed to reverse the transformations. By default the manifest is written unencrypted (`OBF_PLAIN_V2`), and an unencrypted manifest next to the obfuscated CSV is not protection. A passphrase encrypts the manifest with AES-256-GCM under a key from PBKDF2-SHA256 (600,000 iterations, random salt). GPG recipients encrypt it with `gpg`; with both a passphrase and recipients, GPG wraps the AES-GCM manifest. Neither encrypts the CSV, protects the original input, or hides what can be inferred from the output. The manifest's unkeyed checksum detects accidental edits, not malicious tampering.
+
+**Before sharing.** Use obfuscation for controlled workflows where these residual disclosures are acceptable. Review each dataset's selected and retained columns, values, structure, and likely auxiliary information before sharing it. The project makes no guarantee against reidentification or a determined recipient. Cryptography uses only the .NET base class library; AES-SIV is implemented in this project on the .NET AES block cipher and tested against the RFC 4493 and RFC 5297 vectors.
 
 ## Data generation modes
 
@@ -110,6 +111,8 @@ Generation config is explicit via `rowMode`:
 - `fixed`: generate exactly `nRows` independent rows
 - `sweep`: generate every combination defined by `sweepAxes`
 - `max`: generate at least `nRows`; if the sweep expansion is smaller, the sweep pattern repeats
+
+Generated data is synthetic. The generator builds every value from the JSON config alone and never reads an input CSV. It uses `System.Random`, which is not a cryptographic generator; set `seed` for reproducible output. Use generated datasets as fixtures, demos, and test inputs. They are not a source of secrets or keys, and they say nothing about whether a real dataset is safe to share.
 
 Fixed-row example:
 

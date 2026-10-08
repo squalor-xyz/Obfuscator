@@ -10,7 +10,7 @@
   "flags": [],
   "trees_note": "docs,cli",
   "trees_plural": false,
-  "boundary": "**Not in this slice:**",
+  "boundary": "**Not in this slice:** code changes; moving --deterministic-key off the command line (ob-08); the README absolute-path link (ob-10); sweep ID range behaviour (ob-14); --help after a command (ob-16).",
   "sections": [
     {
       "heading": "Why",
@@ -18,7 +18,7 @@
     },
     {
       "heading": "Files",
-      "body": "README.md; Obfuscator.Cli/README.md; Obfuscator/PackageReadme.md; example commands."
+      "body": "README.md; Obfuscator.Cli/README.md; Obfuscator/PackageReadme.md; Obfuscator.Cli/PackageReadme.md; example commands."
     },
     {
       "heading": "Failing tests",

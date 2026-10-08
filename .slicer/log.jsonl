@@ -70,3 +70,8 @@
 {"when": "2026-10-08T13:05:24Z", "item": "ob-07", "action": "status", "from": "review", "to": "reviewing", "note": "", "by": "Jon R"}
 {"when": "2026-10-08T13:05:56Z", "item": "ob-07", "action": "note", "from": "", "to": "", "note": "VERDICT: PASS - self-review (same session as the implementat", "by": "Jon R"}
 {"when": "2026-10-08T13:05:56Z", "item": "ob-07", "action": "status", "from": "reviewing", "to": "done", "note": "Reviewed and merged", "by": "Jon R"}
+{"when": "2026-10-08T13:15:37Z", "item": "ob-06", "action": "status", "from": "open", "to": "started", "note": "", "by": "Jon R"}
+{"when": "2026-10-08T13:15:37Z", "item": "ob-06", "action": "edit", "from": "", "to": "", "note": "Files"}
+{"when": "2026-10-08T13:15:37Z", "item": "ob-06", "action": "edit", "from": "", "to": "", "note": "boundary"}
+{"when": "2026-10-08T13:15:37Z", "item": "ob-15", "action": "retire", "from": "open", "to": "retired", "note": "Folded into ob-06 (owner decision): package README validation docs are aligned there"}
+{"when": "2026-10-08T13:18:34Z", "item": "ob-17", "action": "add", "from": "", "to": "open", "note": "Do not stage the manifest in shared temp before GPG encryption"}
