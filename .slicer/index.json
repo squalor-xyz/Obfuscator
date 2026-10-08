@@ -716,7 +716,7 @@
       "id": "ob-14",
       "title": "Generated sweep IDs can exceed or saturate their configured range",
       "short_title": "Generated sweep IDs can exceed or saturate their configured range",
-      "status": "review",
+      "status": "reviewing",
       "has_slice": true,
       "depends_on": [],
       "note_records": [
@@ -732,7 +732,10 @@
           "stale_after": ""
         }
       ],
-      "claim": null,
+      "claim": {
+        "owner": "Jon R",
+        "at": "2026-10-08T15:51:48Z"
+      },
       "fields": {
         "size": "S",
         "flags": [],
