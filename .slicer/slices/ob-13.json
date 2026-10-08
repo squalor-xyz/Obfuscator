@@ -1,0 +1,41 @@
+{
+  "id": "ob-13",
+  "title": "Floating-point columns do not round-trip exactly",
+  "lead": [
+    "Floating-point columns restore to the same numeric value: new manifests transform them with exact decimal arithmetic on BigInteger instead of double."
+  ],
+  "depends_note": null,
+  "findings_note": "Obfuscator/ObfuscationEngine.cs ObfuscateFloating/DeobfuscateFloating: (x*Scale+Shift) then (y-Shift)/Scale changes the last digits of G17 output (e.g. 131.60538314346292 -> 131.60538314346289) in scripts/test-local.sh sample output; README does not document floats as approximate and test-local.sh does not compare restored CSVs",
+  "size": "S",
+  "flags": [],
+  "trees_note": "core,tests",
+  "trees_plural": false,
+  "boundary": "**Not in this slice:** byte-identical text restoration (formatting such as `1.50` or `1,000.5` may be normalized); integer, date, or string transforms; changing how pre-2.2 manifests restore floats.",
+  "sections": [
+    {
+      "heading": "Why",
+      "body": "`ObfuscateFloating`/`DeobfuscateFloating` compute `y = x*Scale + Shift` in `double` and write G17, so `(y-Shift)/Scale` is not the original: `131.60538314346292` comes back as `131.60538314346289`, and small values next to a large shift lose low bits. The README calls obfuscation reversible and `scripts/test-local.sh` never compares restored CSVs, so nothing catches it."
+    },
+    {
+      "heading": "Files",
+      "body": "Obfuscator/ExactDecimal.cs (new); Obfuscator/ObfuscationEngine.cs; Obfuscator/Models.cs; Obfuscator.Tests/ObfuscatorTests.cs; README.md; scripts/test-local.sh."
+    },
+    {
+      "heading": "Failing tests",
+      "body": "Obfuscating and deobfuscating a float column containing `131.60538314346292` with a deterministic key returns the same number (fails on main). Random doubles, `0`, `-0`, `5e-324`, `1e-30`, `1e300`, `double.MaxValue`, thousands separators and exponent forms round-trip to the same numeric value across scales and shifts. An edited obfuscated float cell fails without echoing the value. A spec without `FloatScheme` still uses the legacy double path."
+    },
+    {
+      "heading": "Implement",
+      "body": "Add an internal `ExactDecimal` (BigInteger mantissa x 10^exponent) with exact parse of the `NumberStyles.Float | AllowThousands` grammar (no NaN/Infinity, bounded exponent), add/subtract/multiply, exact division, and normalized invariant formatting. Float specs gain `FloatScheme = \"exact-decimal/v1\"`, `ExactScale` (4 decimals) and `ExactShift` (4 significant digits), null-omitted so old checksums verify; manifest version 2.2. Cells that do not parse exactly take the string path and count as unparsed. Document numeric-value (not text) restoration and the digit-count leak in the README."
+    },
+    {
+      "heading": "Check",
+      "body": "`dotnet test Obfuscator.slnx`; `scripts/test-local.sh` exits 0 and its new restored-vs-source comparison passes for both sample CSVs; `slicer check`."
+    },
+    {
+      "heading": "Git",
+      "body": "Pre-2.2 manifests (no `FloatScheme`) must still deobfuscate with the existing double transform."
+    }
+  ],
+  "notes": []
+}
