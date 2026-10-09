@@ -6,6 +6,7 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 */
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.Versioning;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -1615,6 +1616,7 @@ public sealed class ObfuscatorTests : IDisposable
     }
 
     [SkippableFact]
+    [UnsupportedOSPlatform("windows")] // Skip.If below skips Windows at runtime; this tells CA1416.
     public void Manifest_GpgEncrypt_WritesNoPlaintextToDiskWhileGpgRuns()
     {
         Skip.If(OperatingSystem.IsWindows(), "the gpg wrapper is a POSIX shell script");
