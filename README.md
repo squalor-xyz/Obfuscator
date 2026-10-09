@@ -1,5 +1,7 @@
 # obfuscator
 
+<img src="assets/obfuscator-512.png" alt="Obfuscator" width="128" />
+
 `Obfuscator` is a .NET library with a small CLI for:
 
 - generating synthetic CSV datasets
