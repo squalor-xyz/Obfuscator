@@ -174,3 +174,4 @@
 {"when": "2026-10-08T16:52:43Z", "item": "ob-16", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon R cleared", "by": "Jon R"}
 {"when": "2026-10-08T17:39:46Z", "item": "ob-16", "action": "status", "from": "review", "to": "reviewing", "note": "", "by": "Jon R"}
 {"when": "2026-10-08T17:40:26Z", "item": "ob-16", "action": "status", "from": "reviewing", "to": "done", "note": "Reviewed and merged", "by": "Jon R"}
+{"when": "2026-10-09T12:41:22Z", "item": "ob-19", "action": "add", "from": "", "to": "later", "note": "Obfuscator may read and write Parquet and .ball through an optional DataBall adapter"}

@@ -1,0 +1,41 @@
+{
+  "id": "ob-19",
+  "title": "Obfuscator may read and write Parquet and .ball through an optional DataBall adapter",
+  "lead": [
+    "The core stays native-free and CSV-only. A separate optional package uses DataBall for Parquet / `.ball` input and output, so users who need more formats opt into DuckDB natives. Revisit after DataBall v1.4.0 (databall db-17)."
+  ],
+  "depends_note": null,
+  "findings_note": "suite docs/databall-v1.4-alignment.md (Obfuscator: later, optional adapter)",
+  "size": "M",
+  "flags": [],
+  "trees_note": "obfuscator",
+  "trees_plural": false,
+  "boundary": "**Not in this slice:**",
+  "sections": [
+    {
+      "heading": "Why",
+      "body": ""
+    },
+    {
+      "heading": "Files",
+      "body": ""
+    },
+    {
+      "heading": "Failing tests",
+      "body": ""
+    },
+    {
+      "heading": "Implement",
+      "body": ""
+    },
+    {
+      "heading": "Check",
+      "body": ""
+    },
+    {
+      "heading": "Git",
+      "body": ""
+    }
+  ],
+  "notes": []
+}

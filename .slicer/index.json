@@ -2,7 +2,7 @@
   "version": 8,
   "id_prefix": "ob-",
   "id_width": 2,
-  "next_id": 19,
+  "next_id": 20,
   "preamble": "",
   "passes": [],
   "items": [
@@ -947,6 +947,35 @@
         "urgency": 1,
         "effort": 1,
         "attempts": 2
+      }
+    },
+    {
+      "id": "ob-19",
+      "title": "Obfuscator may read and write Parquet and .ball through an optional DataBall adapter",
+      "short_title": "Obfuscator may read and write Parquet and .ball through an optional DataBall adapter",
+      "status": "later",
+      "has_slice": true,
+      "depends_on": [],
+      "note_records": [],
+      "claim": null,
+      "fields": {
+        "size": "M",
+        "flags": [],
+        "trees": [
+          "obfuscator"
+        ],
+        "trees_literal": false,
+        "findings": "suite docs/databall-v1.4-alignment.md (Obfuscator: later, optional adapter)",
+        "discovered_from": "",
+        "cites": [],
+        "key": "",
+        "pass": "",
+        "group": "",
+        "reason": "",
+        "importance": 1,
+        "urgency": 1,
+        "effort": 2,
+        "attempts": 0
       }
     }
   ],
