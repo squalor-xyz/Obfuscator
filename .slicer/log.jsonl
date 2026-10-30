@@ -269,3 +269,4 @@
 {"when": "2026-10-30T15:40:13Z", "item": "ob-31", "action": "add", "from": "", "to": "open", "note": "Add JSON-level tests for prober range edge cases: range null, empty range, value null with range"}
 {"when": "2026-10-30T15:40:13Z", "item": "ob-32", "action": "add", "from": "", "to": "open", "note": "Test the print-grid inside-limits check with negative limits under %.Ne"}
 {"when": "2026-10-30T15:40:13Z", "item": "ob-33", "action": "add", "from": "", "to": "open", "note": "Document equal-limits out-of-limit behaviour in PackageReadme.md"}
+{"when": "2026-10-30T15:40:14Z", "item": "ob-24", "action": "status", "from": "review", "to": "done", "note": "Generation fixes (ob-24 with ob-25/26/29/30 folded); 475 tests, build, format, test-local pass; ob-20 golden unchanged.", "by": "Jon Robbins"}

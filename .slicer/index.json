@@ -1255,7 +1255,7 @@
       "id": "ob-24",
       "title": "Test-results generation: random side for equal limits, overflow-checked counters, prober X/Y grid ranges",
       "short_title": "Test-results generation behaviour fixes",
-      "status": "review",
+      "status": "done",
       "has_slice": true,
       "depends_on": [],
       "note_records": [
