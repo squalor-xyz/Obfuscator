@@ -257,3 +257,7 @@
 {"when": "2026-10-30T15:11:49Z", "item": "ob-30", "action": "add", "from": "", "to": "open", "note": "Skip the serial start width check when the device count is 0"}
 {"when": "2026-10-30T15:11:49Z", "item": "ob-21", "action": "note", "from": "", "to": "", "note": "Later note 'reject 64-bit wrap of serial and programLine at ", "by": "Jon Robbins"}
 {"when": "2026-10-30T15:11:49Z", "item": "ob-21", "action": "status", "from": "review", "to": "done", "note": "Test-results config validation hardening (ob-21 with ob-22/23/27 folded); 416 tests, build, format, test-local pass.", "by": "Jon Robbins"}
+{"when": "2026-10-30T15:12:03Z", "item": "ob-24", "action": "edit", "from": "", "to": "", "note": "Failing tests"}
+{"when": "2026-10-30T15:12:03Z", "item": "ob-24", "action": "edit", "from": "", "to": "", "note": "Implement"}
+{"when": "2026-10-30T15:12:03Z", "item": "ob-29", "action": "retire", "from": "open", "to": "retired", "note": "Folded into ob-24 (v0.2.0 bundle)"}
+{"when": "2026-10-30T15:12:03Z", "item": "ob-30", "action": "retire", "from": "open", "to": "retired", "note": "Folded into ob-24 (v0.2.0 bundle)"}
