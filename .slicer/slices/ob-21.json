@@ -1,0 +1,39 @@
+{
+  "id": "ob-21",
+  "title": "Reject invalid test-results configs at validation: width overflow, coarse formats, null lists, separators, keyOrder conflicts, rate-100 floor",
+  "lead": [],
+  "depends_note": null,
+  "findings_note": "Obfuscator/TestResultsGenerator.cs: these are caught only mid-write today (no output is left, but the error comes late).",
+  "size": "M",
+  "flags": [],
+  "trees_note": "",
+  "trees_plural": false,
+  "boundary": "**Not in this slice:**",
+  "sections": [
+    {
+      "heading": "Why",
+      "body": "Follow-up from ob-20, which added the test-results generator mode. Some invalid configs are caught only partway through writing the file, fail with a bare exception, or quietly produce a file a parser would misread. All of them should be rejected up front with a clear message. Targeted to v0.2.0."
+    },
+    {
+      "heading": "Files",
+      "body": "Obfuscator/TestResultsGenerator.cs (constructor-time validation); Obfuscator/Obfuscator.cs where it dispatches to test-results validation; Obfuscator/Models.cs only if a default needs changing; Obfuscator.Tests/ObfuscatorTests.cs; the README.md validation list for the test-results mode."
+    },
+    {
+      "heading": "Failing tests",
+      "body": "- Width overflow found at validation (ob-21): a device column name, a test header, a fixed device value, a unit, a null token, an annotation label, or a printed limit wider than its column is rejected by `GetDataGenParametersFromConfig` / `GenerateCsv` before any file is created. The message names the column. Serial values: from `start`, `step` and the device count, check the widest serial that will be printed.\n- Format too coarse (ob-21): a test whose print format cannot print any value that lies inside its limits is rejected at validation. Example: `%.0f` with limits 0.2..0.4. The existing redraw failure during generation stays as a backstop.\n- Null lists (ob-22): JSON `null` for any list or object field under `testResults` (`annotations`, `conditionSets`, `tests`, `conditions`, `axes`, `values`, `keyOrder`, `entries`, `inject`, `bytes`, bin `weights`) gives an `InvalidOperationException` naming the field, never a `NullReferenceException`. A null optional object (for example `preamble` or a device column) still means \"absent\".\n- Forbidden characters (ob-23): a comma, CR or LF in a device column name, test name, unit, null token, condition key or value, preamble key or value, fixed device value, bin value or annotation label is rejected and the field is named. Stray bytes from an explicit `inject` are still allowed.\n- keyOrder (ob-23): a condition set that has explicit `conditions` and also `keyOrder` is rejected.\n- Rate 100 (ob-27): a test with `nullRate` 100 or `outOfLimitRate` 100 passes validation even when its distribution has under 1% chance of landing inside its limits. The 1% floor still applies otherwise.\n- The example configs still pass validation, and every existing golden is unchanged."
+    },
+    {
+      "heading": "Implement",
+      "body": "Keep all checks in the `TestResultsGenerator` constructor path (`Validate`), so validation runs before `FileWrite.WriteAtomically` creates anything. Use the existing `Fail(...)` helper and its `testResults:` message prefix.\n\n- Widths: compute each fixed-content cell's byte length at build time and compare it with the column width, using the same width rule the writer uses. For limits, format the limit with the test's `NumberFormat`. For the serial column, check both `start` and `start + step*(devices-1)`. Values drawn at generation time stay covered by the writer's `CheckFits` backstop.\n- Coarse format: with both limits, check that at least one printable value lies inside the limits. One way is to round the lower limit up to the format's grid and compare it with the upper limit. For `%e`, check the printed values of the two limits and their midpoint.\n- Nulls: guard each nullable list or object at the point it is read, with a message such as `testResults: conditionSets[2].tests must not be null.` Do not change the JSON options.\n- Characters: one helper, for example `RejectSeparators(string? value, string field)`, applied when each string is read.\n- keyOrder: reject it in `ExpandConditionSet` when `conditions` is set.\n- Rate 100: skip the `ProbabilityInsideLimits` floor when `NullRate == 100` or `OutOfLimitRate == 100`.\n\nAdd each new rule to README.md's test-results validation list."
+    },
+    {
+      "heading": "Check",
+      "body": "Run the focused test-results tests, then `dotnet build Obfuscator.slnx --configuration Release`, `dotnet test Obfuscator.slnx`, `dotnet format Obfuscator.slnx --verify-no-changes` and `scripts/test-local.sh`."
+    },
+    {
+      "heading": "Git",
+      "body": "Only test-results validation, its tests and README change. No golden changes."
+    }
+  ],
+  "notes": []
+}

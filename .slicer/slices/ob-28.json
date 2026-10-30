@@ -1,0 +1,39 @@
+{
+  "id": "ob-28",
+  "title": "Strengthen the test-results redraw tests: determinism under redraws and a one-sided limit",
+  "lead": [],
+  "depends_note": null,
+  "findings_note": "Obfuscator.Tests/ObfuscatorTests.cs: the redraw-determinism test is weak and no test covers a redraw against a one-sided limit.",
+  "size": "S",
+  "flags": [],
+  "trees_note": "",
+  "trees_plural": false,
+  "boundary": "**Not in this slice:**",
+  "sections": [
+    {
+      "heading": "Why",
+      "body": "Follow-up from ob-20: the redraw-determinism test is weak, and no test covers a redraw against a one-sided limit. Targeted to v0.2.0. Runs after the generation-behaviour bundle, because that changes how out-of-limit values are drawn."
+    },
+    {
+      "heading": "Files",
+      "body": "Obfuscator.Tests/ObfuscatorTests.cs only. Production code changes only if a test exposes a real bug, which then goes to the owner as a finding."
+    },
+    {
+      "heading": "Failing tests",
+      "body": "- Determinism under redraws: a config whose distribution forces many redraws per cell (for example a normal with most of its mass outside narrow limits, still above the 1% floor), generated twice with the same seed over at least 2k devices, gives byte-identical files. A different seed gives a different file. The test also asserts that redraws actually happened, for example via an internal counter or by showing that at least one raw-distribution draw would have printed outside the limits; a test that would pass with no redraws does not count.\n- One-sided limit, upper only and lower only: with outOfLimitRate 0, no in-limit value prints past the single limit or exactly on it, for a continuous distribution wider than the limit. With outOfLimitRate 100, every value prints past that limit, on the correct side.\n- Mutation-check each new test: it must fail when the redraw loop is replaced by a single draw, and when the one-sided comparison is flipped."
+    },
+    {
+      "heading": "Implement",
+      "body": "Add the tests next to the existing test-results redraw tests, and reuse their helpers for inline configs and for parsing the output. If observing redraws needs a hook, add an `internal` counter on `TestResultsGenerator` (the tests already reach `Write(Stream)` as internal) rather than anything public."
+    },
+    {
+      "heading": "Check",
+      "body": "Run the focused tests, then `dotnet test Obfuscator.slnx` and `dotnet format Obfuscator.slnx --verify-no-changes`."
+    },
+    {
+      "heading": "Git",
+      "body": "Tests only, plus an internal test hook if one is needed."
+    }
+  ],
+  "notes": []
+}

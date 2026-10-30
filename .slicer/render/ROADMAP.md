@@ -10,20 +10,27 @@ Make CSV obfuscation and restoration safer to use for library and CLI users, whi
 
 Do not claim obfuscation alone provides cryptographic secrecy. Do not require encrypted manifests by default. Do not target a 1.0 release in this roadmap.
 
-28 items · — 8 · done 18 · later 1 · retired 1
+28 items · — 3 · done 18 · later 1 · retired 6
+
+## v0.2.0
 
 | # | Slice | Title | Size | Effort | Trees | Findings | Status |
 |---|---|---|---|---|---|---|---|
-| 1 | ob-15 | Document generator config validation in package READMEs | S | 1 | docs | Obfuscator/PackageReadme.md and Obfuscator.Cli/README.md describe rowMode/sweepAxes but not the validation rules ob-05 added to README.md · Folded into ob-06 (owner decision): package README validation docs are aligned there · discovered from ob-05 | retired |
-| 2 | [ob-19](slices/ob-19.md) | Obfuscator may read and write Parquet and .ball through an optional DataBall adapter | M | 2 | obfuscator | suite docs/databall-v1.4-alignment.md (Obfuscator: later, optional adapter) | later |
-| 3 | ob-21 | Fail test-results configs at validation when a header, fixed value, unit or null token cannot fit its column, or a print format is too coarse to print any in-limit value | S | 1 |  | Obfuscator/TestResultsGenerator.cs: these are caught only mid-write today (no output is left, but the error comes late). · discovered from ob-20 | — |
-| 4 | ob-22 | Give a clear error when a test-results JSON list field is null | S | 1 |  | Obfuscator/TestResultsGenerator.cs and Obfuscator/Obfuscator.cs: a null list in the config throws a bare NullReferenceException. · discovered from ob-20 | — |
-| 5 | ob-23 | Reject commas and CR/LF in test-results names, units, null tokens, condition keys/values and preamble values; reject keyOrder alongside explicit conditions | S | 1 |  | Obfuscator/TestResultsGenerator.cs: such values break the fixed-width CSV layout silently. · discovered from ob-20 | — |
-| 6 | ob-24 | Pick the out-of-limit side at random when a test's upper and lower limits are equal | S | 1 |  | Obfuscator/TestResultsGenerator.cs: with equal limits, out-of-limit values always land above. · discovered from ob-20 | — |
-| 7 | ob-25 | Use checked arithmetic for test-results serial, program-line and counter values | S | 1 |  | Obfuscator/TestResultsGenerator.cs: long arithmetic can wrap silently on extreme start/step values. · discovered from ob-20 | — |
-| 8 | ob-26 | Allow prober X/Y as a range or pattern instead of a fixed value | S | 1 |  | Owner/reviewer follow-up from ob-20: real wafers vary X/Y per device. · discovered from ob-20 | — |
-| 9 | ob-27 | Skip the 1% inside-limits validation floor when a test's nullRate or outOfLimitRate is 100 | S | 1 |  | Obfuscator/TestResultsGenerator.cs: such a test never draws an in-limit value, so the floor rejects it needlessly. · discovered from ob-20 | — |
-| 10 | ob-28 | Strengthen the test-results redraw tests: determinism under redraws and a one-sided limit | S | 1 |  | Obfuscator.Tests/ObfuscatorTests.cs: the redraw-determinism test is weak and no test covers a redraw against a one-sided limit. · discovered from ob-20 | — |
+| 1 | [ob-21](slices/ob-21.md) | Test-results config validation hardening | M | 2 |  | Obfuscator/TestResultsGenerator.cs: these are caught only mid-write today (no output is left, but the error comes late). · discovered from ob-20 | — |
+| 2 | [ob-24](slices/ob-24.md) | Test-results generation behaviour fixes | M | 2 |  | Obfuscator/TestResultsGenerator.cs: with equal limits, out-of-limit values always land above. · discovered from ob-20 | — |
+| 3 | [ob-28](slices/ob-28.md) | Test-results redraw tests | S | 1 |  | Obfuscator.Tests/ObfuscatorTests.cs: the redraw-determinism test is weak and no test covers a redraw against a one-sided limit. · discovered from ob-20 | — |
+
+---
+
+| # | Slice | Title | Size | Effort | Trees | Findings | Status |
+|---|---|---|---|---|---|---|---|
+| 4 | ob-15 | Document generator config validation in package READMEs | S | 1 | docs | Obfuscator/PackageReadme.md and Obfuscator.Cli/README.md describe rowMode/sweepAxes but not the validation rules ob-05 added to README.md · Folded into ob-06 (owner decision): package README validation docs are aligned there · discovered from ob-05 | retired |
+| 5 | [ob-19](slices/ob-19.md) | Obfuscator may read and write Parquet and .ball through an optional DataBall adapter | M | 2 | obfuscator | suite docs/databall-v1.4-alignment.md (Obfuscator: later, optional adapter) | later |
+| 6 | ob-22 | Give a clear error when a test-results JSON list field is null | S | 1 |  | Obfuscator/TestResultsGenerator.cs and Obfuscator/Obfuscator.cs: a null list in the config throws a bare NullReferenceException. · Folded into ob-21 (owner decision, v0.2.0 bundle) · discovered from ob-20 | retired |
+| 7 | ob-23 | Reject commas and CR/LF in test-results names, units, null tokens, condition keys/values and preamble values; reject keyOrder alongside explicit conditions | S | 1 |  | Obfuscator/TestResultsGenerator.cs: such values break the fixed-width CSV layout silently. · Folded into ob-21 (owner decision, v0.2.0 bundle) · discovered from ob-20 | retired |
+| 8 | ob-25 | Use checked arithmetic for test-results serial, program-line and counter values | S | 1 |  | Obfuscator/TestResultsGenerator.cs: long arithmetic can wrap silently on extreme start/step values. · Folded into ob-24 (owner decision, v0.2.0 bundle) · discovered from ob-20 | retired |
+| 9 | ob-26 | Allow prober X/Y as a range or pattern instead of a fixed value | S | 1 |  | Owner/reviewer follow-up from ob-20: real wafers vary X/Y per device. · Folded into ob-24 (owner decision, v0.2.0 bundle) · discovered from ob-20 | retired |
+| 10 | ob-27 | Skip the 1% inside-limits validation floor when a test's nullRate or outOfLimitRate is 100 | S | 1 |  | Obfuscator/TestResultsGenerator.cs: such a test never draws an in-limit value, so the floor rejects it needlessly. · Folded into ob-21 (owner decision, v0.2.0 bundle) · discovered from ob-20 | retired |
 
 ---
 

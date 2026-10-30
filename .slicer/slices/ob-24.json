@@ -1,0 +1,39 @@
+{
+  "id": "ob-24",
+  "title": "Test-results generation: random side for equal limits, overflow-checked counters, prober X/Y grid ranges",
+  "lead": [],
+  "depends_note": null,
+  "findings_note": "Obfuscator/TestResultsGenerator.cs: with equal limits, out-of-limit values always land above.",
+  "size": "M",
+  "flags": [],
+  "trees_note": "",
+  "trees_plural": false,
+  "boundary": "**Not in this slice:**",
+  "sections": [
+    {
+      "heading": "Why",
+      "body": "Follow-up from ob-20. Three generation behaviours need fixing:\n- with equal limits, out-of-limit values always land above the limit;\n- serial, program-line and counter arithmetic can wrap silently;\n- prober X/Y can only be a fixed value, while real wafer-level data walks a grid.\n\nTargeted to v0.2.0."
+    },
+    {
+      "heading": "Files",
+      "body": "Obfuscator/TestResultsGenerator.cs; Obfuscator/Models.cs (prober column spec); Obfuscator.Tests/ObfuscatorTests.cs; README.md and Obfuscator/PackageReadme.md where they describe test-results device columns."
+    },
+    {
+      "heading": "Failing tests",
+      "body": "- Equal limits (ob-24): with upperLimit == lowerLimit and outOfLimitRate 100, over 10k devices with a seed, values land both above and below the limit, each between 40% and 60% of the time. A raw value nearer one limit still goes to that side when the limits differ.\n- Overflow (ob-25): a serial `start`/`step` whose last device's serial overflows `long`, and a `programLineStart`/`programLineStep` whose last test column overflows, are rejected at validation with the field named. Nothing wraps silently. A counter prints only its start, so it cannot overflow; a test pins that.\n- Prober grid (ob-26): `proberX` and `proberY` may each give `range: {min, max}` instead of `value`. When both have ranges, devices walk a raster: X runs from min to max, then Y steps by 1 and X restarts, wrapping back to the start when the grid is exhausted. If only one has a range, it cycles min..max per device and the other stays fixed. `value` and `range` on the same column is rejected, as is min > max. Widths are checked against the widest printed value. Output is deterministic and uses no randomness.\n- Existing configs that use `value` produce byte-identical output: the ob-20 example golden is unchanged."
+    },
+    {
+      "heading": "Implement",
+      "body": "- Equal limits: in `JustOutsideNearerLimit`, when both limits exist and are equal, pick the side with one `_random` draw. This makes the method an instance method or passes the draw in. Draw it only in that case, so the output for unequal limits, and the golden, does not change.\n- Overflow: at validation, compute the last serial and the last program line with `checked` arithmetic (or `Math.BigMul` / `Int128`) and turn an `OverflowException` into `Fail(...)`. Keep the hot path unchecked once validated.\n- Prober grid: add an optional `Range` (`{Min, Max}` as long) to the prober spec. Keep `FixedColumnSpec` for site; give prober X/Y their own spec type, or extend `FixedColumnSpec` with a nullable `Range` that only prober columns accept. Add a `DeviceKind` for a ranged prober column and compute X/Y from the device index in `WriteDeviceRow`.\n\nDocument the prober range and the equal-limits behaviour in README.md, with one line in PackageReadme.md."
+    },
+    {
+      "heading": "Check",
+      "body": "Run the focused test-results tests, then `dotnet build Obfuscator.slnx --configuration Release`, `dotnet test Obfuscator.slnx`, `dotnet format Obfuscator.slnx --verify-no-changes` and `scripts/test-local.sh`."
+    },
+    {
+      "heading": "Git",
+      "body": "Only test-results generation, its config model, tests and docs change. The ob-20 golden stays byte-identical."
+    }
+  ],
+  "notes": []
+}
