@@ -1407,10 +1407,22 @@
       "id": "ob-28",
       "title": "Strengthen the test-results redraw tests: determinism under redraws and a one-sided limit",
       "short_title": "Test-results redraw tests",
-      "status": "open",
+      "status": "review",
       "has_slice": true,
       "depends_on": [],
-      "note_records": [],
+      "note_records": [
+        {
+          "id": "3dd7d073-f631-4c8e-b731-544dd62db72a",
+          "kind": "",
+          "text": "**2026-10-30** — Verified: determinism under redraws tested with an internal Redraws counter on TestResultsGenerator, plus a 10/10 null/out-of-limit variant; one-sided upper-only and lower-only tests at outOfLimitRate 0 and 100; ob-31 prober range JSON edge cases pinned (range null means no range, range {} rejected naming deviceColumns.proberX.range, value null with a range is the range); ob-32 negative-limit %.0e accept and reject; ob-33 PackageReadme line added. Full suite 489/489, format clean, mutation-checked (single draw, upper/lower comparison flips, nearer-side and delta-sign flips). No production bug found.",
+          "created_at": "2026-10-30T15:59:24Z",
+          "attempt": 1,
+          "by": "Jon Robbins",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        }
+      ],
       "claim": null,
       "readiness": {
         "by": "Jon Robbins",
@@ -1434,7 +1446,7 @@
         "importance": 2,
         "urgency": 2,
         "effort": 1,
-        "attempts": 0
+        "attempts": 1
       }
     },
     {

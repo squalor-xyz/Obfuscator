@@ -10,7 +10,7 @@ Make CSV obfuscation and restoration safer to use for library and CLI users, whi
 
 Do not claim obfuscation alone provides cryptographic secrecy. Do not require encrypted manifests by default. Do not target a 1.0 release in this roadmap.
 
-33 items · — 1 · done 20 · later 1 · retired 11
+33 items · done 20 · later 1 · retired 11 · review 1
 
 ## v0.2.0
 
@@ -18,7 +18,7 @@ Do not claim obfuscation alone provides cryptographic secrecy. Do not require en
 |---|---|---|---|---|---|---|---|
 | 1 | [ob-21](slices/ob-21.md) | Test-results config validation hardening | M | 2 |  | Obfuscator/TestResultsGenerator.cs: these are caught only mid-write today (no output is left, but the error comes late). · discovered from ob-20 | done |
 | 2 | [ob-24](slices/ob-24.md) | Test-results generation behaviour fixes | M | 2 |  | Obfuscator/TestResultsGenerator.cs: with equal limits, out-of-limit values always land above. · discovered from ob-20 | done |
-| 3 | [ob-28](slices/ob-28.md) | Test-results redraw tests | S | 1 |  | Obfuscator.Tests/ObfuscatorTests.cs: the redraw-determinism test is weak and no test covers a redraw against a one-sided limit. · discovered from ob-20 | — |
+| 3 | [ob-28](slices/ob-28.md) | Test-results redraw tests | S | 1 |  | Obfuscator.Tests/ObfuscatorTests.cs: the redraw-determinism test is weak and no test covers a redraw against a one-sided limit. · discovered from ob-20 | review |
 | 4 | ob-29 | Validate test-results distributions against the print format's grid so coarse-format draws are caught at validation | S | 1 |  | Obfuscator/TestResultsGenerator.cs: a distribution whose draws mostly round outside the limits under a coarse format passes validation and fails only in the redraw backstop. · Folded into ob-24 (v0.2.0 bundle) · discovered from ob-21 | retired |
 | 5 | ob-30 | Skip the serial start width check when the device count is 0 | S | 1 |  | Obfuscator/TestResultsGenerator.cs (serial width check near line 413): with nRows 0 no serial is printed, yet start is width-checked. · Folded into ob-24 (v0.2.0 bundle) · discovered from ob-21 | retired |
 | 6 | ob-31 | Add JSON-level tests for prober range edge cases: range null, empty range, value null with range | S | 1 |  | Obfuscator.Tests/ObfuscatorTests.cs: prober range edge cases are tested only through C# objects, not through JSON config parsing. · Folded into ob-28 (v0.2.0 bundle) · discovered from ob-24 | retired |

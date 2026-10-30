@@ -65,6 +65,7 @@ Generation configs support:
 - `rowMode: "sweep"` for explicit sweep expansion
 - `rowMode: "max"` for repeating a sweep pattern up to `nRows`
 - `rowMode: "test-results"` for a wide production test-results file (preamble, annotation rows, condition-bracket column names, one row per device) described by a nested `testResults` object; prober X and Y columns take a fixed `value` or a `range: {min, max}` that walks a wafer raster; see the repository README
+  - In a test-results file `outOfLimitRate` is the percent of the non-null cells drawn just outside the nearer limit; with equal limits there is no nearer one, so each such cell lands above or below the limit with equal chance
 
 Sweep configs can also define:
 

@@ -277,3 +277,6 @@
 {"when": "2026-10-30T15:45:38Z", "item": "ob-31", "action": "retire", "from": "open", "to": "retired", "note": "Folded into ob-28 (v0.2.0 bundle)"}
 {"when": "2026-10-30T15:45:38Z", "item": "ob-32", "action": "retire", "from": "open", "to": "retired", "note": "Folded into ob-28 (v0.2.0 bundle)"}
 {"when": "2026-10-30T15:45:38Z", "item": "ob-33", "action": "retire", "from": "open", "to": "retired", "note": "Folded into ob-28 (v0.2.0 bundle)"}
+{"when": "2026-10-30T15:46:52Z", "item": "ob-28", "action": "status", "from": "open", "to": "started", "note": "", "by": "Jon Robbins"}
+{"when": "2026-10-30T15:59:24Z", "item": "ob-28", "action": "note", "from": "", "to": "", "note": "Verified: determinism under redraws tested with an internal ", "by": "Jon Robbins"}
+{"when": "2026-10-30T15:59:24Z", "item": "ob-28", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon Robbins cleared", "by": "Jon Robbins"}

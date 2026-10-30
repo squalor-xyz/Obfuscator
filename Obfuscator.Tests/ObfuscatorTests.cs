@@ -1994,17 +1994,134 @@ public sealed class ObfuscatorTests : IDisposable
         Assert.True(values.Min() < 1.01 && values.Max() > 1.99, $"values span only {values.Min()}..{values.Max()}");
     }
 
+    // Writes the file through the generator itself, to read how many values it drew again.
+    private static byte[] TrGenerateBytes(DataGenConfig config, out long redraws)
+    {
+        var generator = new TestResultsGenerator(config);
+        using var stream = new MemoryStream();
+        generator.Write(stream);
+        redraws = generator.Redraws;
+        return stream.ToArray();
+    }
+
     [Fact]
     public void GenerateCsv_TestResults_RedrawIsDeterministicForASeed()
     {
+        // A standard normal against limits 0.5..1.0 prints inside about 15% of the time, so a cell takes about seven
+        // draws and the redraw loop runs thousands of times.
         var a = Path.Combine(_tempDir, "tr-redraw-a.csv");
         var b = Path.Combine(_tempDir, "tr-redraw-b.csv");
-        var config = TrSingleTestConfig(2_000, t => { t.Min = 0; t.Max = 3; t.NullRate = 10; t.OutOfLimitRate = 10; });
+        var c = Path.Combine(_tempDir, "tr-redraw-c.csv");
 
-        _obfuscator.GenerateCsv(config, a);
-        _obfuscator.GenerateCsv(config, b);
+        _obfuscator.GenerateCsv(TrRedrawConfig(5), a);
+        _obfuscator.GenerateCsv(TrRedrawConfig(5), b);
+        _obfuscator.GenerateCsv(TrRedrawConfig(6), c);
 
+        // A single draw per cell would pass everything below, so show that redraws really happened, in this output.
+        var counted = TrGenerateBytes(TrRedrawConfig(5), out var redraws);
+        Assert.Equal(File.ReadAllBytes(a), counted);
+        Assert.True(redraws > 2_000, $"only {redraws} redraws for 2000 cells");
         Assert.Equal(File.ReadAllBytes(a), File.ReadAllBytes(b));
+        Assert.NotEqual(File.ReadAllBytes(a), File.ReadAllBytes(c));
+        var lines = Encoding.Latin1.GetString(File.ReadAllBytes(a)).TrimEnd('\r', '\n').Split("\r\n");
+        var values = lines[(TrPreambleLines + 1)..].Select(l => double.Parse(TrCells(l)[^1], CultureInfo.InvariantCulture)).ToArray();
+        Assert.Equal(2_000, values.Length);
+        Assert.All(values, v => Assert.InRange(v, 0.5, 1.0));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_RedrawIsDeterministicForASeed_WithNullAndOutOfLimitRates()
+    {
+        // Null and out-of-limit cells still take their fixed draws and shift how many value draws follow.
+        var a = Path.Combine(_tempDir, "tr-redraw-rates-a.csv");
+        var b = Path.Combine(_tempDir, "tr-redraw-rates-b.csv");
+        var c = Path.Combine(_tempDir, "tr-redraw-rates-c.csv");
+
+        _obfuscator.GenerateCsv(TrRedrawConfig(5, rates: 10), a);
+        _obfuscator.GenerateCsv(TrRedrawConfig(5, rates: 10), b);
+        _obfuscator.GenerateCsv(TrRedrawConfig(6, rates: 10), c);
+
+        _ = TrGenerateBytes(TrRedrawConfig(5, rates: 10), out var redraws);
+        Assert.True(redraws > 1_000, $"only {redraws} redraws for 2000 cells");
+        Assert.Equal(File.ReadAllBytes(a), File.ReadAllBytes(b));
+        Assert.NotEqual(File.ReadAllBytes(a), File.ReadAllBytes(c));
+    }
+
+    private static DataGenConfig TrRedrawConfig(int seed, double rates = 0)
+    {
+        var config = TrSingleTestConfig(2_000, t =>
+        {
+            t.Distribution = "normal";
+            t.Mean = 0;
+            t.StdDev = 1;
+            t.Min = null;
+            t.Max = null;
+            t.LowerLimit = 0.5;
+            t.UpperLimit = 1.0;
+            t.Format = "%.6f";
+            t.NullRate = rates;
+            t.OutOfLimitRate = rates;
+        });
+        config.Seed = seed;
+        return config;
+    }
+
+    [Theory]
+    [InlineData("uniform", true)]
+    [InlineData("uniform", false)]
+    [InlineData("normal", true)]
+    [InlineData("normal", false)]
+    public void GenerateCsv_TestResults_OneSidedLimit_InLimitValuesPrintStrictlyInsideIt(string distribution, bool upperOnly)
+    {
+        // The distribution is wider than the single limit and about half of it lies beyond: those draws are redrawn.
+        var config = TrSingleTestConfig(5_000, t =>
+        {
+            t.Distribution = distribution;
+            t.Mean = 2;
+            t.StdDev = 2;
+            t.Min = 0;
+            t.Max = 4;
+            t.Format = "%.9f";
+            t.UpperLimit = upperOnly ? 2 : null;
+            t.LowerLimit = upperOnly ? null : 2;
+        });
+
+        var values = TrColumnValues(config, out _);
+
+        Assert.Equal(5_000, values.Length);
+        // A value printed exactly on the limit is legal, but at nine decimals it is negligible.
+        Assert.All(values, v => Assert.True(upperOnly ? v < 2.0 : v > 2.0, $"{v} is not strictly inside the limit 2"));
+        _ = TrGenerateBytes(config, out var redraws);
+        Assert.True(redraws > 2_000, $"only {redraws} redraws for 5000 cells");
+    }
+
+    [Theory]
+    [InlineData("uniform", true)]
+    [InlineData("uniform", false)]
+    [InlineData("normal", true)]
+    [InlineData("normal", false)]
+    public void GenerateCsv_TestResults_OneSidedLimit_OutOfLimitValuesAllPrintPastIt(string distribution, bool upperOnly)
+    {
+        // Raw values fall on both sides of the limit; every printed value still goes past it, on the limit's own side.
+        var config = TrSingleTestConfig(5_000, t =>
+        {
+            t.Distribution = distribution;
+            t.Mean = 2;
+            t.StdDev = 2;
+            t.Min = 0;
+            t.Max = 4;
+            t.Format = "%.6f";
+            t.OutOfLimitRate = 100;
+            t.UpperLimit = upperOnly ? 2 : null;
+            t.LowerLimit = upperOnly ? null : 2;
+        });
+
+        var values = TrColumnValues(config, out _);
+
+        Assert.Equal(5_000, values.Length);
+        Assert.All(values, v => Assert.True(upperOnly ? v > 2.0 : v < 2.0, $"{v} is not past the limit 2"));
+        // Just outside: within a tenth of the limit's magnitude.
+        Assert.All(values, v => Assert.InRange(v, 1.79, 2.21));
     }
 
     [Fact]
@@ -2931,6 +3048,42 @@ public sealed class ObfuscatorTests : IDisposable
     }
 
     [Fact]
+    public void GenerateCsv_TestResults_NegativeLimitsInAnExponentFormat_AreAcceptedWhenAValueCanPrintInside()
+    {
+        // -1e+01 is the only printed value inside -10.5..-9.5 under %.0e, and the grid gets finer just below 10.
+        var config = TrSingleTestConfig(300, t =>
+        {
+            t.LowerLimit = -10.5;
+            t.UpperLimit = -9.5;
+            t.Min = -11;
+            t.Max = -9;
+            t.Format = "%.0e";
+        });
+
+        TestResultsGenerator.Validate(config);
+        var values = TrColumnValues(config, out var tokens);
+
+        Assert.Equal(300, values.Length);
+        Assert.All(tokens, c => Assert.Equal("-1e+01", c));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_NegativeLimitsInAnExponentFormat_AreRejectedWhenNoValueCanPrintInside()
+    {
+        // %.0e prints -9e+00 and -1e+01 here; the first is above -9.5, the second is below -9.9.
+        var config = TrSingleTestConfig(300, t =>
+        {
+            t.LowerLimit = -9.9;
+            t.UpperLimit = -9.5;
+            t.Min = -11;
+            t.Max = -9;
+            t.Format = "%.0e";
+        });
+
+        AssertTestResultsRejectedUpFront(config, "format", "%.0e", "cannot print any value inside", "-9.9..-9.5");
+    }
+
+    [Fact]
     public void GenerateCsv_TestResults_ProgramLineThatNothingPrints_IsNotCheckedForOverflow()
     {
         var config = TestResultsConfig(3, s =>
@@ -3086,6 +3239,61 @@ public sealed class ObfuscatorTests : IDisposable
         mutate(config.TestResults!.DeviceColumns);
 
         AssertTestResultsRejectedUpFront(config, fragments);
+    }
+
+    private DataGenConfig ParseProberXConfig(string name, string proberX)
+    {
+        var path = WriteConfig(name, """
+            {
+              "rowMode": "test-results",
+              "nRows": 4,
+              "testResults": {
+                "annotations": [],
+                "deviceColumns": { "proberX": { PROBER_X } },
+                "conditionSets": [{ "conditions": [], "tests": [{ "name": "T", "min": 0, "max": 1, "format": "%.2f" }] }]
+              }
+            }
+            """.Replace("PROBER_X", proberX, StringComparison.Ordinal));
+        return _obfuscator.GetDataGenParametersFromConfig(path);
+    }
+
+    // The JSON configs above have no preamble and no annotations: a header line, then one line per device, X first.
+    private string[] ProberXCells(DataGenConfig config, string name)
+        => GenerateTestResultsLines(config, name)[1..].Select(l => TrCells(l)[0].Trim()).ToArray();
+
+    [Fact]
+    public void GetDataGenParametersFromConfig_TestResults_ProberRangeNullInJson_MeansNoRange()
+    {
+        // A null range is an absent one: the column keeps its fixed value, or prints empty cells without one.
+        var withValue = ParseProberXConfig("tr-range-null-value.json", "\"name\": \"X\", \"width\": 4, \"value\": \"7\", \"range\": null");
+        var withoutValue = ParseProberXConfig("tr-range-null-bare.json", "\"name\": \"X\", \"width\": 4, \"range\": null");
+
+        Assert.Null(withValue.TestResults!.DeviceColumns.ProberX!.Range);
+        Assert.Null(withoutValue.TestResults!.DeviceColumns.ProberX!.Range);
+        Assert.All(ProberXCells(withValue, "tr-range-null-value"), x => Assert.Equal("7", x));
+        Assert.All(ProberXCells(withoutValue, "tr-range-null-bare"), x => Assert.Equal(string.Empty, x));
+    }
+
+    [Fact]
+    public void GetDataGenParametersFromConfig_TestResults_EmptyProberRangeInJson_IsRejectedAndNamed()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(
+            () => ParseProberXConfig("tr-range-empty.json", "\"name\": \"X\", \"width\": 4, \"range\": {}"));
+
+        Assert.StartsWith("testResults:", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("deviceColumns.proberX.range", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("min", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("max", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GetDataGenParametersFromConfig_TestResults_NullValueWithARangeInJson_IsTheRange()
+    {
+        // A null value is an absent one, so it does not clash with the range.
+        var config = ParseProberXConfig("tr-value-null-range.json", "\"name\": \"X\", \"width\": 4, \"value\": null, \"range\": { \"min\": 3, \"max\": 5 }");
+
+        Assert.Null(config.TestResults!.DeviceColumns.ProberX!.Value);
+        Assert.Equal(new[] { "3", "4", "5", "3" }, ProberXCells(config, "tr-value-null-range"));
     }
 
     [Fact]

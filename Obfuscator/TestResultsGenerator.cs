@@ -42,6 +42,9 @@ internal sealed class TestResultsGenerator
     private readonly List<DeviceColumn> _deviceColumns = new();
     private readonly List<TestColumn> _testColumns = new();
 
+    // Value draws that were thrown away because they printed outside the limits; read by the tests.
+    internal long Redraws { get; private set; }
+
     public TestResultsGenerator(DataGenConfig config)
     {
         var spec = config.TestResults ?? throw Fail("rowMode 'test-results' requires a testResults object.");
@@ -255,6 +258,7 @@ internal sealed class TestResultsGenerator
             if (draws >= MaxRedraws)
                 throw new InvalidOperationException($"testResults: column '{column.Header}' could not draw a value whose printed form lies inside its limits in {MaxRedraws} attempts.");
 
+            Redraws++;
             length = FormatChecked(column, DrawValue(column), scratch);
         }
 
