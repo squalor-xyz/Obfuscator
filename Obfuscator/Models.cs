@@ -128,7 +128,21 @@ public sealed class FixedColumnSpec
 {
     public string Name { get; set; } = string.Empty;
     public int Width { get; set; } = 6;
-    public string Value { get; set; } = string.Empty;
+
+    // The same text on every row; absent prints an empty cell. Give Value or Range, not both.
+    public string? Value { get; set; }
+
+    // proberX and proberY only. Both ranged: the devices walk a raster, X from min to max (the fast axis), then Y steps
+    // by 1 and X restarts, wrapping to the start once the grid is used up. One ranged: it cycles min..max per device and
+    // the other prober column keeps its value. No randomness.
+    public ProberRangeSpec? Range { get; set; }
+}
+
+// Inclusive bounds of a prober coordinate. Both are required.
+public sealed class ProberRangeSpec
+{
+    public long? Min { get; set; }
+    public long? Max { get; set; }
 }
 
 public sealed class BinColumnSpec
@@ -169,7 +183,7 @@ public sealed class TestSpec
 
     // uniform (Min, Max) or normal (Mean, StdDev). A value whose printed form falls outside the limits is drawn again
     // (up to 10,000 times, then generation fails), never clamped onto a limit. Validation rejects a distribution
-    // that lands inside the limits less than 1% of the time.
+    // that prints inside the limits less than 1% of the time, judged on the print format's grid and not on raw values.
     public string Distribution { get; set; } = "uniform";
     public double? Min { get; set; }
     public double? Max { get; set; }
@@ -180,7 +194,8 @@ public sealed class TestSpec
     public string Format { get; set; } = "%.6f";
 
     // NullRate: percent (0..100) of cells that hold NullToken.
-    // OutOfLimitRate: percent (0..100) of the non-null cells drawn just outside the nearer limit.
+    // OutOfLimitRate: percent (0..100) of the non-null cells drawn just outside the nearer limit; with equal limits the
+    // side is drawn at random.
     public double NullRate { get; set; }
     public string NullToken { get; set; } = "NA.";
     public double OutOfLimitRate { get; set; }

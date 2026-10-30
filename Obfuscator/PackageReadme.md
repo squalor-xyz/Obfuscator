@@ -64,7 +64,7 @@ Generation configs support:
 - `rowMode: "fixed"` for independent rows
 - `rowMode: "sweep"` for explicit sweep expansion
 - `rowMode: "max"` for repeating a sweep pattern up to `nRows`
-- `rowMode: "test-results"` for a wide production test-results file (preamble, annotation rows, condition-bracket column names, one row per device) described by a nested `testResults` object; see the repository README
+- `rowMode: "test-results"` for a wide production test-results file (preamble, annotation rows, condition-bracket column names, one row per device) described by a nested `testResults` object; prober X and Y columns take a fixed `value` or a `range: {min, max}` that walks a wafer raster; see the repository README
 
 Sweep configs can also define:
 

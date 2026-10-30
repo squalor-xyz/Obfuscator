@@ -261,3 +261,8 @@
 {"when": "2026-10-30T15:12:03Z", "item": "ob-24", "action": "edit", "from": "", "to": "", "note": "Implement"}
 {"when": "2026-10-30T15:12:03Z", "item": "ob-29", "action": "retire", "from": "open", "to": "retired", "note": "Folded into ob-24 (v0.2.0 bundle)"}
 {"when": "2026-10-30T15:12:03Z", "item": "ob-30", "action": "retire", "from": "open", "to": "retired", "note": "Folded into ob-24 (v0.2.0 bundle)"}
+{"when": "2026-10-30T15:13:03Z", "item": "ob-24", "action": "status", "from": "open", "to": "started", "note": "", "by": "Jon Robbins"}
+{"when": "2026-10-30T15:29:30Z", "item": "ob-24", "action": "note", "from": "", "to": "", "note": "Owner decision (autopilot): program-line overflow is checked", "by": "Jon Robbins"}
+{"when": "2026-10-30T15:36:25Z", "item": "ob-24", "action": "note", "from": "", "to": "", "note": "Review FAIL: README.md 'A config is rejected when:' list sta", "by": "Jon Robbins"}
+{"when": "2026-10-30T15:38:47Z", "item": "ob-24", "action": "note", "from": "", "to": "", "note": "Outcome: equal limits now draw a random side for out-of-limi", "by": "Jon Robbins"}
+{"when": "2026-10-30T15:38:47Z", "item": "ob-24", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon Robbins cleared", "by": "Jon Robbins"}

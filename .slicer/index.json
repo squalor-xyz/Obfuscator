@@ -1255,10 +1255,44 @@
       "id": "ob-24",
       "title": "Test-results generation: random side for equal limits, overflow-checked counters, prober X/Y grid ranges",
       "short_title": "Test-results generation behaviour fixes",
-      "status": "open",
+      "status": "review",
       "has_slice": true,
       "depends_on": [],
-      "note_records": [],
+      "note_records": [
+        {
+          "id": "477f4e45-d5ba-404b-9e75-bf225e250094",
+          "kind": "",
+          "text": "**2026-10-30** — Owner decision (autopilot): program-line overflow is checked only when a programLine annotation prints it; unused programLineStart/Step are not rejected (taken: a, accept since nothing prints). Prober width check uses the widest value the devices actually print (taken: a). Runtime redraw backstop kept and covered by a test using a sub-ulp normal tie config (no injectable hook).",
+          "created_at": "2026-10-30T15:29:30Z",
+          "attempt": 1,
+          "by": "Jon Robbins",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        },
+        {
+          "id": "95247070-421a-46a2-b714-3e5b859ca93e",
+          "kind": "",
+          "text": "**2026-10-30** — Review FAIL: README.md 'A config is rejected when:' list stale (1% floor not described as print-grid judged; new overflow, prober value+range, min>max, missing min/max, range on site and prober range width rejections missing); README.md:171 wrongly says site takes range.",
+          "created_at": "2026-10-30T15:36:25Z",
+          "attempt": 1,
+          "by": "Jon Robbins",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        },
+        {
+          "id": "ec774e31-a48d-4f9f-86b5-731c15eb5c8f",
+          "kind": "",
+          "text": "**2026-10-30** — Outcome: equal limits now draw a random side for out-of-limit values; serial and program-line overflow is rejected at validation via Int128; prober X/Y take range {min,max} with a raster walk (no randomness); the 1% inside-limits floor is judged on the print grid (ob-29); the serial start width check is skipped with nRows 0 (ob-30); the redraw backstop has a covering test; the ob-20 golden is byte-identical; 475 tests pass.",
+          "created_at": "2026-10-30T15:38:47Z",
+          "attempt": 1,
+          "by": "Jon Robbins",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        }
+      ],
       "claim": null,
       "readiness": {
         "by": "Jon Robbins",
@@ -1282,7 +1316,7 @@
         "importance": 2,
         "urgency": 2,
         "effort": 2,
-        "attempts": 0
+        "attempts": 1
       }
     },
     {

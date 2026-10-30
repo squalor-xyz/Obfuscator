@@ -2467,30 +2467,6 @@ public sealed class ObfuscatorTests : IDisposable
         TestResultsGenerator.Validate(config);
     }
 
-    [Fact]
-    public void GenerateCsv_TestResults_NoValueCanPrintInsideTheLimits_FailsAfterABoundedNumberOfRedraws()
-    {
-        // Validation passes: the whole distribution lies inside 0.2..1.0 and "1" prints inside. But every draw from
-        // 0.2..0.4 prints as "0", which is outside, so the redraw backstop gives up.
-        var outputPath = Path.Combine(_tempDir, "tr-never-inside.csv");
-        var config = TrSingleTestConfig(5, t =>
-        {
-            t.LowerLimit = 0.2;
-            t.UpperLimit = 1.0;
-            t.Min = 0.2;
-            t.Max = 0.4;
-            t.Format = "%.0f";
-        });
-        TestResultsGenerator.Validate(config);
-
-        var ex = Assert.Throws<InvalidOperationException>(() => _obfuscator.GenerateCsv(config, outputPath));
-
-        Assert.Contains("inside its limits", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("10000", ex.Message, StringComparison.Ordinal);
-        Assert.False(File.Exists(outputPath));
-        Assert.False(File.Exists(outputPath + ".tmp"));
-    }
-
     public static IEnumerable<object[]> TestResultsNullFieldConfigs()
     {
         static object[] Case(string name, string field, Action<DataGenConfig> mutate) => [name, field, mutate];
@@ -2704,6 +2680,578 @@ public sealed class ObfuscatorTests : IDisposable
         });
 
         AssertTestResultsRejectedUpFront(config, "inside its limits");
+    }
+
+    // ---- test-results generation fixes (ob-24) ----
+
+    private const int TrSerialColumn = 0;
+    private const int TrProberXColumn = 2;
+    private const int TrProberYColumn = 3;
+
+    // Device cells of every data row, for a config built from TestResultsConfig() (five preamble lines).
+    private string[][] TrDataRows(DataGenConfig config, string name)
+    {
+        var lines = GenerateTestResultsLines(config, name);
+        var annotations = config.TestResults!.Annotations.Count;
+        return lines[(TrPreambleLines + annotations + 1)..].Select(TrCells).ToArray();
+    }
+
+    private static ProberRangeSpec Range(long min, long max) => new() { Min = min, Max = max };
+
+    private static DataGenConfig TrProberConfig(int devices, ProberRangeSpec? x, ProberRangeSpec? y, Action<TestResultsSpec>? edit = null)
+        => TestResultsConfig(devices, s =>
+        {
+            s.Annotations = [];
+            s.DeviceColumns.ProberX = x is null
+                ? new FixedColumnSpec { Name = "X", Width = 4, Value = "7" }
+                : new FixedColumnSpec { Name = "X", Width = 4, Range = x };
+            s.DeviceColumns.ProberY = y is null
+                ? new FixedColumnSpec { Name = "Y", Width = 4, Value = "9" }
+                : new FixedColumnSpec { Name = "Y", Width = 4, Range = y };
+            edit?.Invoke(s);
+        });
+
+    private static string[] TrColumn(string[][] rows, int column) => rows.Select(r => r[column].Trim()).ToArray();
+
+    [Fact]
+    public void GenerateCsv_TestResults_EqualLimits_OutOfLimitValuesLandOnBothSidesAboutHalfEach()
+    {
+        var config = TrSingleTestConfig(10_000, t =>
+        {
+            t.UpperLimit = 5;
+            t.LowerLimit = 5;
+            t.Min = 5;
+            t.Max = 5;
+            t.OutOfLimitRate = 100;
+        });
+
+        var values = TrColumnValues(config, out _);
+
+        var above = values.Count(v => v > 5.0);
+        var below = values.Count(v => v < 5.0);
+        Assert.Equal(10_000, above + below);
+        Assert.InRange(above, 4_000, 6_000);
+        Assert.InRange(below, 4_000, 6_000);
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_EqualLimits_SideIsDeterministicForASeed()
+    {
+        var build = () => TrSingleTestConfig(500, t =>
+        {
+            t.UpperLimit = 5;
+            t.LowerLimit = 5;
+            t.Min = 5;
+            t.Max = 5;
+            t.OutOfLimitRate = 100;
+        });
+
+        var first = TrColumnValues(build(), out _, "tr-equal-a");
+        var second = TrColumnValues(build(), out _, "tr-equal-b");
+
+        Assert.Equal(first, second);
+    }
+
+    [Theory]
+    [InlineData(1.0, 1.2, true)]
+    [InlineData(1.8, 2.0, false)]
+    public void GenerateCsv_TestResults_UnequalLimits_ARawValueNearerOneLimitStillGoesToThatSide(double min, double max, bool below)
+    {
+        var config = TrSingleTestConfig(2_000, t =>
+        {
+            t.Min = min;
+            t.Max = max;
+            t.OutOfLimitRate = 100;
+        });
+
+        var values = TrColumnValues(config, out _);
+
+        Assert.All(values, v => Assert.True(below ? v < 1.0 : v > 2.0, $"{v} is on the wrong side"));
+    }
+
+    public static IEnumerable<object[]> TestResultsSerialOverflowConfigs()
+    {
+        // start, step, devices
+        static object[] Case(string name, long start, long step, int devices) => [name, start, step, devices];
+
+        yield return Case("last serial above long.MaxValue", long.MaxValue - 10, 3, 5);
+        yield return Case("last serial below long.MinValue", long.MinValue + 10, -3, 5);
+        yield return Case("step times the device index overflows", 0, long.MaxValue, 3);
+        yield return Case("negative step times the device index overflows", -1, long.MinValue, 3);
+    }
+
+    [Theory]
+    [MemberData(nameof(TestResultsSerialOverflowConfigs))]
+    public void GenerateCsv_TestResults_SerialThatOverflowsLongOnTheLastDevice_IsRejectedAtValidation(string name, long start, long step, int devices)
+    {
+        _ = name;
+        var config = TestResultsConfig(devices, s =>
+        {
+            s.DeviceColumns.Serial!.Width = 30;
+            s.DeviceColumns.Serial.Start = start;
+            s.DeviceColumns.Serial.Step = step;
+        });
+
+        AssertTestResultsRejectedUpFront(config, "deviceColumns.serial", "start", "step", "overflow");
+    }
+
+    [Theory]
+    [InlineData(long.MaxValue - 12, 3, 5)]
+    [InlineData(0, long.MaxValue, 2)]
+    [InlineData(long.MaxValue, long.MaxValue, 1)]
+    [InlineData(long.MaxValue, long.MaxValue, 0)]
+    [InlineData(long.MinValue + 12, -3, 5)]
+    public void GenerateCsv_TestResults_SerialThatReachesLongLimitsExactly_IsAccepted(long start, long step, int devices)
+    {
+        var config = TestResultsConfig(devices, s =>
+        {
+            s.Annotations = [];
+            s.DeviceColumns.Serial!.Width = 20;
+            s.DeviceColumns.Serial.Start = start;
+            s.DeviceColumns.Serial.Step = step;
+        });
+
+        TestResultsGenerator.Validate(config);
+        var rows = TrDataRows(config, "tr-serial-limit");
+
+        Assert.Equal(devices, rows.Length);
+        if (devices > 0)
+            Assert.Equal(start.ToString(CultureInfo.InvariantCulture), rows[0][TrSerialColumn].Trim());
+        if (devices > 1)
+            Assert.Equal(unchecked(start + step * (devices - 1)).ToString(CultureInfo.InvariantCulture), rows[^1][TrSerialColumn].Trim());
+    }
+
+    // TestResultsConfig() has six test columns, so the last program line is start + step * 5.
+    public static IEnumerable<object[]> TestResultsProgramLineOverflowConfigs()
+    {
+        static object[] Case(string name, long start, long step) => [name, start, step];
+
+        yield return Case("last program line above long.MaxValue", long.MaxValue - 4, 1);
+        yield return Case("last program line below long.MinValue", long.MinValue + 4, -1);
+        yield return Case("step times the column index overflows", 0, long.MaxValue);
+    }
+
+    [Theory]
+    [MemberData(nameof(TestResultsProgramLineOverflowConfigs))]
+    public void GenerateCsv_TestResults_ProgramLineThatOverflowsLongOnTheLastColumn_IsRejectedAtValidation(string name, long start, long step)
+    {
+        _ = name;
+        var config = TestResultsConfig(3, s =>
+        {
+            s.ProgramLineStart = start;
+            s.ProgramLineStep = step;
+        });
+
+        AssertTestResultsRejectedUpFront(config, "programLineStart", "programLineStep", "overflow");
+    }
+
+    [Theory]
+    [InlineData(long.MaxValue - 5, 1)]
+    [InlineData(0, long.MaxValue / 5)]
+    [InlineData(long.MinValue + 5, -1)]
+    public void GenerateCsv_TestResults_ProgramLineThatReachesLongLimitsExactly_IsAccepted(long start, long step)
+    {
+        var config = TestResultsConfig(3, s =>
+        {
+            s.ProgramLineStart = start;
+            s.ProgramLineStep = step;
+        });
+
+        var lines = GenerateTestResultsLines(config, "tr-line-limit");
+
+        var cells = TrCells(lines[TrPreambleLines]);
+        Assert.Equal(start.ToString(CultureInfo.InvariantCulture), cells[5].Trim());
+        Assert.Equal(unchecked(start + step * 5).ToString(CultureInfo.InvariantCulture), cells[^1].Trim());
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_SerialWhoseStepTimesTheIndexOverflowsButWhoseLastValueFits_IsAccepted()
+    {
+        // The serials are 2^63-1, 2^62-1, -1 and -2^62-1: step * 3 alone is below long.MinValue, the sum is not.
+        var config = TestResultsConfig(4, s =>
+        {
+            s.Annotations = [];
+            s.DeviceColumns.Serial!.Width = 20;
+            s.DeviceColumns.Serial.Start = long.MaxValue;
+            s.DeviceColumns.Serial.Step = -4_611_686_018_427_387_904;
+        });
+
+        TestResultsGenerator.Validate(config);
+        var rows = TrDataRows(config, "tr-serial-intermediate");
+
+        Assert.Equal(
+            new[] { "9223372036854775807", "4611686018427387903", "-1", "-4611686018427387905" },
+            TrColumn(rows, TrSerialColumn));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_ProgramLineWhoseStepTimesTheIndexOverflowsButWhoseLastValueFits_IsAccepted()
+    {
+        // Four test columns: lines 2^63-1, 2^62-1, -1 and -2^62-1.
+        var config = TestResultsConfig(2, s =>
+        {
+            s.ConditionSets = [s.ConditionSets[1]];
+            s.ProgramLineStart = long.MaxValue;
+            s.ProgramLineStep = -4_611_686_018_427_387_904;
+        });
+
+        var lines = GenerateTestResultsLines(config, "tr-line-intermediate");
+
+        var cells = TrCells(lines[TrPreambleLines]);
+        Assert.Equal(
+            new[] { "9223372036854775807", "4611686018427387903", "-1", "-4611686018427387905" },
+            cells[5..].Select(c => c.Trim()));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_NoValueCanPrintInsideTheLimits_FailsAfterABoundedNumberOfRedraws()
+    {
+        // The normal's spread is so small that validation sees half of it above the limit's rounding edge (0.5), but
+        // every draw is 0.5, which prints as "0", below the limit of 1. The redraw backstop gives up.
+        var outputPath = Path.Combine(_tempDir, "tr-never-inside.csv");
+        var config = TrSingleTestConfig(5, t =>
+        {
+            t.Distribution = "normal";
+            t.Mean = 0.5;
+            t.StdDev = 1e-300;
+            t.Min = null;
+            t.Max = null;
+            t.LowerLimit = 1.0;
+            t.UpperLimit = null;
+            t.Format = "%.0f";
+        });
+        TestResultsGenerator.Validate(config);
+
+        var ex = Assert.Throws<InvalidOperationException>(() => _obfuscator.GenerateCsv(config, outputPath));
+
+        Assert.Contains("inside its limits", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("10000", ex.Message, StringComparison.Ordinal);
+        Assert.False(File.Exists(outputPath));
+        Assert.False(File.Exists(outputPath + ".tmp"));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_ProgramLineThatNothingPrints_IsNotCheckedForOverflow()
+    {
+        var config = TestResultsConfig(3, s =>
+        {
+            s.Annotations = [new AnnotationSpec { Label = "Unit", Source = "unit" }];
+            s.ProgramLineStart = long.MaxValue;
+            s.ProgramLineStep = long.MaxValue;
+        });
+
+        TestResultsGenerator.Validate(config);
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_CounterPrintsOnlyItsStart_SoItCannotOverflow()
+    {
+        var config = TestResultsConfig(3, s =>
+        {
+            s.Preamble!.Entries =
+            [
+                new PreambleEntrySpec { Key = "Seq", Kind = "counter", Start = long.MaxValue, Step = long.MaxValue },
+                new PreambleEntrySpec { Key = "Low", Kind = "counter", Start = long.MinValue, Step = long.MinValue }
+            ];
+        });
+
+        var lines = GenerateTestResultsLines(config, "tr-counter-extreme");
+
+        Assert.Equal("Seq         :,9223372036854775807", lines[0]);
+        Assert.Equal("Low         :,-9223372036854775808", lines[1]);
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_ProberRanges_WalkARasterWithXAsTheFastAxisAndWrap()
+    {
+        var config = TrProberConfig(8, Range(0, 2), Range(10, 11));
+
+        var rows = TrDataRows(config, "tr-raster");
+
+        Assert.Equal(new[] { "0", "1", "2", "0", "1", "2", "0", "1" }, TrColumn(rows, TrProberXColumn));
+        Assert.Equal(new[] { "10", "10", "10", "11", "11", "11", "10", "10" }, TrColumn(rows, TrProberYColumn));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_ProberRanges_RasterKeepsWrappingOverSeveralGrids()
+    {
+        var config = TrProberConfig(13, Range(1, 2), Range(1, 3));
+
+        var rows = TrDataRows(config, "tr-raster-wrap");
+
+        var pairs = rows.Select(r => r[TrProberXColumn].Trim() + "," + r[TrProberYColumn].Trim()).ToArray();
+        Assert.Equal(
+            new[] { "1,1", "2,1", "1,2", "2,2", "1,3", "2,3", "1,1", "2,1", "1,2", "2,2", "1,3", "2,3", "1,1" },
+            pairs);
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_ProberRange_OnXOnly_CyclesPerDeviceAndYStaysFixed()
+    {
+        var config = TrProberConfig(7, Range(5, 7), null);
+
+        var rows = TrDataRows(config, "tr-x-only");
+
+        Assert.Equal(new[] { "5", "6", "7", "5", "6", "7", "5" }, TrColumn(rows, TrProberXColumn));
+        Assert.All(TrColumn(rows, TrProberYColumn), y => Assert.Equal("9", y));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_ProberRange_OnYOnly_CyclesPerDeviceAndXStaysFixed()
+    {
+        var config = TrProberConfig(5, null, Range(-1, 1));
+
+        var rows = TrDataRows(config, "tr-y-only");
+
+        Assert.Equal(new[] { "-1", "0", "1", "-1", "0" }, TrColumn(rows, TrProberYColumn));
+        Assert.All(TrColumn(rows, TrProberXColumn), x => Assert.Equal("7", x));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_ProberRange_WithMinEqualToMax_PrintsThatValueEverywhere()
+    {
+        var config = TrProberConfig(6, Range(0, 2), Range(4, 4));
+
+        var rows = TrDataRows(config, "tr-degenerate");
+
+        Assert.Equal(new[] { "0", "1", "2", "0", "1", "2" }, TrColumn(rows, TrProberXColumn));
+        Assert.All(TrColumn(rows, TrProberYColumn), y => Assert.Equal("4", y));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_ProberRange_CoversTheWholeLongRange()
+    {
+        var config = TrProberConfig(3, Range(long.MinValue, long.MaxValue), Range(0, 1), s =>
+        {
+            s.DeviceColumns.ProberX!.Width = 20;
+            s.DeviceColumns.ProberY!.Width = 20;
+        });
+
+        var rows = TrDataRows(config, "tr-long-range");
+
+        Assert.Equal(
+            new[] { "-9223372036854775808", "-9223372036854775807", "-9223372036854775806" },
+            TrColumn(rows, TrProberXColumn));
+        Assert.All(TrColumn(rows, TrProberYColumn), y => Assert.Equal("0", y));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_ProberRange_UsesNoRandomness()
+    {
+        var fixedConfig = TrProberConfig(200, null, null);
+        var rangedConfig = TrProberConfig(200, Range(0, 6), Range(0, 3));
+        var otherSeed = TrProberConfig(200, Range(0, 6), Range(0, 3));
+        otherSeed.Seed = 12345;
+
+        var fixedRows = TrDataRows(fixedConfig, "tr-rand-fixed");
+        var rangedRows = TrDataRows(rangedConfig, "tr-rand-ranged");
+        var otherRows = TrDataRows(otherSeed, "tr-rand-other");
+
+        // The bin and test cells after the prober columns are drawn from the same seeded stream, so they only match
+        // when the ranged columns took no draws.
+        Assert.Equal(fixedRows.Select(r => string.Join(",", r.Skip(4))), rangedRows.Select(r => string.Join(",", r.Skip(4))));
+        Assert.Equal(TrColumn(rangedRows, TrProberXColumn), TrColumn(otherRows, TrProberXColumn));
+        Assert.Equal(TrColumn(rangedRows, TrProberYColumn), TrColumn(otherRows, TrProberYColumn));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_ProberColumnWithValueOnly_StillPrintsTheValueOnEveryRow()
+    {
+        var rows = TrDataRows(TrProberConfig(4, null, null), "tr-value-only");
+
+        Assert.All(TrColumn(rows, TrProberXColumn), x => Assert.Equal("7", x));
+        Assert.All(TrColumn(rows, TrProberYColumn), y => Assert.Equal("9", y));
+    }
+
+    public static IEnumerable<object[]> TestResultsProberRangeInvalidConfigs()
+    {
+        static object[] Case(string name, Action<DeviceColumnsSpec> mutate, params string[] fragments) => [name, mutate, fragments];
+
+        yield return Case("value and range on proberX", d => d.ProberX!.Range = Range(0, 3), "deviceColumns.proberX", "value", "range");
+        yield return Case("value and range on proberY", d => d.ProberY!.Range = Range(0, 3), "deviceColumns.proberY", "value", "range");
+        yield return Case("empty value and range", d => { d.ProberX!.Value = string.Empty; d.ProberX.Range = Range(0, 3); }, "deviceColumns.proberX", "value", "range");
+        yield return Case("min above max on proberX", d => { d.ProberX!.Value = null; d.ProberX.Range = Range(5, 4); }, "deviceColumns.proberX.range", "min", "max");
+        yield return Case("min above max on proberY", d => { d.ProberY!.Value = null; d.ProberY.Range = Range(0, -1); }, "deviceColumns.proberY.range", "min", "max");
+        yield return Case("range without max", d => { d.ProberX!.Value = null; d.ProberX.Range = new ProberRangeSpec { Min = 1 }; }, "deviceColumns.proberX.range", "max");
+        yield return Case("range without min", d => { d.ProberY!.Value = null; d.ProberY.Range = new ProberRangeSpec { Max = 1 }; }, "deviceColumns.proberY.range", "min");
+        yield return Case("range on site", d => { d.Site!.Value = null; d.Site.Range = Range(0, 3); }, "deviceColumns.site", "range");
+    }
+
+    [Theory]
+    [MemberData(nameof(TestResultsProberRangeInvalidConfigs))]
+    public void GenerateCsv_TestResults_InvalidProberRange_IsRejectedAtValidationAndNamed(string name, Action<DeviceColumnsSpec> mutate, string[] fragments)
+    {
+        _ = name;
+        var config = TestResultsConfig();
+        mutate(config.TestResults!.DeviceColumns);
+
+        AssertTestResultsRejectedUpFront(config, fragments);
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_ProberRange_WidthIsCheckedAgainstTheWidestPrintedValue()
+    {
+        // Two devices print 8 and 9; a fifth would print 12.
+        var fits = TrProberConfig(2, Range(8, 12), null, s => s.DeviceColumns.ProberX!.Width = 1);
+        TestResultsGenerator.Validate(fits);
+
+        var overflows = TrProberConfig(5, Range(8, 12), null, s => s.DeviceColumns.ProberX!.Width = 1);
+        AssertTestResultsRejectedUpFront(overflows, "'X'", "12", "width");
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_ProberRange_NegativeBoundCountsItsSignInTheWidth()
+    {
+        var config = TrProberConfig(2, null, Range(-100, 5), s => s.DeviceColumns.ProberY!.Width = 3);
+
+        AssertTestResultsRejectedUpFront(config, "'Y'", "-100");
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_ProberRaster_WidthOfYDependsOnHowManyRowsTheDevicesReach()
+    {
+        // X has 10 values, so 100 devices fill rows 0..9 and the 101st reaches row 10, which needs two bytes.
+        void Edit(TestResultsSpec s)
+        {
+            s.DeviceColumns.ProberX!.Width = 1;
+            s.DeviceColumns.ProberY!.Width = 1;
+        }
+
+        TestResultsGenerator.Validate(TrProberConfig(100, Range(0, 9), Range(0, 11), Edit));
+        AssertTestResultsRejectedUpFront(TrProberConfig(101, Range(0, 9), Range(0, 11), Edit), "'Y'", "10");
+        // A grid of 120 positions wraps, so more devices reach no further than row 11.
+        AssertTestResultsRejectedUpFront(TrProberConfig(500, Range(0, 9), Range(0, 11), Edit), "'Y'", "11");
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_ProberRange_IsNotWidthCheckedWhenThereAreNoDevices()
+    {
+        var config = TrProberConfig(0, Range(0, 123_456), Range(0, 123_456), s =>
+        {
+            s.DeviceColumns.ProberX!.Width = 1;
+            s.DeviceColumns.ProberY!.Width = 1;
+        });
+
+        TestResultsGenerator.Validate(config);
+    }
+
+    public static IEnumerable<object[]> TestResultsGridAwareFloorConfigs()
+    {
+        // format, lower, upper, min, max, accepted. All use a uniform distribution.
+        static object[] Case(string format, double? lower, double? upper, double min, double max, bool accepted)
+            => [format, lower!, upper!, min, max, accepted];
+
+        // Every draw lies inside 0.2..1.0 before rounding, but 0.2..0.4 all print "0".
+        yield return Case("%.0f", 0.2, 1.0, 0.2, 0.4, false);
+        yield return Case("%.0f", 0.45, 1.0, 0.2, 0.4, false);
+        // Only the draws from 0.5 up print "1"; nothing lies inside 0.9..1.0 before rounding.
+        yield return Case("%.0f", 0.9, 1.0, 0.45, 0.55, true);
+        // One value only: it prints "0" and "1" and is judged as printed.
+        yield return Case("%.0f", 0.2, 1.0, 0.4, 0.4, false);
+        yield return Case("%.0f", 0.2, 1.0, 0.6, 0.6, true);
+        yield return Case("%.0f", null, -0.1, -0.3, 0.0, false);
+        yield return Case("%.0f", 0.45, null, 0.0, 0.4, false);
+        // 1.02..1.04 prints as 1.0e+00, below the lower limit; from 1.05 up it prints 1.1e+00.
+        yield return Case("%.1e", 1.02, 1.3, 1.02, 1.04, false);
+        yield return Case("%.1e", 1.02, 1.3, 1.02, 1.06, true);
+        // Below a power of ten the print grid is ten times finer: 0.995 is the first value that prints 1.0e+00.
+        yield return Case("%.1e", 1.0, 2.0, 0.99, 0.994, false);
+        yield return Case("%.1e", 1.0, 2.0, 0.99, 0.996, true);
+        yield return Case("%.1e", 0.96, 0.99, 0.99, 1.01, true);
+    }
+
+    [Theory]
+    [MemberData(nameof(TestResultsGridAwareFloorConfigs))]
+    public void GenerateCsv_TestResults_InsideLimitsFloor_IsJudgedOnThePrintGrid(
+        string format, double? lower, double? upper, double min, double max, bool accepted)
+    {
+        var config = TrSingleTestConfig(300, t =>
+        {
+            t.Format = format;
+            t.LowerLimit = lower;
+            t.UpperLimit = upper;
+            t.Min = min;
+            t.Max = max;
+        });
+
+        if (!accepted)
+        {
+            AssertTestResultsRejectedUpFront(config, "'V'", "inside its limits");
+            return;
+        }
+
+        TestResultsGenerator.Validate(config);
+        var values = TrColumnValues(config, out _);
+        Assert.Equal(300, values.Length);
+        Assert.All(values, v => Assert.True((!lower.HasValue || v >= lower) && (!upper.HasValue || v <= upper), $"{v} is outside the limits"));
+    }
+
+    [Theory]
+    [InlineData(0.3, 0.05, false)]
+    [InlineData(0.45, 0.05, true)]
+    public void GenerateCsv_TestResults_InsideLimitsFloor_UsesTheNormalMassThatPrintsInside(double mean, double stdDev, bool accepted)
+    {
+        var config = TrSingleTestConfig(5, t =>
+        {
+            t.Distribution = "normal";
+            t.Mean = mean;
+            t.StdDev = stdDev;
+            t.Min = null;
+            t.Max = null;
+            t.Format = "%.0f";
+            t.LowerLimit = 0.9;
+            t.UpperLimit = 1.0;
+        });
+
+        if (accepted)
+            TestResultsGenerator.Validate(config);
+        else
+            AssertTestResultsRejectedUpFront(config, "'V'", "inside its limits");
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_InsideLimitsFloor_StillSkippedAtARateOf100ForTheGridCase()
+    {
+        var config = TrSingleTestConfig(50, t =>
+        {
+            t.Format = "%.0f";
+            t.LowerLimit = 0.45;
+            t.UpperLimit = 1.0;
+            t.Min = 0.2;
+            t.Max = 0.4;
+            t.OutOfLimitRate = 100;
+        });
+
+        TestResultsGenerator.Validate(config);
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_SerialStartIsNotWidthCheckedWithoutDevices_ButItsHeaderStillIs()
+    {
+        // Nothing is printed under the header, so only the header has to fit.
+        var noDevices = TestResultsConfig(0, s =>
+        {
+            s.Annotations = [];
+            s.DeviceColumns.Serial!.Width = 3;
+            s.DeviceColumns.Serial.Start = 123_456_789;
+        });
+        TestResultsGenerator.Validate(noDevices);
+
+        var wideHeader = TestResultsConfig(0, s =>
+        {
+            s.Annotations = [];
+            s.DeviceColumns.Serial!.Width = 1;
+            s.DeviceColumns.Serial.Start = 1;
+        });
+        AssertTestResultsRejectedUpFront(wideHeader, "'SN'", "column name");
+
+        var oneDevice = TestResultsConfig(1, s =>
+        {
+            s.Annotations = [];
+            s.DeviceColumns.Serial!.Width = 3;
+            s.DeviceColumns.Serial.Start = 123_456_789;
+        });
+        AssertTestResultsRejectedUpFront(oneDevice, "'SN'", "123456789");
     }
 
     [Fact]

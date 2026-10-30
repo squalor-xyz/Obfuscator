@@ -15,7 +15,8 @@ namespace Squalor.Obfuscator;
 // and rows are streamed, so the file is never held in memory. Everything comes from one seeded Random in a fixed
 // order: per device the bin first, then each test cell in column order. A cell takes three fixed draws (null,
 // out-of-limit, delta) and then one or more value draws: a value whose printed form falls outside the limits is drawn
-// again, up to MaxRedraws times, rather than clamped onto a limit.
+// again, up to MaxRedraws times, rather than clamped onto a limit. An out-of-limit value with equal limits takes one
+// more draw to pick its side. Prober ranges take no draws: they are computed from the device index.
 internal sealed class TestResultsGenerator
 {
     private const int MaxFormatPrecision = 20;
@@ -192,6 +193,11 @@ internal sealed class TestResultsGenerator
                 case DeviceKind.Bin:
                     writer.Cell(DrawBin(column), column.Width, column.Name);
                     break;
+                case DeviceKind.Range:
+                    // Validation has bounded the value: it lies between the range's min and max.
+                    var offset = (UInt128)device / column.RangeStride % column.RangeCount;
+                    writer.Cell(FormatLong((long)((Int128)column.RangeMin + (Int128)offset), scratch), column.Width, column.Name);
+                    break;
                 default:
                     writer.Cell(column.Fixed, column.Width, column.Name);
                     break;
@@ -282,10 +288,14 @@ internal sealed class TestResultsGenerator
         return Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
     }
 
-    private static double JustOutsideNearerLimit(TestColumn column, double raw, double deltaDraw)
+    private double JustOutsideNearerLimit(TestColumn column, double raw, double deltaDraw)
     {
-        var useUpper = column.Upper.HasValue &&
-            (!column.Lower.HasValue || Math.Abs(raw - column.Upper.Value) <= Math.Abs(raw - column.Lower.Value));
+        // Equal limits have no nearer side, so one draw picks it. The draw happens only then: any other cell takes the
+        // same draws as before.
+        var useUpper = column.Upper.HasValue && column.Lower.HasValue && column.Upper == column.Lower
+            ? _random.NextDouble() < 0.5
+            : column.Upper.HasValue &&
+                (!column.Lower.HasValue || Math.Abs(raw - column.Upper.Value) <= Math.Abs(raw - column.Lower.Value));
         var limit = useUpper ? column.Upper!.Value : column.Lower!.Value;
         var scale = column.Upper.HasValue && column.Lower.HasValue && column.Upper > column.Lower
             ? column.Upper.Value - column.Lower.Value
@@ -409,24 +419,48 @@ internal sealed class TestResultsGenerator
                 Step = serial.Step
             };
             CheckNameFits(column);
-            // Serials are linear in the device index, so the widest one is the first or the last.
-            CheckFits($"the serial value {column.Start}", FormatLongLength(column.Start), column.Width, column.Name);
+            // Nothing is printed under the header without devices, so only the header has to fit then.
             if (_devices > 0)
             {
-                var last = column.Start + column.Step * (_devices - 1);
+                // Serials are linear in the device index, so the widest one is the first or the last.
+                CheckFits($"the serial value {column.Start}", FormatLongLength(column.Start), column.Width, column.Name);
+                // The sum can fit a long when the step times the index alone does not, so it is worked out wide.
+                var wideLast = (Int128)column.Start + (Int128)column.Step * (_devices - 1);
+                if (wideLast < long.MinValue || wideLast > long.MaxValue)
+                    throw Fail($"deviceColumns.serial.start {column.Start} and deviceColumns.serial.step {column.Step} overflow a 64-bit integer by the last device (number {_devices}).");
+
+                var last = (long)wideLast;
                 CheckFits($"the serial value {last}", FormatLongLength(last), column.Width, column.Name);
             }
 
             _deviceColumns.Add(column);
         }
 
-        foreach (var (key, fixedColumn) in new[] { ("site", devices.Site), ("proberX", devices.ProberX), ("proberY", devices.ProberY) })
+        var siteRange = RangeWidth("site", devices.Site);
+        var xRange = RangeWidth("proberX", devices.ProberX);
+        var yRange = RangeWidth("proberY", devices.ProberY);
+        // With both prober columns ranged the devices walk a raster: X is the fast axis and Y steps once per X sweep.
+        var raster = xRange.HasValue && yRange.HasValue;
+        var columns = new[]
+        {
+            ("site", devices.Site, siteRange, UInt128.One),
+            ("proberX", devices.ProberX, xRange, UInt128.One),
+            ("proberY", devices.ProberY, yRange, raster ? xRange!.Value : UInt128.One)
+        };
+
+        foreach (var (key, fixedColumn, rangeWidth, stride) in columns)
         {
             if (fixedColumn is null)
                 continue;
 
             RejectSeparators(fixedColumn.Name, $"deviceColumns.{key}.name");
             RejectSeparators(fixedColumn.Value, $"deviceColumns.{key}.value");
+            if (rangeWidth.HasValue)
+            {
+                _deviceColumns.Add(BuildRangeColumn(key, fixedColumn, rangeWidth.Value, stride));
+                continue;
+            }
+
             var column = new DeviceColumn(DeviceKind.Fixed, fixedColumn.Name, CheckWidth(fixedColumn.Name, fixedColumn.Width))
             {
                 Fixed = Encoding.UTF8.GetBytes(fixedColumn.Value ?? string.Empty)
@@ -438,6 +472,53 @@ internal sealed class TestResultsGenerator
 
         if (devices.Bin is { } bin)
             _deviceColumns.Add(BuildBinColumn(bin));
+    }
+
+    // Validates the value/range choice of a fixed or prober column and returns the number of positions its range spans
+    // (up to 2^64), or null when it has no range.
+    private static UInt128? RangeWidth(string key, FixedColumnSpec? column)
+    {
+        if (column?.Range is not { } range)
+            return null;
+
+        var field = $"deviceColumns.{key}";
+        if (key == "site")
+            throw Fail($"{field}.range is not supported: only proberX and proberY take a range.");
+
+        if (column.Value is not null)
+            throw Fail($"{field} has both a value and a range; give one of them.");
+
+        if (!range.Min.HasValue || !range.Max.HasValue)
+            throw Fail($"{field}.range needs both a min and a max.");
+
+        if (range.Min > range.Max)
+            throw Fail($"{field}.range min {range.Min} is above its max {range.Max}.");
+
+        return (UInt128)((Int128)range.Max.Value - range.Min.Value) + UInt128.One;
+    }
+
+    // A prober column that walks min..max. Stride is how many devices share one position: 1, or the width of the X range
+    // for Y in a raster.
+    private DeviceColumn BuildRangeColumn(string key, FixedColumnSpec spec, UInt128 count, UInt128 stride)
+    {
+        var min = spec.Range!.Min!.Value;
+        var column = new DeviceColumn(DeviceKind.Range, spec.Name, CheckWidth(spec.Name, spec.Width))
+        {
+            RangeMin = min,
+            RangeCount = count,
+            RangeStride = stride
+        };
+        CheckNameFits(column);
+        if (_devices > 0)
+        {
+            // Positions advance in order and wrap, so the printed values are min up to the last position reached.
+            var reached = UInt128.Min((UInt128)(_devices - 1) / stride + UInt128.One, count);
+            var last = (long)((Int128)min + (Int128)(reached - UInt128.One));
+            CheckFits($"the {key} value {min}", FormatLongLength(min), column.Width, column.Name);
+            CheckFits($"the {key} value {last}", FormatLongLength(last), column.Width, column.Name);
+        }
+
+        return column;
     }
 
     private static void CheckNameFits(DeviceColumn column)
@@ -690,37 +771,44 @@ internal sealed class TestResultsGenerator
 
         // At a rate of 100 no cell needs a value inside the limits, so neither check applies.
         var someCellInsideLimits = test.NullRate < PercentMax && test.OutOfLimitRate < PercentMax;
-        if (someCellInsideLimits && (test.UpperLimit.HasValue || test.LowerLimit.HasValue) && ProbabilityInsideLimits(test) < MinInsideLimitsProbability)
-            throw Fail($"test '{name}' distribution lands inside its limits less than {MinInsideLimitsProbability:P0} of the time, so most values would be drawn again and again.");
-
         if (someCellInsideLimits && test.UpperLimit.HasValue && test.LowerLimit.HasValue && !format.CanPrintInside(test.LowerLimit.Value, test.UpperLimit.Value))
             throw Fail($"test '{name}' format '{test.Format}' cannot print any value inside its limits {test.LowerLimit.Value.ToString("R", CultureInfo.InvariantCulture)}..{test.UpperLimit.Value.ToString("R", CultureInfo.InvariantCulture)}. Use more digits.");
+
+        if (someCellInsideLimits && (test.UpperLimit.HasValue || test.LowerLimit.HasValue) && ProbabilityPrintsInsideLimits(test, format) < MinInsideLimitsProbability)
+            throw Fail($"test '{name}' distribution prints inside its limits less than {MinInsideLimitsProbability:P0} of the time under format '{test.Format}', so most values would be drawn again and again.");
 
         template.Format = format;
         return template;
     }
 
-    // Chance that one draw lies inside the limits, before rounding to the print format. Distribution fields are valid here.
-    private static double ProbabilityInsideLimits(TestSpec test)
+    // Chance that one draw prints inside the limits: the mass of the raw values that round onto a printed value inside
+    // them, which is not the mass inside the limits themselves. Distribution fields are valid here.
+    private static double ProbabilityPrintsInsideLimits(TestSpec test, NumberFormat format)
     {
         var lower = test.LowerLimit ?? double.NegativeInfinity;
         var upper = test.UpperLimit ?? double.PositiveInfinity;
-        if (Normalize(test.Distribution) == "uniform")
+        var uniform = Normalize(test.Distribution) == "uniform";
+        // Every draw is the same value, so print it and look.
+        var point = uniform
+            ? test.Min == test.Max ? test.Min : null
+            : test.StdDev == 0 ? test.Mean : null;
+        if (point.HasValue)
+        {
+            var printed = format.Rounded(point.Value);
+            return printed >= lower && printed <= upper ? 1.0 : 0.0;
+        }
+
+        format.PrintedEdges(test.LowerLimit, test.UpperLimit, out var low, out var high);
+        if (uniform)
         {
             var min = test.Min!.Value;
             var max = test.Max!.Value;
-            if (max == min)
-                return min >= lower && min <= upper ? 1.0 : 0.0;
-
-            return Math.Max(0.0, Math.Min(max, upper) - Math.Max(min, lower)) / (max - min);
+            return Math.Max(0.0, Math.Min(max, high) - Math.Max(min, low)) / (max - min);
         }
 
         var mean = test.Mean!.Value;
         var stdDev = test.StdDev!.Value;
-        if (stdDev == 0)
-            return mean >= lower && mean <= upper ? 1.0 : 0.0;
-
-        return NormalCdf((upper - mean) / stdDev) - NormalCdf((lower - mean) / stdDev);
+        return Math.Max(0.0, NormalCdf((high - mean) / stdDev) - NormalCdf((low - mean) / stdDev));
     }
 
     private static double NormalCdf(double z)
@@ -765,8 +853,19 @@ internal sealed class TestResultsGenerator
             if (label.Length + 1 > first.Width)
                 throw Fail($"annotation label '{annotation.Label}' with its colon does not fit in the first device column '{first.Name}' (width {first.Width}).");
 
+            if (source == AnnotationSource.ProgramLine)
+                CheckProgramLineFits(spec);
+
             _annotationRows.Add(new AnnotationRow(label, source, spec.ProgramLineStart, spec.ProgramLineStep));
         }
+    }
+
+    // Program lines are linear in the column index, so if the last one fits a long, they all do.
+    private void CheckProgramLineFits(TestResultsSpec spec)
+    {
+        var last = (Int128)spec.ProgramLineStart + (Int128)spec.ProgramLineStep * (_testColumns.Count - 1);
+        if (last < long.MinValue || last > long.MaxValue)
+            throw Fail($"programLineStart {spec.ProgramLineStart} and programLineStep {spec.ProgramLineStep} overflow a 64-bit integer by the last test column (number {_testColumns.Count}).");
     }
 
     private void RejectDuplicateColumnNames()
@@ -853,6 +952,7 @@ internal sealed class TestResultsGenerator
     {
         Serial,
         Fixed,
+        Range,
         Bin
     }
 
@@ -886,6 +986,10 @@ internal sealed class TestResultsGenerator
         public long Start { get; init; }
         public long Step { get; init; }
         public byte[] Fixed { get; init; } = [];
+        // A ranged prober column prints RangeMin + (device / RangeStride) % RangeCount.
+        public long RangeMin { get; init; }
+        public UInt128 RangeCount { get; init; }
+        public UInt128 RangeStride { get; init; } = UInt128.One;
         public byte[][] BinValues { get; init; } = [];
         public double[] CumulativeWeights { get; init; } = [];
         public double TotalWeight { get; init; }
@@ -924,8 +1028,62 @@ internal sealed class TestResultsGenerator
             return false;
         }
 
+        // The value a reader sees after printing: the nearest printed value.
+        public double Rounded(double value)
+        {
+            Span<byte> scratch = stackalloc byte[ScratchSize];
+            return RoundTrip(value, scratch);
+        }
+
+        // Raw values that print inside lower..upper (either may be absent) lie between low and high: each edge is halfway
+        // from the outermost printed value inside the limits to its neighbour outside. Low can exceed high when no printed
+        // value lies inside. A limit that does not round to a finite value keeps itself as its edge.
+        public void PrintedEdges(double? lower, double? upper, out double low, out double high)
+        {
+            low = double.NegativeInfinity;
+            high = double.PositiveInfinity;
+            Span<byte> scratch = stackalloc byte[ScratchSize];
+            if (lower.HasValue)
+            {
+                var printed = RoundTrip(lower.Value, scratch);
+                if (printed < lower.Value)
+                    printed = RoundTrip(printed + Gap(printed, true, scratch), scratch);
+
+                low = double.IsFinite(printed) ? printed - Gap(printed, false, scratch) / 2 : lower.Value;
+            }
+
+            if (upper.HasValue)
+            {
+                var printed = RoundTrip(upper.Value, scratch);
+                if (printed > upper.Value)
+                    printed = RoundTrip(printed - Gap(printed, false, scratch), scratch);
+
+                high = double.IsFinite(printed) ? printed + Gap(printed, true, scratch) / 2 : upper.Value;
+            }
+        }
+
         private double RoundTrip(double value, Span<byte> scratch)
             => double.Parse(scratch[..Format(value, scratch)], NumberStyles.Float, CultureInfo.InvariantCulture);
+
+        // Distance from a printed value to its neighbour above or below. With an exponent the grid gets ten times finer
+        // below a power of ten, so the neighbour toward zero of one is closer.
+        private double Gap(double printed, bool up, Span<byte> scratch)
+        {
+            if (!Exponent)
+                return Math.Pow(10, -Precision);
+
+            if (printed == 0 || !double.IsFinite(printed))
+                return 0;
+
+            var length = Format(printed, scratch);
+            var exponent = int.Parse(scratch[(scratch[..length].IndexOf((byte)'e') + 1)..length], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture);
+            var step = PowerOfTen(exponent - Precision);
+            var towardZero = up == (printed < 0);
+            return towardZero && Math.Abs(printed) == PowerOfTen(exponent) ? step / 10 : step;
+        }
+
+        private static double PowerOfTen(int exponent)
+            => double.Parse("1e" + exponent.ToString(CultureInfo.InvariantCulture), NumberStyles.Float, CultureInfo.InvariantCulture);
 
         // Distance between neighbouring printed values at this magnitude.
         private double Step(double value)
