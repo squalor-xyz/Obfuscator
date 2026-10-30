@@ -1006,6 +1006,12 @@
       "depends_on": [],
       "note_records": [],
       "claim": null,
+      "readiness": {
+        "by": "Jon Robbins",
+        "at": "2026-10-30T13:29:10Z",
+        "note": "Owner approved drafted spec 2026-10-30.",
+        "digest": "sha256:2ffe53b171c64c070e71a4301bc52459532aafb21849caa60f4313437d05429d"
+      },
       "fields": {
         "size": "L",
         "flags": [],
@@ -1021,7 +1027,7 @@
         "reason": "",
         "importance": 2,
         "urgency": 2,
-        "effort": null,
+        "effort": 3,
         "attempts": 0
       }
     }

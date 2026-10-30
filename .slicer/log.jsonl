@@ -179,3 +179,10 @@
 {"when": "2026-10-30T13:16:45Z", "item": "ob-20", "action": "promote", "from": "", "to": "", "note": ""}
 {"when": "2026-10-30T13:16:45Z", "item": "ob-20", "action": "edit", "from": "", "to": "", "note": "lead"}
 {"when": "2026-10-30T13:16:45Z", "item": "ob-20", "action": "edit", "from": "", "to": "", "note": "Why"}
+{"when": "2026-10-30T13:28:58Z", "item": "ob-20", "action": "edit", "from": "", "to": "", "note": "Files"}
+{"when": "2026-10-30T13:28:58Z", "item": "ob-20", "action": "edit", "from": "", "to": "", "note": "Failing tests"}
+{"when": "2026-10-30T13:28:58Z", "item": "ob-20", "action": "edit", "from": "", "to": "", "note": "Implement"}
+{"when": "2026-10-30T13:28:58Z", "item": "ob-20", "action": "edit", "from": "", "to": "", "note": "Check"}
+{"when": "2026-10-30T13:28:58Z", "item": "ob-20", "action": "edit", "from": "", "to": "", "note": "Git"}
+{"when": "2026-10-30T13:28:58Z", "item": "ob-20", "action": "set", "from": "", "to": "", "note": "effort -→3"}
+{"when": "2026-10-30T13:29:10Z", "item": "ob-20", "action": "ready", "from": "", "to": "", "note": "Owner approved drafted spec 2026-10-30.", "by": "Jon Robbins"}
