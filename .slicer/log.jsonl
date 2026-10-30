@@ -203,3 +203,14 @@
 {"when": "2026-10-30T14:27:07Z", "item": "ob-20", "action": "edit", "from": "", "to": "", "note": "Failing tests"}
 {"when": "2026-10-30T14:32:44Z", "item": "ob-20", "action": "note", "from": "", "to": "", "note": "The example config and golden carry no injected bytes, the g", "by": "Jon Robbins"}
 {"when": "2026-10-30T14:32:44Z", "item": "ob-20", "action": "handoff", "from": "started", "to": "review", "note": "", "by": "Jon Robbins"}
+{"when": "2026-10-30T14:35:25Z", "item": "ob-20", "action": "edit", "from": "", "to": "", "note": "Failing tests"}
+{"when": "2026-10-30T14:35:25Z", "item": "ob-20", "action": "edit", "from": "", "to": "", "note": "lead"}
+{"when": "2026-10-30T14:35:35Z", "item": "ob-21", "action": "add", "from": "", "to": "open", "note": "Fail test-results configs at validation when a header, fixed value, unit or null token cannot fit its column, or a print format is too coarse to print any in-limit value"}
+{"when": "2026-10-30T14:35:35Z", "item": "ob-22", "action": "add", "from": "", "to": "open", "note": "Give a clear error when a test-results JSON list field is null"}
+{"when": "2026-10-30T14:35:35Z", "item": "ob-23", "action": "add", "from": "", "to": "open", "note": "Reject commas and CR/LF in test-results names, units, null tokens, condition keys/values and preamble values; reject keyOrder alongside explicit conditions"}
+{"when": "2026-10-30T14:35:35Z", "item": "ob-24", "action": "add", "from": "", "to": "open", "note": "Pick the out-of-limit side at random when a test's upper and lower limits are equal"}
+{"when": "2026-10-30T14:35:36Z", "item": "ob-25", "action": "add", "from": "", "to": "open", "note": "Use checked arithmetic for test-results serial, program-line and counter values"}
+{"when": "2026-10-30T14:35:36Z", "item": "ob-26", "action": "add", "from": "", "to": "open", "note": "Allow prober X/Y as a range or pattern instead of a fixed value"}
+{"when": "2026-10-30T14:35:36Z", "item": "ob-27", "action": "add", "from": "", "to": "open", "note": "Skip the 1% inside-limits validation floor when a test's nullRate or outOfLimitRate is 100"}
+{"when": "2026-10-30T14:35:36Z", "item": "ob-28", "action": "add", "from": "", "to": "open", "note": "Strengthen the test-results redraw tests: determinism under redraws and a one-sided limit"}
+{"when": "2026-10-30T14:35:36Z", "item": "ob-20", "action": "note", "from": "", "to": "", "note": "Human check: owner compared the example golden with a real p", "by": "Jon Robbins"}
