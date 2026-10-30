@@ -175,3 +175,7 @@
 {"when": "2026-10-08T17:39:46Z", "item": "ob-16", "action": "status", "from": "review", "to": "reviewing", "note": "", "by": "Jon R"}
 {"when": "2026-10-08T17:40:26Z", "item": "ob-16", "action": "status", "from": "reviewing", "to": "done", "note": "Reviewed and merged", "by": "Jon R"}
 {"when": "2026-10-09T12:41:22Z", "item": "ob-19", "action": "add", "from": "", "to": "later", "note": "Obfuscator may read and write Parquet and .ball through an optional DataBall adapter"}
+{"when": "2026-10-30T13:16:45Z", "item": "ob-20", "action": "add", "from": "", "to": "open", "note": "Generate wide test-result files with a preamble, annotation rows and condition-bracket headers"}
+{"when": "2026-10-30T13:16:45Z", "item": "ob-20", "action": "promote", "from": "", "to": "", "note": ""}
+{"when": "2026-10-30T13:16:45Z", "item": "ob-20", "action": "edit", "from": "", "to": "", "note": "lead"}
+{"when": "2026-10-30T13:16:45Z", "item": "ob-20", "action": "edit", "from": "", "to": "", "note": "Why"}

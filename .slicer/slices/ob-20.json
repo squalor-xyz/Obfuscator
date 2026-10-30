@@ -1,0 +1,43 @@
+{
+  "id": "ob-20",
+  "title": "Generate wide test-result files with a preamble, annotation rows and condition-bracket headers",
+  "lead": [
+    "Add a generator row mode, with a documented config spec, for a production test-program results file: one row per device, many test columns named by condition, and metadata lines above the header. It must reproduce the shape well enough that parsers can be tested on simulated data instead of real files.",
+    "The shape to generate, each part optional and configurable:\n- **Preamble:** `Key<padding>:,value` lines. The config lists the keys and their values (static, date, counter). It can inject stray bytes into a named key: invalid UTF-8 or control characters, to simulate a corrupted key.\n- **Annotation rows:** between the preamble and the header, labelled rows with one cell per column, such as a program-line reference, an upper limit, a lower limit and a unit. The config gives the labels and how each test column fills them. Device columns are blank.\n- **Device columns:** serial (start and step), site, prober X/Y and bin, the bin drawn from weights.\n- **Test columns:** named `[k1=v1|k2=v2|...]Test(unit)`, built from a spec of condition sets (a list, or the cartesian product of axes, with per-set key order) times the tests measured at each set. Optional quirks: a test name in a different case, or a repeated unit `Test(V)(V)`.\n- **Values:** per test, a distribution or range, a fixed print format such as `%.9f`, and a null token such as `NA.` at a configured rate. Values may sit outside the limits at a configured rate.\n- **Layout:** fields space-padded to a fixed width, so every line has the same length; CRLF or LF.",
+    "Deterministic for a seed, like the existing modes. **Not in this slice:** several sites per file, appended blocks, or reading such files back."
+  ],
+  "depends_note": null,
+  "findings_note": "",
+  "size": "L",
+  "flags": [],
+  "trees_note": "",
+  "trees_plural": false,
+  "boundary": "**Not in this slice:**",
+  "sections": [
+    {
+      "heading": "Why",
+      "body": "Owner request, 2026-10-30. Real files of this shape are confidential and cannot be used as fixtures, so downstream parsers are tested on small hand-written cuts. A generator spec makes realistic, shareable fixtures of any size: quirks included, and with large row counts (10k to 100k devices) for performance work."
+    },
+    {
+      "heading": "Files",
+      "body": ""
+    },
+    {
+      "heading": "Failing tests",
+      "body": ""
+    },
+    {
+      "heading": "Implement",
+      "body": ""
+    },
+    {
+      "heading": "Check",
+      "body": ""
+    },
+    {
+      "heading": "Git",
+      "body": ""
+    }
+  ],
+  "notes": []
+}
