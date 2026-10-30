@@ -1015,6 +1015,39 @@
           "verified_by": "",
           "verified_at": "",
           "stale_after": ""
+        },
+        {
+          "id": "e0597f46-8827-4263-9a46-af38a67248ad",
+          "kind": "",
+          "text": "**2026-10-30** — Owner answer (generate.preamble-counter): option c. A preamble counter entry prints its start value only; step is kept in the config for future appended blocks.",
+          "created_at": "2026-10-30T14:00:16Z",
+          "attempt": 1,
+          "by": "Jon Robbins",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        },
+        {
+          "id": "3fb9d7e5-285c-4be8-8e00-bdb9623453d3",
+          "kind": "",
+          "text": "**2026-10-30** — Owner fix note: in-limit values must not be clamped onto the limits (golden shows values exactly at upper/lower limit). Redraw a value that falls outside its limits instead of clamping; out-of-limit values are still produced only at outOfLimitRate. Rebaseline the golden.",
+          "created_at": "2026-10-30T14:00:16Z",
+          "attempt": 1,
+          "by": "Jon Robbins",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        },
+        {
+          "id": "b613f9fd-3778-4f12-afe7-c0997aa21426",
+          "kind": "",
+          "text": "**2026-10-30** — Owner fix round done: in-limit values are redrawn on the printed value instead of clamped (bounded at 10,000 draws, 1% validation floor), counter prints its start only, golden rebaselined with no in-limit value on a limit; 301 tests green, build/format/test-local pass.",
+          "created_at": "2026-10-30T14:12:43Z",
+          "attempt": 1,
+          "by": "Jon Robbins",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
         }
       ],
       "claim": null,

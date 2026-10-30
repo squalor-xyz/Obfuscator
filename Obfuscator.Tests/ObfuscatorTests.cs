@@ -1680,7 +1680,7 @@ public sealed class ObfuscatorTests : IDisposable
         Assert.Equal("Project     :,Alpha", lines[0]);
         Assert.Equal("Opened      :,2026-03-04", lines[1]);
         Assert.Equal("Seq         :,100", lines[2]);
-        Assert.Equal("Seq2        :,12", lines[3]);
+        Assert.Equal("Seq2        :,7", lines[3]);
         Assert.Equal("A Very Long Key Name:,x", lines[4]);
     }
 
@@ -1967,8 +1967,98 @@ public sealed class ObfuscatorTests : IDisposable
 
         Assert.Equal(10_000, values.Length);
         Assert.All(values, v => Assert.InRange(v, 1.0, 2.0));
-        if (distribution == "normal")
-            Assert.Contains(values, v => v == 1.0);
+    }
+
+    [Theory]
+    [InlineData("uniform")]
+    [InlineData("normal")]
+    public void GenerateCsv_TestResults_RedrawsInsteadOfClampingValuesOntoTheLimits(string distribution)
+    {
+        // The distribution is much wider than the limits; clamping would pile values up exactly on 1 and 2.
+        var config = TrSingleTestConfig(10_000, t =>
+        {
+            t.Distribution = distribution;
+            t.Mean = 1.5;
+            t.StdDev = 2;
+            t.Min = 0;
+            t.Max = 3;
+            t.Format = "%.9f";
+        });
+
+        var values = TrColumnValues(config, out _);
+
+        Assert.Equal(10_000, values.Length);
+        Assert.All(values, v => Assert.InRange(v, 1.0, 2.0));
+        Assert.DoesNotContain(values, v => v == 1.0 || v == 2.0);
+        // Redrawn values still cover the whole interval, edges included.
+        Assert.True(values.Min() < 1.01 && values.Max() > 1.99, $"values span only {values.Min()}..{values.Max()}");
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_RedrawIsDeterministicForASeed()
+    {
+        var a = Path.Combine(_tempDir, "tr-redraw-a.csv");
+        var b = Path.Combine(_tempDir, "tr-redraw-b.csv");
+        var config = TrSingleTestConfig(2_000, t => { t.Min = 0; t.Max = 3; t.NullRate = 10; t.OutOfLimitRate = 10; });
+
+        _obfuscator.GenerateCsv(config, a);
+        _obfuscator.GenerateCsv(config, b);
+
+        Assert.Equal(File.ReadAllBytes(a), File.ReadAllBytes(b));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_RedrawsUntilThePrintedValueIsInsideTheLimits()
+    {
+        // 1.2..2.4 holds only the integer 2. A raw 1.3 prints as "1", which is outside, so it is drawn again.
+        var config = TrSingleTestConfig(500, t =>
+        {
+            t.LowerLimit = 1.2;
+            t.UpperLimit = 2.4;
+            t.Min = 0;
+            t.Max = 2;
+            t.Format = "%.0f";
+        });
+
+        var values = TrColumnValues(config, out _);
+
+        Assert.Equal(500, values.Length);
+        Assert.All(values, v => Assert.Equal(2.0, v));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_NoValueCanPrintInsideTheLimits_FailsAfterABoundedNumberOfRedraws()
+    {
+        // About 6% of the range is inside 1.2..1.8, so validation passes, but "1" and "2" are both outside.
+        var outputPath = Path.Combine(_tempDir, "tr-never-inside.csv");
+        var config = TrSingleTestConfig(5, t =>
+        {
+            t.LowerLimit = 1.2;
+            t.UpperLimit = 1.8;
+            t.Min = 0;
+            t.Max = 10;
+            t.Format = "%.0f";
+        });
+
+        var ex = Assert.Throws<InvalidOperationException>(() => _obfuscator.GenerateCsv(config, outputPath));
+
+        Assert.Contains("inside its limits", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.False(File.Exists(outputPath));
+        Assert.False(File.Exists(outputPath + ".tmp"));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_CounterPrintsItsStartAndStepDoesNotChangeIt()
+    {
+        var steps = new[] { 1L, 5L, 1000L };
+        var outputs = steps.Select(step => GenerateTestResultsLines(
+            TestResultsConfig(3, s => s.Preamble!.Entries.Where(e => e.Kind == "counter").ToList().ForEach(e => e.Step = step)),
+            "tr-counter-" + step)).ToArray();
+
+        Assert.Equal("Seq         :,100", outputs[0][2]);
+        Assert.Equal("Seq2        :,7", outputs[0][3]);
+        Assert.Equal(outputs[0], outputs[1]);
+        Assert.Equal(outputs[0], outputs[2]);
     }
 
     [Theory]
@@ -2159,6 +2249,10 @@ public sealed class ObfuscatorTests : IDisposable
         yield return Case("uniform min above max", "min", c => { FirstTest(c).Min = 5; FirstTest(c).Max = 1; });
         yield return Case("normal without mean", "normal", c => { FirstTest(c).Distribution = "normal"; FirstTest(c).Mean = null; });
         yield return Case("negative std dev", "stdDev", c => { FirstTest(c).Distribution = "normal"; FirstTest(c).Mean = 1; FirstTest(c).StdDev = -1; });
+        yield return Case("uniform range outside the limits", "inside", c => { FirstTest(c).Min = 100; FirstTest(c).Max = 200; });
+        yield return Case("uniform mostly outside the limits", "inside", c => { FirstTest(c).Min = 0; FirstTest(c).Max = 10_000; });
+        yield return Case("normal far from the limits", "inside", c => { FirstTest(c).Distribution = "normal"; FirstTest(c).Mean = 100; FirstTest(c).StdDev = 1; });
+        yield return Case("normal without spread outside the limits", "inside", c => { FirstTest(c).Distribution = "normal"; FirstTest(c).Mean = 100; FirstTest(c).StdDev = 0; });
         yield return Case("no condition sets", "test column", c => c.TestResults!.ConditionSets = []);
         yield return Case("condition sets without tests", "test column", c => { foreach (var set in c.TestResults!.ConditionSets) set.Tests = []; });
         yield return Case("uniform range overflows", "finite", c => { FirstTest(c).Min = -1e308; FirstTest(c).Max = 1e308; });

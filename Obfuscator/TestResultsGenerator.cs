@@ -13,7 +13,9 @@ namespace Squalor.Obfuscator;
 // Writes a wide production-test results file: optional "Key   :,value" preamble lines, optional annotation rows,
 // a header, then one fixed-width row per device. Bytes go straight to the stream (no quoting, raw bytes allowed)
 // and rows are streamed, so the file is never held in memory. Everything comes from one seeded Random in a fixed
-// order: per device the bin first, then each test cell in column order.
+// order: per device the bin first, then each test cell in column order. A cell takes three fixed draws (null,
+// out-of-limit, delta) and then one or more value draws: a value whose printed form falls outside the limits is drawn
+// again, up to MaxRedraws times, rather than clamped onto a limit.
 internal sealed class TestResultsGenerator
 {
     private const int MaxFormatPrecision = 20;
@@ -21,6 +23,9 @@ internal sealed class TestResultsGenerator
     private const int ScratchSize = 512;
     private const double PercentMax = 100.0;
     private const double NormalSpreadBound = 9.0;
+    private const int MaxRedraws = 10_000;
+    // At 1% a cell exhausts MaxRedraws with probability about 1e-44.
+    private const double MinInsideLimitsProbability = 0.01;
     private const double OutsideDeltaMinFraction = 0.01;
     private const double OutsideDeltaSpreadFraction = 0.09;
     // A value this many last places beyond a limit still prints beyond it after rounding.
@@ -217,13 +222,12 @@ internal sealed class TestResultsGenerator
 
     private void WriteTestCell(OutputBuffer writer, TestColumn column, Span<byte> scratch)
     {
-        // The same draws happen for every cell, whatever the rates, so a rate change moves no other value.
+        // Three draws happen for every cell, whatever the rates. Value redraws take a varying number of further draws,
+        // so a rate change can shift the values of later cells.
         var nullDraw = _random.NextDouble() * PercentMax;
         var outOfLimitDraw = _random.NextDouble() * PercentMax;
         var deltaDraw = _random.NextDouble();
-        var raw = column.IsNormal
-            ? column.Mean + column.StdDev * NextStandardNormal()
-            : column.Min + (column.Max - column.Min) * _random.NextDouble();
+        var raw = DrawValue(column);
 
         if (nullDraw < column.NullRate)
         {
@@ -231,13 +235,43 @@ internal sealed class TestResultsGenerator
             return;
         }
 
-        var value = outOfLimitDraw < column.OutOfLimitRate
-            ? JustOutsideNearerLimit(column, raw, deltaDraw)
-            : ClampToLimits(column, raw);
+        if (outOfLimitDraw < column.OutOfLimitRate)
+        {
+            writer.Cell(scratch[..FormatChecked(column, JustOutsideNearerLimit(column, raw, deltaDraw), scratch)], column.Width, column.Header);
+            return;
+        }
+
+        var length = FormatChecked(column, raw, scratch);
+        // Judge the printed value: that is what a reader of the file compares with the limits.
+        for (var draws = 1; column.HasLimits && !PrintedInsideLimits(column, scratch[..length]); draws++)
+        {
+            if (draws >= MaxRedraws)
+                throw new InvalidOperationException($"testResults: column '{column.Header}' could not draw a value whose printed form lies inside its limits in {MaxRedraws} attempts.");
+
+            length = FormatChecked(column, DrawValue(column), scratch);
+        }
+
+        writer.Cell(scratch[..length], column.Width, column.Header);
+    }
+
+    private double DrawValue(TestColumn column)
+        => column.IsNormal
+            ? column.Mean + column.StdDev * NextStandardNormal()
+            : column.Min + (column.Max - column.Min) * _random.NextDouble();
+
+    private static int FormatChecked(TestColumn column, double value, Span<byte> scratch)
+    {
         if (!double.IsFinite(value))
             throw new InvalidOperationException($"testResults: a value for column '{column.Header}' is not finite.");
 
-        writer.Cell(scratch[..column.FormatNumber(value, scratch)], column.Width, column.Header);
+        return column.FormatNumber(value, scratch);
+    }
+
+    // Limits are inclusive: a value may print exactly on a limit when rounding puts it there.
+    private static bool PrintedInsideLimits(TestColumn column, ReadOnlySpan<byte> printed)
+    {
+        var value = double.Parse(printed, NumberStyles.Float, CultureInfo.InvariantCulture);
+        return (!column.Lower.HasValue || value >= column.Lower.Value) && (!column.Upper.HasValue || value <= column.Upper.Value);
     }
 
     private double NextStandardNormal()
@@ -245,15 +279,6 @@ internal sealed class TestResultsGenerator
         var u1 = 1.0 - _random.NextDouble();
         var u2 = _random.NextDouble();
         return Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
-    }
-
-    private static double ClampToLimits(TestColumn column, double value)
-    {
-        if (column.Upper is { } upper && value > upper)
-            value = upper;
-        if (column.Lower is { } lower && value < lower)
-            value = lower;
-        return value;
     }
 
     private static double JustOutsideNearerLimit(TestColumn column, double raw, double deltaDraw)
@@ -283,16 +308,13 @@ internal sealed class TestResultsGenerator
         if (preamble.KeyWidth < 0)
             throw Fail("preamble keyWidth must not be negative.");
 
-        var counters = 0;
         var keyBytes = new List<byte[]>();
         var valueBytes = new List<byte[]>();
         foreach (var entry in preamble.Entries)
         {
             var key = entry.Key ?? string.Empty;
             keyBytes.Add(PadKey(Encoding.UTF8.GetBytes(key), preamble.KeyWidth));
-            valueBytes.Add(entry.Kind is null ? throw Fail($"preamble entry '{key}' needs a kind.") : PreambleValue(entry, key, counters));
-            if (Normalize(entry.Kind) == "counter")
-                counters++;
+            valueBytes.Add(entry.Kind is null ? throw Fail($"preamble entry '{key}' needs a kind.") : PreambleValue(entry, key));
         }
 
         foreach (var inject in preamble.Inject)
@@ -338,7 +360,7 @@ internal sealed class TestResultsGenerator
         return padded;
     }
 
-    private static byte[] PreambleValue(PreambleEntrySpec entry, string key, int countersBefore)
+    private static byte[] PreambleValue(PreambleEntrySpec entry, string key)
     {
         switch (Normalize(entry.Kind))
         {
@@ -358,7 +380,8 @@ internal sealed class TestResultsGenerator
                     throw Fail($"preamble entry '{key}' has an invalid date format '{entry.Format}'.");
                 }
             case "counter":
-                return Encoding.UTF8.GetBytes((entry.Start + entry.Step * countersBefore).ToString(CultureInfo.InvariantCulture));
+                // Step is kept for future appended blocks; one preamble prints only the start.
+                return Encoding.UTF8.GetBytes(entry.Start.ToString(CultureInfo.InvariantCulture));
             default:
                 throw Fail($"preamble entry '{key}' kind '{entry.Kind}' is not supported. Expected one of: static, date, counter.");
         }
@@ -576,6 +599,9 @@ internal sealed class TestResultsGenerator
                 throw Fail($"test '{name}' distribution '{test.Distribution}' is not supported. Expected one of: uniform, normal.");
         }
 
+        if ((test.UpperLimit.HasValue || test.LowerLimit.HasValue) && ProbabilityInsideLimits(test) < MinInsideLimitsProbability)
+            throw Fail($"test '{name}' distribution lands inside its limits less than {MinInsideLimitsProbability:P0} of the time, so most values would be drawn again and again.");
+
         var match = FormatPattern.Match(test.Format ?? string.Empty);
         if (!match.Success || int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture) > MaxFormatPrecision)
             throw Fail($"test '{name}' format '{test.Format}' is not supported. Only %.Nf and %.Ne (N from 0 to {MaxFormatPrecision}) are supported.");
@@ -591,6 +617,44 @@ internal sealed class TestResultsGenerator
 
         template.Format = new NumberFormat(match.Groups[2].Value == "e", int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture));
         return template;
+    }
+
+    // Chance that one draw lies inside the limits, before rounding to the print format. Distribution fields are valid here.
+    private static double ProbabilityInsideLimits(TestSpec test)
+    {
+        var lower = test.LowerLimit ?? double.NegativeInfinity;
+        var upper = test.UpperLimit ?? double.PositiveInfinity;
+        if (Normalize(test.Distribution) == "uniform")
+        {
+            var min = test.Min!.Value;
+            var max = test.Max!.Value;
+            if (max == min)
+                return min >= lower && min <= upper ? 1.0 : 0.0;
+
+            return Math.Max(0.0, Math.Min(max, upper) - Math.Max(min, lower)) / (max - min);
+        }
+
+        var mean = test.Mean!.Value;
+        var stdDev = test.StdDev!.Value;
+        if (stdDev == 0)
+            return mean >= lower && mean <= upper ? 1.0 : 0.0;
+
+        return NormalCdf((upper - mean) / stdDev) - NormalCdf((lower - mean) / stdDev);
+    }
+
+    private static double NormalCdf(double z)
+    {
+        if (double.IsPositiveInfinity(z))
+            return 1.0;
+        if (double.IsNegativeInfinity(z))
+            return 0.0;
+
+        // Abramowitz and Stegun 7.1.26, absolute error below 1.5e-7: plenty for a threshold check.
+        var x = Math.Abs(z) / Math.Sqrt(2.0);
+        var t = 1.0 / (1.0 + 0.3275911 * x);
+        var poly = t * (0.254829592 + t * (-0.284496736 + t * (1.421413741 + t * (-1.453152027 + t * 1.061405429))));
+        var erf = 1.0 - poly * Math.Exp(-x * x);
+        return 0.5 * (1.0 + (z < 0 ? -erf : erf));
     }
 
     private void BuildAnnotationRows(TestResultsSpec spec)
@@ -768,6 +832,7 @@ internal sealed class TestResultsGenerator
         public byte[] NullToken { get; }
         public double? Upper { get; }
         public double? Lower { get; }
+        public bool HasLimits => Upper.HasValue || Lower.HasValue;
         public double NullRate { get; }
         public double OutOfLimitRate { get; }
         public bool IsNormal { get; }

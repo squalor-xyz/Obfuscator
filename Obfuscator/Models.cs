@@ -77,7 +77,7 @@ public sealed class PreambleEntrySpec
 
     // static: Value as is.
     // date: Value is an ISO 8601 date or date-time (read as UTC), printed with Format (default yyyy-MM-dd HH:mm:ss).
-    // counter: Start + Step * (number of counter entries before this one).
+    // counter: prints Start. Step is kept for future appended blocks and does not change the printed value.
     public string Kind { get; set; } = "static";
     public string? Value { get; set; }
     public string? Format { get; set; }
@@ -166,7 +166,9 @@ public sealed class TestSpec
     public double? UpperLimit { get; set; }
     public double? LowerLimit { get; set; }
 
-    // uniform (Min, Max) or normal (Mean, StdDev). In-limit values are clamped to the limits.
+    // uniform (Min, Max) or normal (Mean, StdDev). A value whose printed form falls outside the limits is drawn again
+    // (up to 10,000 times, then generation fails), never clamped onto a limit. Validation rejects a distribution
+    // that lands inside the limits less than 1% of the time.
     public string Distribution { get; set; } = "uniform";
     public double? Min { get; set; }
     public double? Max { get; set; }
