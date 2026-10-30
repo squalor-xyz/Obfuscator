@@ -10,7 +10,7 @@ Make CSV obfuscation and restoration safer to use for library and CLI users, whi
 
 Do not claim obfuscation alone provides cryptographic secrecy. Do not require encrypted manifests by default. Do not target a 1.0 release in this roadmap.
 
-34 items · done 21 · later 1 · retired 11 · review 1
+34 items · done 22 · later 1 · retired 11
 
 ## v0.2.0
 
@@ -24,7 +24,7 @@ Do not claim obfuscation alone provides cryptographic secrecy. Do not require en
 | 6 | ob-31 | Add JSON-level tests for prober range edge cases: range null, empty range, value null with range | S | 1 |  | Obfuscator.Tests/ObfuscatorTests.cs: prober range edge cases are tested only through C# objects, not through JSON config parsing. · Folded into ob-28 (v0.2.0 bundle) · discovered from ob-24 | retired |
 | 7 | ob-32 | Test the print-grid inside-limits check with negative limits under %.Ne | S | 1 |  | Obfuscator.Tests/ObfuscatorTests.cs: the ob-29 grid check has no test with negative limits in exponent format. · Folded into ob-28 (v0.2.0 bundle) · discovered from ob-24 | retired |
 | 8 | ob-33 | Document equal-limits out-of-limit behaviour in PackageReadme.md | S | 1 |  | Obfuscator/PackageReadme.md lacks the equal-limits line README.md has. · Folded into ob-28 (v0.2.0 bundle) · discovered from ob-24 | retired |
-| 9 | [ob-34](slices/ob-34.md) | Document empty site/prober cells | S | 1 |  | Obfuscator/TestResultsGenerator.cs fixed-column value fallback prints empty cells; README.md and Obfuscator/PackageReadme.md are silent. · discovered from ob-28 | review |
+| 9 | [ob-34](slices/ob-34.md) | Document empty site/prober cells | S | 1 |  | Obfuscator/TestResultsGenerator.cs fixed-column value fallback prints empty cells; README.md and Obfuscator/PackageReadme.md are silent. · discovered from ob-28 | done |
 
 ---
 

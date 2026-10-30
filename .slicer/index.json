@@ -1593,7 +1593,7 @@
       "id": "ob-34",
       "title": "Document that a site or prober column with neither value nor range prints empty cells",
       "short_title": "Document empty site/prober cells",
-      "status": "review",
+      "status": "done",
       "has_slice": true,
       "depends_on": [],
       "note_records": [
