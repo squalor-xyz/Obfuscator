@@ -1592,12 +1592,18 @@
     {
       "id": "ob-34",
       "title": "Document that a site or prober column with neither value nor range prints empty cells",
-      "short_title": "Document that a site or prober column with neither value nor range prints empty cells",
+      "short_title": "Document empty site/prober cells",
       "status": "open",
-      "has_slice": false,
+      "has_slice": true,
       "depends_on": [],
       "note_records": [],
       "claim": null,
+      "readiness": {
+        "by": "Jon Robbins",
+        "at": "2026-10-30T16:01:04Z",
+        "note": "Approved via v0.2.0 relay plan (fold and keep going), 2026-10-30.",
+        "digest": "sha256:fdba47b7f338c725ef684a40b460c277d42362a8c1b394d5b134699b6d38d4ac"
+      },
       "fields": {
         "size": "S",
         "flags": [],

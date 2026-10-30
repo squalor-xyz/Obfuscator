@@ -282,3 +282,12 @@
 {"when": "2026-10-30T15:59:24Z", "item": "ob-28", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon Robbins cleared", "by": "Jon Robbins"}
 {"when": "2026-10-30T16:00:48Z", "item": "ob-34", "action": "add", "from": "", "to": "open", "note": "Document that a site or prober column with neither value nor range prints empty cells"}
 {"when": "2026-10-30T16:00:49Z", "item": "ob-28", "action": "status", "from": "review", "to": "done", "note": "Redraw, one-sided limit and prober range tests (ob-28 with ob-31/32/33 folded); 489 tests, build, format, test-local pass.", "by": "Jon Robbins"}
+{"when": "2026-10-30T16:01:03Z", "item": "ob-34", "action": "promote", "from": "", "to": "", "note": ""}
+{"when": "2026-10-30T16:01:03Z", "item": "ob-34", "action": "edit", "from": "", "to": "", "note": "Why"}
+{"when": "2026-10-30T16:01:04Z", "item": "ob-34", "action": "edit", "from": "", "to": "", "note": "Files"}
+{"when": "2026-10-30T16:01:04Z", "item": "ob-34", "action": "edit", "from": "", "to": "", "note": "Failing tests"}
+{"when": "2026-10-30T16:01:04Z", "item": "ob-34", "action": "edit", "from": "", "to": "", "note": "Implement"}
+{"when": "2026-10-30T16:01:04Z", "item": "ob-34", "action": "edit", "from": "", "to": "", "note": "Check"}
+{"when": "2026-10-30T16:01:04Z", "item": "ob-34", "action": "edit", "from": "", "to": "", "note": "Git"}
+{"when": "2026-10-30T16:01:04Z", "item": "ob-34", "action": "set", "from": "", "to": "", "note": "short_title Document that a site or prober column with neither value nor range prints empty cells→Document empty site/prober cells"}
+{"when": "2026-10-30T16:01:04Z", "item": "ob-34", "action": "ready", "from": "", "to": "", "note": "Approved via v0.2.0 relay plan (fold and keep going), 2026-10-30.", "by": "Jon Robbins"}

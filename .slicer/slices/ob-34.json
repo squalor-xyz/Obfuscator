@@ -1,0 +1,39 @@
+{
+  "id": "ob-34",
+  "title": "Document that a site or prober column with neither value nor range prints empty cells",
+  "lead": [],
+  "depends_note": null,
+  "findings_note": "Obfuscator/TestResultsGenerator.cs fixed-column value fallback prints empty cells; README.md and Obfuscator/PackageReadme.md are silent.",
+  "size": "S",
+  "flags": [],
+  "trees_note": "",
+  "trees_plural": false,
+  "boundary": "**Not in this slice:**",
+  "sections": [
+    {
+      "heading": "Why",
+      "body": "Follow-up from ob-28. A site or prober column configured with neither `value` nor `range` prints empty, padded cells, and the docs don't say so. Targeted to v0.2.0."
+    },
+    {
+      "heading": "Files",
+      "body": "README.md and Obfuscator/PackageReadme.md, where they describe test-results device columns; Obfuscator.Tests/ObfuscatorTests.cs only if no test pins the behaviour yet."
+    },
+    {
+      "heading": "Failing tests",
+      "body": "- If no existing test pins it: a site column and a prober column with neither `value` nor `range` print cells that hold only spaces, padded to the column width, on every device row."
+    },
+    {
+      "heading": "Implement",
+      "body": "In README.md, where the test-results device columns are described, state that a site or prober column with neither `value` nor `range` prints empty, padded cells. Add the same point to PackageReadme.md's test-results line, keeping it short. Change no code."
+    },
+    {
+      "heading": "Check",
+      "body": "Run `dotnet test Obfuscator.slnx` and `dotnet format Obfuscator.slnx --verify-no-changes`."
+    },
+    {
+      "heading": "Git",
+      "body": "Docs, plus a test if one is missing."
+    }
+  ],
+  "notes": []
+}
