@@ -253,3 +253,6 @@
 {"when": "2026-10-30T14:56:59Z", "item": "ob-21", "action": "note", "from": "", "to": "", "note": "Owner decision (autopilot): a JSON null deviceColumns is rej", "by": "Jon Robbins"}
 {"when": "2026-10-30T15:10:24Z", "item": "ob-21", "action": "note", "from": "", "to": "", "note": "Test-results validation now rejects, before any file is crea", "by": "Jon Robbins"}
 {"when": "2026-10-30T15:10:24Z", "item": "ob-21", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon Robbins cleared", "by": "Jon Robbins"}
+{"when": "2026-10-30T15:11:48Z", "item": "ob-29", "action": "add", "from": "", "to": "open", "note": "Validate test-results distributions against the print format's grid so coarse-format draws are caught at validation"}
+{"when": "2026-10-30T15:11:49Z", "item": "ob-30", "action": "add", "from": "", "to": "open", "note": "Skip the serial start width check when the device count is 0"}
+{"when": "2026-10-30T15:11:49Z", "item": "ob-21", "action": "note", "from": "", "to": "", "note": "Later note 'reject 64-bit wrap of serial and programLine at ", "by": "Jon Robbins"}
