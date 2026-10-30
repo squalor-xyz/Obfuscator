@@ -1593,10 +1593,22 @@
       "id": "ob-34",
       "title": "Document that a site or prober column with neither value nor range prints empty cells",
       "short_title": "Document empty site/prober cells",
-      "status": "open",
+      "status": "review",
       "has_slice": true,
       "depends_on": [],
-      "note_records": [],
+      "note_records": [
+        {
+          "id": "59851a4f-68f3-46b6-a754-f3f6b812026d",
+          "kind": "",
+          "text": "**2026-10-30** — README deviceColumns and PackageReadme test-results line now say a site or prober column with neither value nor range prints space-padded empty cells on every device row; new test GenerateCsv_TestResults_SiteAndProberColumnsWithNeitherValueNorRange_PrintSpacePaddedCells pins it; 490 tests pass, no code change.",
+          "created_at": "2026-10-30T16:06:25Z",
+          "attempt": 1,
+          "by": "Jon Robbins",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        }
+      ],
       "claim": null,
       "readiness": {
         "by": "Jon Robbins",
@@ -1620,7 +1632,7 @@
         "importance": 1,
         "urgency": 1,
         "effort": 1,
-        "attempts": 0
+        "attempts": 1
       }
     }
   ],

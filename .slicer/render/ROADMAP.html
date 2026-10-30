@@ -27,7 +27,7 @@
 <h1>Roadmap</h1>
 <section><h2>Goals</h2><div class="prose"><p>Make CSV obfuscation and restoration safer to use for library and CLI users, while maintaining synthetic CSV generation as an equally important product capability. Harden the current 0.1 line over the next 1–2 releases, prioritizing safe data handling and risk reduction.</p></div></section>
 <section><h2>Non-goals</h2><div class="prose"><p>Do not claim obfuscation alone provides cryptographic secrecy. Do not require encrypted manifests by default. Do not target a 1.0 release in this roadmap.</p></div></section>
-<p class="summary">34 items · — 1 · done 21 · later 1 · retired 11</p>
+<p class="summary">34 items · done 21 · later 1 · retired 11 · review 1</p>
 <h2>v0.2.0</h2>
 <table><thead><tr><th>#</th><th>ID</th><th>Title</th><th>Size</th><th>Effort</th><th>Trees</th><th>Findings</th><th>Status</th></tr></thead><tbody>
 <tr class="done"><td>1</td><td>ob-21</td><td>Test-results config validation hardening</td><td>M</td><td>2</td><td></td><td>Obfuscator/TestResultsGenerator.cs: these are caught only mid-write today (no output is left, but the error comes late). · discovered from ob-20</td><td class="status">done</td></tr>
@@ -38,7 +38,7 @@
 <tr class="retired"><td>6</td><td>ob-31</td><td>Add JSON-level tests for prober range edge cases: range null, empty range, value null with range</td><td>S</td><td>1</td><td></td><td>Obfuscator.Tests/ObfuscatorTests.cs: prober range edge cases are tested only through C# objects, not through JSON config parsing. · Folded into ob-28 (v0.2.0 bundle) · discovered from ob-24</td><td class="status">retired</td></tr>
 <tr class="retired"><td>7</td><td>ob-32</td><td>Test the print-grid inside-limits check with negative limits under %.Ne</td><td>S</td><td>1</td><td></td><td>Obfuscator.Tests/ObfuscatorTests.cs: the ob-29 grid check has no test with negative limits in exponent format. · Folded into ob-28 (v0.2.0 bundle) · discovered from ob-24</td><td class="status">retired</td></tr>
 <tr class="retired"><td>8</td><td>ob-33</td><td>Document equal-limits out-of-limit behaviour in PackageReadme.md</td><td>S</td><td>1</td><td></td><td>Obfuscator/PackageReadme.md lacks the equal-limits line README.md has. · Folded into ob-28 (v0.2.0 bundle) · discovered from ob-24</td><td class="status">retired</td></tr>
-<tr class="open"><td>9</td><td>ob-34</td><td>Document empty site/prober cells</td><td>S</td><td>1</td><td></td><td>Obfuscator/TestResultsGenerator.cs fixed-column value fallback prints empty cells; README.md and Obfuscator/PackageReadme.md are silent. · discovered from ob-28</td><td class="status">—</td></tr>
+<tr class="other"><td>9</td><td>ob-34</td><td>Document empty site/prober cells</td><td>S</td><td>1</td><td></td><td>Obfuscator/TestResultsGenerator.cs fixed-column value fallback prints empty cells; README.md and Obfuscator/PackageReadme.md are silent. · discovered from ob-28</td><td class="status">review</td></tr>
 </tbody></table>
 <table><thead><tr><th>#</th><th>ID</th><th>Title</th><th>Size</th><th>Effort</th><th>Trees</th><th>Findings</th><th>Status</th></tr></thead><tbody>
 <tr class="retired"><td>10</td><td>ob-15</td><td>Document generator config validation in package READMEs</td><td>S</td><td>1</td><td>docs</td><td>Obfuscator/PackageReadme.md and Obfuscator.Cli/README.md describe rowMode/sweepAxes but not the validation rules ob-05 added to README.md · Folded into ob-06 (owner decision): package README validation docs are aligned there · discovered from ob-05</td><td class="status">retired</td></tr>

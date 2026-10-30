@@ -3275,6 +3275,26 @@ public sealed class ObfuscatorTests : IDisposable
     }
 
     [Fact]
+    public void GenerateCsv_TestResults_SiteAndProberColumnsWithNeitherValueNorRange_PrintSpacePaddedCells()
+    {
+        var config = TestResultsConfig(4, s =>
+        {
+            s.DeviceColumns.Site!.Value = null;
+            s.DeviceColumns.ProberX!.Value = null;
+            s.DeviceColumns.ProberY!.Value = null;
+        });
+
+        var rows = TrDataRows(config, "tr-no-value-no-range");
+
+        Assert.Equal(4, rows.Length);
+        foreach (var row in rows)
+        {
+            // Site, X and Y are 5, 4 and 4 wide: every cell holds only spaces, padded to the column width.
+            Assert.Equal(new[] { "     ", "    ", "    " }, row[1..4]);
+        }
+    }
+
+    [Fact]
     public void GetDataGenParametersFromConfig_TestResults_EmptyProberRangeInJson_IsRejectedAndNamed()
     {
         var ex = Assert.Throws<InvalidOperationException>(
