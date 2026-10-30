@@ -67,7 +67,8 @@ public sealed class PreambleSpec
 
     public List<PreambleEntrySpec> Entries { get; set; } = new();
 
-    // Overwrites bytes of a key to simulate a corrupted key.
+    // Opt-in and off by default (empty): overwrites bytes of a key to simulate a corrupted key.
+    // Without it every preamble line is clean text.
     public List<PreambleInjectSpec> Inject { get; set; } = new();
 }
 

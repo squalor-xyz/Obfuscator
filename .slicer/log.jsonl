@@ -197,3 +197,9 @@
 {"when": "2026-10-30T14:09:22Z", "item": "ob-20", "action": "edit", "from": "", "to": "", "note": "Failing tests"}
 {"when": "2026-10-30T14:12:43Z", "item": "ob-20", "action": "note", "from": "", "to": "", "note": "Owner fix round done: in-limit values are redrawn on the pri", "by": "Jon Robbins"}
 {"when": "2026-10-30T14:12:43Z", "item": "ob-20", "action": "handoff", "from": "started", "to": "review", "note": "", "by": "Jon Robbins"}
+{"when": "2026-10-30T14:25:50Z", "item": "ob-20", "action": "note", "from": "", "to": "", "note": "Owner fix note: the example config and golden must not injec", "by": "Jon Robbins"}
+{"when": "2026-10-30T14:25:50Z", "item": "ob-20", "action": "set", "from": "review", "to": "started", "note": "status review→started"}
+{"when": "2026-10-30T14:27:07Z", "item": "ob-20", "action": "edit", "from": "", "to": "", "note": "Implement"}
+{"when": "2026-10-30T14:27:07Z", "item": "ob-20", "action": "edit", "from": "", "to": "", "note": "Failing tests"}
+{"when": "2026-10-30T14:32:44Z", "item": "ob-20", "action": "note", "from": "", "to": "", "note": "The example config and golden carry no injected bytes, the g", "by": "Jon Robbins"}
+{"when": "2026-10-30T14:32:44Z", "item": "ob-20", "action": "handoff", "from": "started", "to": "review", "note": "", "by": "Jon Robbins"}

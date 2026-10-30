@@ -2198,8 +2198,41 @@ public sealed class ObfuscatorTests : IDisposable
         // Header, then 20 devices, then the final terminator.
         Assert.Equal(headerIndex + 1 + 20 + 1, lines.Length);
         Assert.Equal(12, TrCells(header).Length - 5);
-        Assert.Contains(0xFF, bytes.Select(b => (int)b));
         Assert.Contains("NA.", lines.Skip(headerIndex + 1).SelectMany(TrCells).Select(c => c.Trim()));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_ExampleConfigDoesNotInjectStrayBytes()
+    {
+        var configPath = Path.Combine(AppContext.BaseDirectory, "ExampleConfigTestResults.json");
+
+        var config = _obfuscator.GetDataGenParametersFromConfig(configPath);
+
+        Assert.Empty(config.TestResults!.Preamble!.Inject);
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_GoldenIsCleanUtf8WithoutControlCharacters()
+    {
+        var goldenPath = Path.Combine(AppContext.BaseDirectory, "ExampleConfigTestResults.golden.csv");
+
+        var bytes = File.ReadAllBytes(goldenPath);
+
+        // The strict decoder throws on any invalid byte sequence.
+        var text = new UTF8Encoding(false, true).GetString(bytes);
+        Assert.All(text.Where(char.IsControl), c => Assert.True(c is '\r' or '\n', $"control character U+{(int)c:X4} in the golden"));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_InjectionIsOffByDefault()
+    {
+        Assert.Empty(new PreambleSpec().Inject);
+
+        var path = Path.Combine(_tempDir, "tr-no-inject.csv");
+        _obfuscator.GenerateCsv(TestResultsConfig(50), path);
+
+        var text = new UTF8Encoding(false, true).GetString(File.ReadAllBytes(path));
+        Assert.All(text.Where(char.IsControl), c => Assert.True(c is '\r' or '\n'));
     }
 
     public static IEnumerable<object[]> TestResultsInvalidConfigs()

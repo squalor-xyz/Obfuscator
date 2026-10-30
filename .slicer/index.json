@@ -1048,6 +1048,28 @@
           "verified_by": "",
           "verified_at": "",
           "stale_after": ""
+        },
+        {
+          "id": "e8dc1980-06d2-41e7-9691-c7eb6d5b57dc",
+          "kind": "",
+          "text": "**2026-10-30** — Owner fix note: the example config and golden must not inject stray bytes; that corruption is a bug in the real sources, not something fake data should carry. Keep preamble.inject as an opt-in option (off by default) with its tests, remove it from ExampleConfigTestResults.json, rebaseline the golden as clean UTF-8, and document inject as off by default. Owner answer (generate.limit-rounding): option a, keep the inclusive check on the printed value.",
+          "created_at": "2026-10-30T14:25:50Z",
+          "attempt": 1,
+          "by": "Jon Robbins",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        },
+        {
+          "id": "23f5abfb-d1fd-45cd-9617-330b81075b08",
+          "kind": "",
+          "text": "**2026-10-30** — The example config and golden carry no injected bytes, the golden is clean UTF-8 with CRLF, inject is opt-in and off by default and still covered by inline tests, the limit check stays inclusive on the printed value per the owner; 304 tests green, build/format/test-local pass.",
+          "created_at": "2026-10-30T14:32:44Z",
+          "attempt": 1,
+          "by": "Jon Robbins",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
         }
       ],
       "claim": null,

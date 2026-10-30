@@ -1,2 +1,2 @@
-# The golden holds CRLF line endings and a raw 0xFF byte; keep it byte for byte.
+# The golden holds CRLF line endings; keep it byte for byte whatever core.autocrlf says.
 /Obfuscator/ExampleConfigTestResults.golden.csv -text

@@ -13,9 +13,6 @@
         { "key": "Started", "kind": "date", "value": "2026-02-03T09:30:00Z", "format": "yyyy-MM-dd HH:mm:ss" },
         { "key": "Run", "kind": "counter", "start": 1000, "step": 1 },
         { "key": "Operator Notes", "kind": "static", "value": "none" }
-      ],
-      "inject": [
-        { "key": "Station", "offset": 3, "bytes": [255, 19] }
       ]
     },
     "annotations": [
