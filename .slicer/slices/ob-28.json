@@ -16,15 +16,15 @@
     },
     {
       "heading": "Files",
-      "body": "Obfuscator.Tests/ObfuscatorTests.cs only. Production code changes only if a test exposes a real bug, which then goes to the owner as a finding."
+      "body": "Obfuscator.Tests/ObfuscatorTests.cs; Obfuscator/PackageReadme.md (ob-33's one line). Production code changes only if a test exposes a real bug, which then goes to the owner as a finding."
     },
     {
       "heading": "Failing tests",
-      "body": "- Determinism under redraws: a config whose distribution forces many redraws per cell (for example a normal with most of its mass outside narrow limits, still above the 1% floor), generated twice with the same seed over at least 2k devices, gives byte-identical files. A different seed gives a different file. The test also asserts that redraws actually happened, for example via an internal counter or by showing that at least one raw-distribution draw would have printed outside the limits; a test that would pass with no redraws does not count.\n- One-sided limit, upper only and lower only: with outOfLimitRate 0, no in-limit value prints past the single limit or exactly on it, for a continuous distribution wider than the limit. With outOfLimitRate 100, every value prints past that limit, on the correct side.\n- Mutation-check each new test: it must fail when the redraw loop is replaced by a single draw, and when the one-sided comparison is flipped."
+      "body": "- Determinism under redraws: a config whose distribution forces many redraws per cell (for example a normal with most of its mass outside narrow limits, still above the 1% floor), generated twice with the same seed over at least 2k devices, gives byte-identical files. A different seed gives a different file. The test also asserts that redraws actually happened, for example via an internal counter or by showing that at least one raw-distribution draw would have printed outside the limits; a test that would pass with no redraws does not count.\n- One-sided limit, upper only and lower only: with outOfLimitRate 0, no in-limit value prints past the single limit or exactly on it, for a continuous distribution wider than the limit. With outOfLimitRate 100, every value prints past that limit, on the correct side.\n- Mutation-check each new test: it must fail when the redraw loop is replaced by a single draw, and when the one-sided comparison is flipped.\n\n- Folded from ob-31: JSON-level tests for the prober range edge cases. A JSON config with `range: null`, an empty `range: {}`, and `value: null` together with a range each parse through `GetDataGenParametersFromConfig` and are either accepted with the documented meaning or rejected with the field named. The test pins whichever the code does today, and if that behaviour is unclear it goes to the owner as a finding.\n- Folded from ob-32: the print-grid inside-limits check (ob-29) with negative limits in a `%.Ne` format. One config that is accepted and one that is rejected, both with lower and upper limits below zero."
     },
     {
       "heading": "Implement",
-      "body": "Add the tests next to the existing test-results redraw tests, and reuse their helpers for inline configs and for parsing the output. If observing redraws needs a hook, add an `internal` counter on `TestResultsGenerator` (the tests already reach `Write(Stream)` as internal) rather than anything public."
+      "body": "Add the tests next to the existing test-results redraw tests, and reuse their helpers for inline configs and for parsing the output. If observing redraws needs a hook, add an `internal` counter on `TestResultsGenerator` (the tests already reach `Write(Stream)` as internal) rather than anything public.\n\nFolded from ob-33: add one line to Obfuscator/PackageReadme.md describing the equal-limits out-of-limit behaviour, worded the same as README.md."
     },
     {
       "heading": "Check",
@@ -32,7 +32,7 @@
     },
     {
       "heading": "Git",
-      "body": "Tests only, plus an internal test hook if one is needed."
+      "body": "Tests, an internal test hook if one is needed, and one PackageReadme.md line."
     }
   ],
   "notes": []

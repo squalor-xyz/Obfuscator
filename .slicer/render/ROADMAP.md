@@ -10,7 +10,7 @@ Make CSV obfuscation and restoration safer to use for library and CLI users, whi
 
 Do not claim obfuscation alone provides cryptographic secrecy. Do not require encrypted manifests by default. Do not target a 1.0 release in this roadmap.
 
-33 items · — 4 · done 20 · later 1 · retired 8
+33 items · — 1 · done 20 · later 1 · retired 11
 
 ## v0.2.0
 
@@ -21,9 +21,9 @@ Do not claim obfuscation alone provides cryptographic secrecy. Do not require en
 | 3 | [ob-28](slices/ob-28.md) | Test-results redraw tests | S | 1 |  | Obfuscator.Tests/ObfuscatorTests.cs: the redraw-determinism test is weak and no test covers a redraw against a one-sided limit. · discovered from ob-20 | — |
 | 4 | ob-29 | Validate test-results distributions against the print format's grid so coarse-format draws are caught at validation | S | 1 |  | Obfuscator/TestResultsGenerator.cs: a distribution whose draws mostly round outside the limits under a coarse format passes validation and fails only in the redraw backstop. · Folded into ob-24 (v0.2.0 bundle) · discovered from ob-21 | retired |
 | 5 | ob-30 | Skip the serial start width check when the device count is 0 | S | 1 |  | Obfuscator/TestResultsGenerator.cs (serial width check near line 413): with nRows 0 no serial is printed, yet start is width-checked. · Folded into ob-24 (v0.2.0 bundle) · discovered from ob-21 | retired |
-| 6 | ob-31 | Add JSON-level tests for prober range edge cases: range null, empty range, value null with range | S | 1 |  | Obfuscator.Tests/ObfuscatorTests.cs: prober range edge cases are tested only through C# objects, not through JSON config parsing. · discovered from ob-24 | — |
-| 7 | ob-32 | Test the print-grid inside-limits check with negative limits under %.Ne | S | 1 |  | Obfuscator.Tests/ObfuscatorTests.cs: the ob-29 grid check has no test with negative limits in exponent format. · discovered from ob-24 | — |
-| 8 | ob-33 | Document equal-limits out-of-limit behaviour in PackageReadme.md | S | 1 |  | Obfuscator/PackageReadme.md lacks the equal-limits line README.md has. · discovered from ob-24 | — |
+| 6 | ob-31 | Add JSON-level tests for prober range edge cases: range null, empty range, value null with range | S | 1 |  | Obfuscator.Tests/ObfuscatorTests.cs: prober range edge cases are tested only through C# objects, not through JSON config parsing. · Folded into ob-28 (v0.2.0 bundle) · discovered from ob-24 | retired |
+| 7 | ob-32 | Test the print-grid inside-limits check with negative limits under %.Ne | S | 1 |  | Obfuscator.Tests/ObfuscatorTests.cs: the ob-29 grid check has no test with negative limits in exponent format. · Folded into ob-28 (v0.2.0 bundle) · discovered from ob-24 | retired |
+| 8 | ob-33 | Document equal-limits out-of-limit behaviour in PackageReadme.md | S | 1 |  | Obfuscator/PackageReadme.md lacks the equal-limits line README.md has. · Folded into ob-28 (v0.2.0 bundle) · discovered from ob-24 | retired |
 
 ---
 

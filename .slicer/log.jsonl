@@ -270,3 +270,10 @@
 {"when": "2026-10-30T15:40:13Z", "item": "ob-32", "action": "add", "from": "", "to": "open", "note": "Test the print-grid inside-limits check with negative limits under %.Ne"}
 {"when": "2026-10-30T15:40:13Z", "item": "ob-33", "action": "add", "from": "", "to": "open", "note": "Document equal-limits out-of-limit behaviour in PackageReadme.md"}
 {"when": "2026-10-30T15:40:14Z", "item": "ob-24", "action": "status", "from": "review", "to": "done", "note": "Generation fixes (ob-24 with ob-25/26/29/30 folded); 475 tests, build, format, test-local pass; ob-20 golden unchanged.", "by": "Jon Robbins"}
+{"when": "2026-10-30T15:45:37Z", "item": "ob-28", "action": "edit", "from": "", "to": "", "note": "Files"}
+{"when": "2026-10-30T15:45:37Z", "item": "ob-28", "action": "edit", "from": "", "to": "", "note": "Failing tests"}
+{"when": "2026-10-30T15:45:37Z", "item": "ob-28", "action": "edit", "from": "", "to": "", "note": "Implement"}
+{"when": "2026-10-30T15:45:38Z", "item": "ob-28", "action": "edit", "from": "", "to": "", "note": "Git"}
+{"when": "2026-10-30T15:45:38Z", "item": "ob-31", "action": "retire", "from": "open", "to": "retired", "note": "Folded into ob-28 (v0.2.0 bundle)"}
+{"when": "2026-10-30T15:45:38Z", "item": "ob-32", "action": "retire", "from": "open", "to": "retired", "note": "Folded into ob-28 (v0.2.0 bundle)"}
+{"when": "2026-10-30T15:45:38Z", "item": "ob-33", "action": "retire", "from": "open", "to": "retired", "note": "Folded into ob-28 (v0.2.0 bundle)"}
