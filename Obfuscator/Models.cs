@@ -13,6 +13,7 @@ namespace Squalor.Obfuscator;
 public sealed class DataGenConfig
 {
     // Used by rowMode=fixed, and as the target minimum row count for rowMode=max.
+    // For rowMode=test-results it is the device count (one data row per device).
     public int NRows { get; set; }
 
     // Optional seed to make synthetic generation reproducible.
@@ -21,6 +22,7 @@ public sealed class DataGenConfig
     // fixed: exactly NRows
     // sweep: exactly the cartesian expansion of SweepAxes
     // max: at least NRows, repeating the sweep pattern if needed
+    // test-results: a wide production test-results file described by TestResults (Columns and SweepAxes stay empty)
     public string RowMode { get; set; } = "fixed";
 
     // Full CSV schema, including sweep columns and any generated data columns.
@@ -28,6 +30,160 @@ public sealed class DataGenConfig
 
     // Ordered from outermost to innermost loop for rowMode=sweep or rowMode=max.
     public List<SweepAxisSpec> SweepAxes { get; set; } = new();
+
+    // Required for rowMode=test-results and rejected for every other mode.
+    public TestResultsSpec? TestResults { get; set; }
+}
+
+// Wide test-results file: optional preamble, optional annotation rows, a header, then one row per device.
+public sealed class TestResultsSpec
+{
+    // crlf or lf. Every line, including the last, ends with it.
+    public string LineEnding { get; set; } = "crlf";
+
+    public PreambleSpec? Preamble { get; set; }
+
+    // Rows between the preamble and the header, in this order.
+    public List<AnnotationSpec> Annotations { get; set; } = new();
+
+    // The programLine annotation is ProgramLineStart + ProgramLineStep * (test column index, from 0).
+    public long ProgramLineStart { get; set; } = 1;
+    public long ProgramLineStep { get; set; } = 1;
+
+    // Each device column is optional. Order in the file: serial, site, proberX, proberY, bin, then the test columns.
+    public DeviceColumnsSpec DeviceColumns { get; set; } = new();
+
+    // Each test column is as wide as its header (in UTF-8 bytes) plus this padding.
+    public int TestColumnPadding { get; set; } = 4;
+
+    // Test columns in order: condition set, then test within the set.
+    public List<ConditionSetSpec> ConditionSets { get; set; } = new();
+}
+
+public sealed class PreambleSpec
+{
+    // Keys are space-padded to this many bytes before ":,". A longer key gets no padding.
+    public int KeyWidth { get; set; }
+
+    public List<PreambleEntrySpec> Entries { get; set; } = new();
+
+    // Overwrites bytes of a key to simulate a corrupted key.
+    public List<PreambleInjectSpec> Inject { get; set; } = new();
+}
+
+public sealed class PreambleEntrySpec
+{
+    public string Key { get; set; } = string.Empty;
+
+    // static: Value as is.
+    // date: Value is an ISO 8601 date or date-time (read as UTC), printed with Format (default yyyy-MM-dd HH:mm:ss).
+    // counter: Start + Step * (number of counter entries before this one).
+    public string Kind { get; set; } = "static";
+    public string? Value { get; set; }
+    public string? Format { get; set; }
+    public long Start { get; set; } = 1;
+    public long Step { get; set; } = 1;
+}
+
+public sealed class PreambleInjectSpec
+{
+    // Must match an entry key.
+    public string Key { get; set; } = string.Empty;
+
+    // Byte offset inside the padded key; the bytes replace the same number of bytes from here.
+    public int Offset { get; set; }
+
+    // Raw byte values 0..255, for example 255 (invalid UTF-8) or 19 (control character).
+    public List<int> Bytes { get; set; } = new();
+}
+
+public sealed class AnnotationSpec
+{
+    // Padded so that Label plus ":" fills the first device column.
+    public string Label { get; set; } = string.Empty;
+
+    // programLine, upperLimit, lowerLimit or unit. Device columns are blank.
+    public string Source { get; set; } = string.Empty;
+}
+
+public sealed class DeviceColumnsSpec
+{
+    public SerialColumnSpec? Serial { get; set; }
+    public FixedColumnSpec? Site { get; set; }
+    public FixedColumnSpec? ProberX { get; set; }
+    public FixedColumnSpec? ProberY { get; set; }
+    public BinColumnSpec? Bin { get; set; }
+}
+
+public sealed class SerialColumnSpec
+{
+    public string Name { get; set; } = "Serial";
+    public int Width { get; set; } = 12;
+    public long Start { get; set; } = 1;
+    public long Step { get; set; } = 1;
+}
+
+public sealed class FixedColumnSpec
+{
+    public string Name { get; set; } = string.Empty;
+    public int Width { get; set; } = 6;
+    public string Value { get; set; } = string.Empty;
+}
+
+public sealed class BinColumnSpec
+{
+    public string Name { get; set; } = "Bin";
+    public int Width { get; set; } = 6;
+
+    // Bin value to relative weight. Bins are drawn independently of the test values.
+    public Dictionary<string, double> Weights { get; set; } = new();
+}
+
+// Either Conditions (one condition set) or Axes (every combination of the axes' values), not both.
+public sealed class ConditionSetSpec
+{
+    // [[key, value], ...] in header order.
+    public List<List<string>>? Conditions { get; set; }
+
+    // The first axis is the outermost loop. KeyOrder (a permutation of the axis keys) sets the order inside the brackets.
+    public List<ConditionAxisSpec>? Axes { get; set; }
+    public List<string>? KeyOrder { get; set; }
+
+    // Measured at every condition set this entry expands to.
+    public List<TestSpec> Tests { get; set; } = new();
+}
+
+public sealed class ConditionAxisSpec
+{
+    public string Key { get; set; } = string.Empty;
+    public List<string> Values { get; set; } = new();
+}
+
+public sealed class TestSpec
+{
+    public string Name { get; set; } = string.Empty;
+    public string? Unit { get; set; }
+    public double? UpperLimit { get; set; }
+    public double? LowerLimit { get; set; }
+
+    // uniform (Min, Max) or normal (Mean, StdDev). In-limit values are clamped to the limits.
+    public string Distribution { get; set; } = "uniform";
+    public double? Min { get; set; }
+    public double? Max { get; set; }
+    public double? Mean { get; set; }
+    public double? StdDev { get; set; }
+
+    // printf-style %.Nf or %.Ne. Also used for the limit annotation rows.
+    public string Format { get; set; } = "%.6f";
+
+    // NullRate: percent (0..100) of cells that hold NullToken.
+    // OutOfLimitRate: percent (0..100) of the non-null cells drawn just outside the nearer limit.
+    public double NullRate { get; set; }
+    public string NullToken { get; set; } = "NA.";
+    public double OutOfLimitRate { get; set; }
+
+    // caseVariant: the test name in the opposite case. repeatUnit: the header reads Test(V)(V).
+    public string? Quirk { get; set; }
 }
 
 public sealed class SweepAxisSpec

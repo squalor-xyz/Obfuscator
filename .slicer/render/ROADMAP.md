@@ -10,13 +10,13 @@ Make CSV obfuscation and restoration safer to use for library and CLI users, whi
 
 Do not claim obfuscation alone provides cryptographic secrecy. Do not require encrypted manifests by default. Do not target a 1.0 release in this roadmap.
 
-20 items · — 1 · done 17 · later 1 · retired 1
+20 items · done 17 · later 1 · retired 1 · review 1
 
 | # | Slice | Title | Size | Effort | Trees | Findings | Status |
 |---|---|---|---|---|---|---|---|
 | 1 | ob-15 | Document generator config validation in package READMEs | S | 1 | docs | Obfuscator/PackageReadme.md and Obfuscator.Cli/README.md describe rowMode/sweepAxes but not the validation rules ob-05 added to README.md · Folded into ob-06 (owner decision): package README validation docs are aligned there · discovered from ob-05 | retired |
 | 2 | [ob-19](slices/ob-19.md) | Obfuscator may read and write Parquet and .ball through an optional DataBall adapter | M | 2 | obfuscator | suite docs/databall-v1.4-alignment.md (Obfuscator: later, optional adapter) | later |
-| 3 | [ob-20](slices/ob-20.md) | Preamble-annotated wide test-result generator | L | 3 |  |  | — |
+| 3 | [ob-20](slices/ob-20.md) | Preamble-annotated wide test-result generator | L | 3 |  |  | review |
 
 ---
 

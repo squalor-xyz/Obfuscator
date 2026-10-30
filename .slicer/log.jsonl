@@ -186,3 +186,6 @@
 {"when": "2026-10-30T13:28:58Z", "item": "ob-20", "action": "edit", "from": "", "to": "", "note": "Git"}
 {"when": "2026-10-30T13:28:58Z", "item": "ob-20", "action": "set", "from": "", "to": "", "note": "effort -→3"}
 {"when": "2026-10-30T13:29:10Z", "item": "ob-20", "action": "ready", "from": "", "to": "", "note": "Owner approved drafted spec 2026-10-30.", "by": "Jon Robbins"}
+{"when": "2026-10-30T13:30:37Z", "item": "ob-20", "action": "status", "from": "open", "to": "started", "note": "", "by": "Jon Robbins"}
+{"when": "2026-10-30T13:55:44Z", "item": "ob-20", "action": "note", "from": "", "to": "", "note": "Added rowMode test-results (nested testResults, streamed Tes", "by": "Jon Robbins"}
+{"when": "2026-10-30T13:55:44Z", "item": "ob-20", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon Robbins cleared", "by": "Jon Robbins"}

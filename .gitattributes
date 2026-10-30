@@ -1,0 +1,2 @@
+# The golden holds CRLF line endings and a raw 0xFF byte; keep it byte for byte.
+/Obfuscator/ExampleConfigTestResults.golden.csv -text

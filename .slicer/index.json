@@ -1001,10 +1001,22 @@
       "id": "ob-20",
       "title": "Generate wide test-result files with a preamble, annotation rows and condition-bracket headers",
       "short_title": "Preamble-annotated wide test-result generator",
-      "status": "open",
+      "status": "review",
       "has_slice": true,
       "depends_on": [],
-      "note_records": [],
+      "note_records": [
+        {
+          "id": "da29adca-eef6-44b0-975c-76c48d7d20df",
+          "kind": "",
+          "text": "**2026-10-30** — Added rowMode test-results (nested testResults, streamed TestResultsGenerator) with an invented example config and byte-exact golden; 291 tests green, build, format and test-local.sh pass. The owner's HUMAN CHECK against a real file is still open.",
+          "created_at": "2026-10-30T13:55:44Z",
+          "attempt": 1,
+          "by": "Jon Robbins",
+          "verified_by": "",
+          "verified_at": "",
+          "stale_after": ""
+        }
+      ],
       "claim": null,
       "readiness": {
         "by": "Jon Robbins",
@@ -1028,7 +1040,7 @@
         "importance": 2,
         "urgency": 2,
         "effort": 3,
-        "attempts": 0
+        "attempts": 1
       }
     }
   ],

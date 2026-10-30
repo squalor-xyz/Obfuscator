@@ -1142,6 +1142,7 @@ public sealed class ObfuscatorTests : IDisposable
     [InlineData("ExampleConfig.json")]
     [InlineData("ExampleConfigSemiconductor.json")]
     [InlineData("ExampleConfigSemiconductorDemo.json")]
+    [InlineData("ExampleConfigTestResults.json")]
     public void GetDataGenParametersFromConfig_ExampleConfigs_PassValidation(string fileName)
     {
         var configPath = Path.Combine(AppContext.BaseDirectory, fileName);
@@ -1149,7 +1150,7 @@ public sealed class ObfuscatorTests : IDisposable
 
         var config = _obfuscator.GetDataGenParametersFromConfig(configPath);
 
-        Assert.NotEmpty(config.Columns);
+        Assert.True(config.Columns.Count > 0 || config.TestResults is not null);
     }
 
     [Theory]
@@ -1561,6 +1562,736 @@ public sealed class ObfuscatorTests : IDisposable
         var dataRows = lines.Length - 1;
         Assert.NotEqual(81, dataRows);
         Assert.True(dataRows > 81, "demo sample must have more rows than the frozen 81-row golden");
+    }
+
+    // ---- rowMode test-results ----
+
+    private static DataGenConfig TestResultsConfig(int devices = 5, Action<TestResultsSpec>? edit = null)
+    {
+        var spec = new TestResultsSpec
+        {
+            LineEnding = "crlf",
+            Preamble = new PreambleSpec
+            {
+                KeyWidth = 12,
+                Entries =
+                [
+                    new PreambleEntrySpec { Key = "Project", Kind = "static", Value = "Alpha" },
+                    new PreambleEntrySpec { Key = "Opened", Kind = "date", Value = "2026-03-04T05:06:07Z", Format = "yyyy-MM-dd" },
+                    new PreambleEntrySpec { Key = "Seq", Kind = "counter", Start = 100, Step = 5 },
+                    new PreambleEntrySpec { Key = "Seq2", Kind = "counter", Start = 7, Step = 5 },
+                    new PreambleEntrySpec { Key = "A Very Long Key Name", Kind = "static", Value = "x" }
+                ]
+            },
+            Annotations =
+            [
+                new AnnotationSpec { Label = "Line", Source = "programLine" },
+                new AnnotationSpec { Label = "Upper", Source = "upperLimit" },
+                new AnnotationSpec { Label = "Lower", Source = "lowerLimit" },
+                new AnnotationSpec { Label = "Unit", Source = "unit" }
+            ],
+            ProgramLineStart = 1000,
+            ProgramLineStep = 10,
+            DeviceColumns = new DeviceColumnsSpec
+            {
+                Serial = new SerialColumnSpec { Name = "SN", Width = 8, Start = 100, Step = 3 },
+                Site = new FixedColumnSpec { Name = "Site", Width = 5, Value = "1" },
+                ProberX = new FixedColumnSpec { Name = "X", Width = 4, Value = "7" },
+                ProberY = new FixedColumnSpec { Name = "Y", Width = 4, Value = "9" },
+                Bin = new BinColumnSpec { Name = "Bin", Width = 4, Weights = new Dictionary<string, double> { ["1"] = 90, ["2"] = 10 } }
+            },
+            ConditionSets =
+            [
+                new ConditionSetSpec
+                {
+                    Conditions = [["Vdd", "3.3"], ["Temp", "25"]],
+                    Tests = [TrTest("Gain", "dB", 20, 10), TrTest("Idd", "mA", 50, 5)]
+                },
+                new ConditionSetSpec
+                {
+                    Axes =
+                    [
+                        new ConditionAxisSpec { Key = "Vdd", Values = ["3.3", "5.0"] },
+                        new ConditionAxisSpec { Key = "Mode", Values = ["lo", "hi"] }
+                    ],
+                    KeyOrder = ["Mode", "Vdd"],
+                    Tests = [TrTest("Gain", "dB", 20, 10)]
+                }
+            ]
+        };
+        edit?.Invoke(spec);
+        return new DataGenConfig { RowMode = "test-results", NRows = devices, Seed = 11, TestResults = spec };
+    }
+
+    private static TestSpec TrTest(string name, string unit, double upper, double lower) => new()
+    {
+        Name = name,
+        Unit = unit,
+        UpperLimit = upper,
+        LowerLimit = lower,
+        Distribution = "uniform",
+        Min = lower,
+        Max = upper,
+        Format = "%.3f"
+    };
+
+    // Latin-1 maps every byte to one char, so string lengths are byte lengths and raw bytes survive.
+    private string[] GenerateTestResultsLines(DataGenConfig config, string name = "tr", string eol = "\r\n")
+    {
+        var path = Path.Combine(_tempDir, name + ".csv");
+        _obfuscator.GenerateCsv(config, path, force: true);
+        var text = Encoding.Latin1.GetString(File.ReadAllBytes(path));
+        Assert.EndsWith(eol, text, StringComparison.Ordinal);
+        return text[..^eol.Length].Split(eol);
+    }
+
+    // Annotation, header and data lines of TestResultsConfig(): 4 + 1 + devices, after 5 preamble lines.
+    private const int TrPreambleLines = 5;
+    private const int TrAnnotationLines = 4;
+    private const int TrHeaderIndex = TrPreambleLines + TrAnnotationLines;
+
+    private static string[] TrCells(string line) => line.Split(',');
+
+    [Theory]
+    [InlineData("crlf", "\r\n")]
+    [InlineData("lf", "\n")]
+    public void GenerateCsv_TestResults_HasPreambleAnnotationsHeaderAndEqualLengthRows(string lineEnding, string eol)
+    {
+        var config = TestResultsConfig(7, s => s.LineEnding = lineEnding);
+
+        var lines = GenerateTestResultsLines(config, eol: eol);
+
+        Assert.Equal(TrPreambleLines + TrAnnotationLines + 1 + 7, lines.Length);
+        Assert.StartsWith("Project", lines[0], StringComparison.Ordinal);
+        Assert.StartsWith("Line", lines[TrPreambleLines], StringComparison.Ordinal);
+        Assert.StartsWith("SN", lines[TrHeaderIndex], StringComparison.Ordinal);
+        Assert.StartsWith("100", lines[TrHeaderIndex + 1], StringComparison.Ordinal);
+        var width = lines[TrHeaderIndex].Length;
+        Assert.All(lines[TrPreambleLines..], line => Assert.Equal(width, line.Length));
+        if (eol == "\n")
+            Assert.DoesNotContain('\r', string.Concat(lines));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_WritesPaddedPreambleLines()
+    {
+        var lines = GenerateTestResultsLines(TestResultsConfig());
+
+        Assert.Equal("Project     :,Alpha", lines[0]);
+        Assert.Equal("Opened      :,2026-03-04", lines[1]);
+        Assert.Equal("Seq         :,100", lines[2]);
+        Assert.Equal("Seq2        :,12", lines[3]);
+        Assert.Equal("A Very Long Key Name:,x", lines[4]);
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_InjectsBytesIntoTheNamedKeyOnly()
+    {
+        var config = TestResultsConfig(3, s =>
+        {
+            s.Preamble!.Inject =
+            [
+                new PreambleInjectSpec { Key = "Project", Offset = 2, Bytes = [0xFF] },
+                new PreambleInjectSpec { Key = "Seq", Offset = 1, Bytes = [0x13, 0x13] }
+            ];
+        });
+        var path = Path.Combine(_tempDir, "tr-inject.csv");
+        _obfuscator.GenerateCsv(config, path);
+
+        var bytes = File.ReadAllBytes(path);
+        var lines = Encoding.Latin1.GetString(bytes).Split("\r\n");
+
+        Assert.Equal("Prÿject     :,Alpha", lines[0]);
+        Assert.Equal("S\u0013\u0013 " + "        :,100", lines[2]);
+        Assert.Equal(1, bytes.Count(b => b == 0xFF));
+        Assert.Equal(2, bytes.Count(b => b == 0x13));
+        // Every other line is clean ASCII text.
+        var clean = string.Join("\r\n", lines.Where((_, i) => i is not (0 or 2)));
+        Assert.All(clean.Where(c => c != '\r' && c != '\n'), c => Assert.InRange(c, ' ', '~'));
+        Assert.ThrowsAny<Exception>(() => new UTF8Encoding(false, true).GetString(bytes));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_WritesAnnotationRowsPaddedToTheFirstDeviceColumn()
+    {
+        var lines = GenerateTestResultsLines(TestResultsConfig());
+        var rows = lines[TrPreambleLines..TrHeaderIndex].Select(TrCells).ToArray();
+        var header = TrCells(lines[TrHeaderIndex]);
+
+        // Serial column is 8 wide: label padded to 7, then ":".
+        Assert.Equal("Line   :", rows[0][0]);
+        Assert.Equal("Upper  :", rows[1][0]);
+        Assert.Equal("Lower  :", rows[2][0]);
+        Assert.Equal("Unit   :", rows[3][0]);
+        foreach (var row in rows)
+        {
+            Assert.Equal(header.Length, row.Length);
+            Assert.Equal(new[] { 5, 4, 4, 4 }, row[1..5].Select(c => c.Length));
+            Assert.All(row[1..5], c => Assert.Equal(string.Empty, c.Trim()));
+        }
+
+        Assert.Equal(new[] { "1000", "1010", "1020", "1030", "1040", "1050" }, rows[0][5..].Select(c => c.Trim()));
+        Assert.Equal(new[] { "20.000", "50.000", "20.000", "20.000", "20.000", "20.000" }, rows[1][5..].Select(c => c.Trim()));
+        Assert.Equal(new[] { "10.000", "5.000", "10.000", "10.000", "10.000", "10.000" }, rows[2][5..].Select(c => c.Trim()));
+        Assert.Equal(new[] { "dB", "mA", "dB", "dB", "dB", "dB" }, rows[3][5..].Select(c => c.Trim()));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_BuildsConditionBracketHeaders()
+    {
+        var lines = GenerateTestResultsLines(TestResultsConfig());
+
+        var names = TrCells(lines[TrHeaderIndex]).Select(c => c.Trim()).ToArray();
+
+        Assert.Equal(
+            new[]
+            {
+                "SN", "Site", "X", "Y", "Bin",
+                "[Vdd=3.3|Temp=25]Gain(dB)",
+                "[Vdd=3.3|Temp=25]Idd(mA)",
+                "[Mode=lo|Vdd=3.3]Gain(dB)",
+                "[Mode=hi|Vdd=3.3]Gain(dB)",
+                "[Mode=lo|Vdd=5.0]Gain(dB)",
+                "[Mode=hi|Vdd=5.0]Gain(dB)"
+            },
+            names);
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_QuirksChangeOnlyTheColumnsTheyName()
+    {
+        var baseline = TrCells(GenerateTestResultsLines(TestResultsConfig(), "tr-base")[TrHeaderIndex]);
+        var quirky = TestResultsConfig(5, s =>
+        {
+            s.ConditionSets[0].Tests[0].Quirk = "caseVariant";
+            s.ConditionSets[0].Tests[1].Quirk = "repeatUnit";
+        });
+        var lines = GenerateTestResultsLines(quirky, "tr-quirk");
+        var names = TrCells(lines[TrHeaderIndex]);
+
+        Assert.Equal("[Vdd=3.3|Temp=25]gain(dB)", names[5].Trim());
+        Assert.Equal("[Vdd=3.3|Temp=25]Idd(mA)(mA)", names[6].Trim());
+        for (var i = 0; i < baseline.Length; i++)
+        {
+            if (i is not (5 or 6))
+                Assert.Equal(baseline[i], names[i]);
+        }
+
+        // The widened header widens its column, and every line still has one length.
+        Assert.Equal(baseline[6].Length + 4, names[6].Length);
+        Assert.All(lines[TrPreambleLines..], line => Assert.Equal(lines[TrHeaderIndex].Length, line.Length));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_UsesHeaderLengthPlusPaddingAsTestColumnWidth()
+    {
+        foreach (var padding in new[] { 0, 4, 9 })
+        {
+            var lines = GenerateTestResultsLines(TestResultsConfig(2, s => s.TestColumnPadding = padding), "tr-pad");
+            var header = TrCells(lines[TrHeaderIndex]);
+
+            Assert.Equal(new[] { 8, 5, 4, 4, 4 }, header[..5].Select(c => c.Length));
+            Assert.All(header[5..], c => Assert.Equal(padding, c.Length - c.TrimEnd().Length));
+            Assert.All(lines[(TrHeaderIndex + 1)..], line => Assert.Equal(header.Length, TrCells(line).Length));
+        }
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_DefaultsTestColumnPaddingToFour()
+    {
+        Assert.Equal(4, new TestResultsSpec().TestColumnPadding);
+        var lines = GenerateTestResultsLines(TestResultsConfig(1), "tr-default-pad");
+
+        Assert.Equal(4, TrCells(lines[TrHeaderIndex])[5].Length - "[Vdd=3.3|Temp=25]Gain(dB)".Length);
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_CellLongerThanItsColumn_FailsAndWritesNothing()
+    {
+        var outputPath = Path.Combine(_tempDir, "tr-overflow.csv");
+        // Serials 100, 103, ... reach four digits at the 300th device.
+        var config = TestResultsConfig(400, s =>
+        {
+            s.Annotations = [];
+            s.DeviceColumns.Serial!.Width = 3;
+        });
+
+        var ex = Assert.Throws<InvalidOperationException>(() => _obfuscator.GenerateCsv(config, outputPath));
+
+        Assert.Contains("exceeds", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.False(File.Exists(outputPath));
+        Assert.False(File.Exists(outputPath + ".tmp"));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_TestValueLongerThanItsColumn_FailsAndWritesNothing()
+    {
+        var outputPath = Path.Combine(_tempDir, "tr-value-overflow.csv");
+        var config = TestResultsConfig(5, s =>
+        {
+            s.TestColumnPadding = 0;
+            s.ConditionSets = [new ConditionSetSpec { Conditions = [], Tests = [new TestSpec { Name = "T", Min = 0, Max = 1, Format = "%.9f" }] }];
+        });
+
+        var ex = Assert.Throws<InvalidOperationException>(() => _obfuscator.GenerateCsv(config, outputPath));
+
+        Assert.Contains("exceeds", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.False(File.Exists(outputPath));
+        Assert.False(File.Exists(outputPath + ".tmp"));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_WritesSerialSequenceAndBinsFollowingTheWeights()
+    {
+        var config = TestResultsConfig(10_000, s =>
+        {
+            s.Annotations = [];
+            s.DeviceColumns.Bin!.Weights = new Dictionary<string, double> { ["1"] = 70, ["2"] = 20, ["7"] = 10 };
+        });
+        var lines = GenerateTestResultsLines(config, "tr-bins");
+        var data = lines[(TrPreambleLines + 1)..].Select(TrCells).ToArray();
+
+        Assert.Equal(10_000, data.Length);
+        Assert.Equal(
+            Enumerable.Range(0, 10_000).Select(i => (100 + 3 * i).ToString(CultureInfo.InvariantCulture)),
+            data.Select(r => r[0].Trim()));
+        Assert.All(data, r => Assert.Equal("1", r[1].Trim()));
+        var counts = data.GroupBy(r => r[4].Trim()).ToDictionary(g => g.Key, g => g.Count());
+        Assert.Equal(new[] { "1", "2", "7" }, counts.Keys.Order());
+        Assert.InRange(counts["1"], 6_700, 7_300);
+        Assert.InRange(counts["2"], 1_800, 2_200);
+        Assert.InRange(counts["7"], 800, 1_200);
+    }
+
+    [Theory]
+    [InlineData("%.9f", @"^-?\d+\.\d{9}$")]
+    [InlineData("%.2f", @"^-?\d+\.\d{2}$")]
+    [InlineData("%.0f", @"^-?\d+$")]
+    [InlineData("%.4e", @"^-?\d\.\d{4}e[+-]\d{2}$")]
+    public void GenerateCsv_TestResults_FormatsValuesWithThePrintfFormat(string format, string pattern)
+    {
+        var config = TestResultsConfig(50, s =>
+        {
+            s.Annotations = [];
+            s.TestColumnPadding = 30;
+            s.ConditionSets = [new ConditionSetSpec { Conditions = [], Tests = [new TestSpec { Name = "V", Min = 0.001, Max = 12345, Format = format }] }];
+        });
+
+        var lines = GenerateTestResultsLines(config, "tr-format");
+
+        var cells = lines[(TrPreambleLines + 1)..].Select(l => TrCells(l)[^1].Trim()).ToArray();
+        Assert.Equal(50, cells.Length);
+        Assert.All(cells, c => Assert.Matches(pattern, c));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_FormatsLargeExponentsLikePrintf()
+    {
+        var config = TestResultsConfig(20, s =>
+        {
+            s.Annotations = [];
+            s.TestColumnPadding = 30;
+            s.ConditionSets = [new ConditionSetSpec { Conditions = [], Tests = [new TestSpec { Name = "V", Min = 1e100, Max = 9e100, Format = "%.2e" }] }];
+        });
+
+        var cells = GenerateTestResultsLines(config, "tr-exp").Skip(TrPreambleLines + 1).Select(l => TrCells(l)[^1].Trim()).ToArray();
+
+        Assert.All(cells, c => Assert.Matches(@"^\d\.\d{2}e\+100$", c));
+    }
+
+    private double[] TrColumnValues(DataGenConfig config, out string[] tokens, string name = "tr-values")
+    {
+        var lines = GenerateTestResultsLines(config, name);
+        var cells = lines[(TrPreambleLines + 1)..].Select(l => TrCells(l)[^1].Trim()).ToArray();
+        tokens = cells;
+        return cells
+            .Where(c => double.TryParse(c, NumberStyles.Float, CultureInfo.InvariantCulture, out _))
+            .Select(c => double.Parse(c, CultureInfo.InvariantCulture))
+            .ToArray();
+    }
+
+    private static DataGenConfig TrSingleTestConfig(int devices, Action<TestSpec> edit)
+    {
+        var test = new TestSpec { Name = "V", Unit = "V", UpperLimit = 2, LowerLimit = 1, Min = 1, Max = 2, Format = "%.3f" };
+        edit(test);
+        return TestResultsConfig(devices, s =>
+        {
+            s.Annotations = [];
+            s.TestColumnPadding = 20;
+            s.ConditionSets = [new ConditionSetSpec { Conditions = [], Tests = [test] }];
+        });
+    }
+
+    [Theory]
+    [InlineData(0.0, 0)]
+    [InlineData(100.0, 10_000)]
+    [InlineData(25.0, -1)]
+    public void GenerateCsv_TestResults_NullTokenAppearsAtTheConfiguredRate(double rate, int expected)
+    {
+        var config = TrSingleTestConfig(10_000, t => t.NullRate = rate);
+
+        TrColumnValues(config, out var tokens);
+
+        var nulls = tokens.Count(c => c == "NA.");
+        if (expected >= 0)
+            Assert.Equal(expected, nulls);
+        else
+            Assert.InRange(nulls, 2_300, 2_700);
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_UsesTheConfiguredNullToken()
+    {
+        var config = TrSingleTestConfig(20, t => { t.NullRate = 100; t.NullToken = "--"; });
+
+        TrColumnValues(config, out var tokens);
+
+        Assert.All(tokens, c => Assert.Equal("--", c));
+    }
+
+    [Theory]
+    [InlineData("uniform")]
+    [InlineData("normal")]
+    public void GenerateCsv_TestResults_KeepsValuesInsideTheLimitsWhenTheOutOfLimitRateIsZero(string distribution)
+    {
+        var config = TrSingleTestConfig(10_000, t =>
+        {
+            t.Distribution = distribution;
+            t.Mean = 1.5;
+            t.StdDev = 2;
+            t.Min = 0;
+            t.Max = 3;
+        });
+
+        var values = TrColumnValues(config, out _);
+
+        Assert.Equal(10_000, values.Length);
+        Assert.All(values, v => Assert.InRange(v, 1.0, 2.0));
+        if (distribution == "normal")
+            Assert.Contains(values, v => v == 1.0);
+    }
+
+    [Theory]
+    [InlineData(100.0, 10_000)]
+    [InlineData(20.0, -1)]
+    public void GenerateCsv_TestResults_OutOfLimitValuesAppearAtTheConfiguredRate(double rate, int expected)
+    {
+        var config = TrSingleTestConfig(10_000, t => t.OutOfLimitRate = rate);
+
+        var values = TrColumnValues(config, out _);
+
+        var outside = values.Count(v => v < 1.0 || v > 2.0);
+        if (expected >= 0)
+            Assert.Equal(expected, outside);
+        else
+            Assert.InRange(outside, 1_800, 2_200);
+        // "Just outside": within a tenth of the limit span, never far away.
+        Assert.All(values, v => Assert.InRange(v, 0.89, 2.11));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_DrawsOutOfLimitValuesOnBothSides()
+    {
+        var config = TrSingleTestConfig(2_000, t => t.OutOfLimitRate = 100);
+
+        var values = TrColumnValues(config, out _);
+
+        Assert.Contains(values, v => v < 1.0);
+        Assert.Contains(values, v => v > 2.0);
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_OutOfLimitValuesStayOutsideAfterRounding()
+    {
+        // Limits not representable at one decimal: the printed value must still be outside them.
+        var config = TrSingleTestConfig(2_000, t =>
+        {
+            t.UpperLimit = 1.04;
+            t.LowerLimit = 0.96;
+            t.Min = 0.9;
+            t.Max = 1.1;
+            t.Format = "%.1f";
+            t.OutOfLimitRate = 100;
+        });
+
+        var values = TrColumnValues(config, out _);
+
+        Assert.All(values, v => Assert.True(v < 0.96 || v > 1.04, $"{v} is inside the limits"));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_NormalDistributionFollowsMeanAndStdDev()
+    {
+        var config = TrSingleTestConfig(10_000, t =>
+        {
+            t.Distribution = "normal";
+            t.UpperLimit = null;
+            t.LowerLimit = null;
+            t.Mean = 10;
+            t.StdDev = 2;
+            t.Format = "%.6f";
+        });
+
+        var values = TrColumnValues(config, out _);
+
+        Assert.InRange(values.Average(), 9.9, 10.1);
+        var variance = values.Select(v => (v - 10) * (v - 10)).Average();
+        Assert.InRange(Math.Sqrt(variance), 1.9, 2.1);
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_SameSeedGivesIdenticalBytesAndAnotherSeedDiffers()
+    {
+        var a = Path.Combine(_tempDir, "tr-seed-a.csv");
+        var b = Path.Combine(_tempDir, "tr-seed-b.csv");
+        var c = Path.Combine(_tempDir, "tr-seed-c.csv");
+        _obfuscator.GenerateCsv(TestResultsConfig(200), a);
+        _obfuscator.GenerateCsv(TestResultsConfig(200), b);
+        var other = TestResultsConfig(200);
+        other.Seed = 12;
+        _obfuscator.GenerateCsv(other, c);
+
+        Assert.Equal(File.ReadAllBytes(a), File.ReadAllBytes(b));
+        Assert.NotEqual(File.ReadAllBytes(a), File.ReadAllBytes(c));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_ZeroDevicesWritesPreambleAnnotationsAndHeaderOnly()
+    {
+        var lines = GenerateTestResultsLines(TestResultsConfig(0), "tr-zero");
+
+        Assert.Equal(TrHeaderIndex + 1, lines.Length);
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_OptionalPartsCanBeLeftOut()
+    {
+        var config = TestResultsConfig(3, s =>
+        {
+            s.Preamble = null;
+            s.Annotations = [];
+            s.DeviceColumns = new DeviceColumnsSpec { Serial = new SerialColumnSpec { Name = "SN", Width = 6 } };
+        });
+
+        var lines = GenerateTestResultsLines(config, "tr-bare");
+
+        Assert.Equal(4, lines.Length);
+        Assert.StartsWith("SN    ,[Vdd=3.3|Temp=25]Gain(dB)", lines[0], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_ExampleConfigMatchesTheCommittedGoldenByteForByte()
+    {
+        var configPath = Path.Combine(AppContext.BaseDirectory, "ExampleConfigTestResults.json");
+        var goldenPath = Path.Combine(AppContext.BaseDirectory, "ExampleConfigTestResults.golden.csv");
+        Assert.True(File.Exists(configPath), configPath);
+        Assert.True(File.Exists(goldenPath), goldenPath);
+        var outputPath = Path.Combine(_tempDir, "tr-golden.csv");
+
+        _obfuscator.GenerateCsvFromConfig(configPath, outputPath);
+
+        Assert.Equal(File.ReadAllBytes(goldenPath), File.ReadAllBytes(outputPath));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_ExampleConfigHasTheShapeTheSpecAsks()
+    {
+        var configPath = Path.Combine(AppContext.BaseDirectory, "ExampleConfigTestResults.json");
+        var outputPath = Path.Combine(_tempDir, "tr-example.csv");
+        _obfuscator.GenerateCsvFromConfig(configPath, outputPath);
+
+        var bytes = File.ReadAllBytes(outputPath);
+        var lines = Encoding.Latin1.GetString(bytes).Split("\r\n");
+        var header = lines.First(l => l.Contains("Gain", StringComparison.Ordinal));
+        var headerIndex = Array.IndexOf(lines, header);
+
+        // Header, then 20 devices, then the final terminator.
+        Assert.Equal(headerIndex + 1 + 20 + 1, lines.Length);
+        Assert.Equal(12, TrCells(header).Length - 5);
+        Assert.Contains(0xFF, bytes.Select(b => (int)b));
+        Assert.Contains("NA.", lines.Skip(headerIndex + 1).SelectMany(TrCells).Select(c => c.Trim()));
+    }
+
+    public static IEnumerable<object[]> TestResultsInvalidConfigs()
+    {
+        static object[] Case(string name, string message, Action<DataGenConfig> mutate) => [name, message, mutate];
+        static TestSpec FirstTest(DataGenConfig c) => c.TestResults!.ConditionSets[0].Tests[0];
+
+        yield return Case("unknown preamble kind", "kind", c => c.TestResults!.Preamble!.Entries[0].Kind = "random");
+        yield return Case("unknown quirk", "quirk", c => FirstTest(c).Quirk = "weird");
+        yield return Case("unknown line ending", "lineEnding", c => c.TestResults!.LineEnding = "cr");
+        yield return Case("unknown distribution", "distribution", c => FirstTest(c).Distribution = "beta");
+        yield return Case("unknown annotation source", "source", c => c.TestResults!.Annotations[0].Source = "color");
+        yield return Case("format %d", "format", c => FirstTest(c).Format = "%d");
+        yield return Case("format with width", "format", c => FirstTest(c).Format = "%8.3f");
+        yield return Case("format %g", "format", c => FirstTest(c).Format = "%.3g");
+        yield return Case("duplicate columns", "duplicate", c => c.TestResults!.ConditionSets.Add(c.TestResults.ConditionSets[0]));
+        yield return Case("duplicate device column", "duplicate", c => c.TestResults!.DeviceColumns.Site!.Name = "SN");
+        yield return Case("upper below lower", "upperLimit", c => { FirstTest(c).UpperLimit = 1; FirstTest(c).LowerLimit = 2; });
+        yield return Case("null rate below 0", "nullRate", c => FirstTest(c).NullRate = -0.1);
+        yield return Case("null rate above 100", "nullRate", c => FirstTest(c).NullRate = 100.1);
+        yield return Case("out-of-limit rate above 100", "outOfLimitRate", c => FirstTest(c).OutOfLimitRate = 101);
+        yield return Case("out-of-limit rate without limits", "limit", c => { FirstTest(c).UpperLimit = null; FirstTest(c).LowerLimit = null; FirstTest(c).OutOfLimitRate = 5; });
+        yield return Case("empty bin weights", "weights", c => c.TestResults!.DeviceColumns.Bin!.Weights = new());
+        yield return Case("negative bin weight", "weight", c => c.TestResults!.DeviceColumns.Bin!.Weights["1"] = -1);
+        yield return Case("inject into a missing key", "inject", c => c.TestResults!.Preamble!.Inject = [new PreambleInjectSpec { Key = "Nope", Offset = 0, Bytes = [255] }]);
+        yield return Case("inject byte out of range", "byte", c => c.TestResults!.Preamble!.Inject = [new PreambleInjectSpec { Key = "Project", Offset = 0, Bytes = [256] }]);
+        yield return Case("inject beyond the key", "offset", c => c.TestResults!.Preamble!.Inject = [new PreambleInjectSpec { Key = "Project", Offset = 11, Bytes = [255, 255] }]);
+        yield return Case("negative key width", "keyWidth", c => c.TestResults!.Preamble!.KeyWidth = -1);
+        yield return Case("negative device width", "width", c => c.TestResults!.DeviceColumns.Serial!.Width = -1);
+        yield return Case("negative padding", "testColumnPadding", c => c.TestResults!.TestColumnPadding = -1);
+        yield return Case("columns with testResults", "columns", c => c.Columns = [new ColumnGenerationSpec { Name = "A", DataType = "string" }]);
+        yield return Case("sweepAxes with testResults", "sweepAxes", c => c.SweepAxes = [new SweepAxisSpec { Name = "A" }]);
+        yield return Case("device count below 0", "nRows", c => c.NRows = -1);
+        yield return Case("device count above Array.MaxLength", "nRows", c => c.NRows = Array.MaxLength + 1);
+        yield return Case("missing testResults", "testResults", c => c.TestResults = null);
+        yield return Case("testResults with another rowMode", "testResults", c => c.RowMode = "fixed");
+        yield return Case("conditions and axes", "conditions", c => c.TestResults!.ConditionSets[0].Axes = [new ConditionAxisSpec { Key = "K", Values = ["1"] }]);
+        yield return Case("neither conditions nor axes", "conditions", c => c.TestResults!.ConditionSets[0].Conditions = null);
+        yield return Case("condition pair of three", "condition", c => c.TestResults!.ConditionSets[0].Conditions = [["a", "b", "c"]]);
+        yield return Case("axis without values", "values", c => c.TestResults!.ConditionSets[1].Axes![0].Values = []);
+        yield return Case("key order not a permutation", "keyOrder", c => c.TestResults!.ConditionSets[1].KeyOrder = ["Mode"]);
+        yield return Case("repeated axis key", "axis", c => c.TestResults!.ConditionSets[1].Axes![1].Key = "Vdd");
+        yield return Case("repeatUnit without unit", "unit", c => { FirstTest(c).Unit = null; FirstTest(c).Quirk = "repeatUnit"; });
+        yield return Case("annotations without a device column", "annotation", c => c.TestResults!.DeviceColumns = new DeviceColumnsSpec());
+        yield return Case("annotation label too long", "label", c => c.TestResults!.Annotations[0].Label = "A label that is much too long");
+        yield return Case("uniform without range", "uniform", c => { FirstTest(c).Min = null; FirstTest(c).Max = null; });
+        yield return Case("uniform min above max", "min", c => { FirstTest(c).Min = 5; FirstTest(c).Max = 1; });
+        yield return Case("normal without mean", "normal", c => { FirstTest(c).Distribution = "normal"; FirstTest(c).Mean = null; });
+        yield return Case("negative std dev", "stdDev", c => { FirstTest(c).Distribution = "normal"; FirstTest(c).Mean = 1; FirstTest(c).StdDev = -1; });
+        yield return Case("no condition sets", "test column", c => c.TestResults!.ConditionSets = []);
+        yield return Case("condition sets without tests", "test column", c => { foreach (var set in c.TestResults!.ConditionSets) set.Tests = []; });
+        yield return Case("uniform range overflows", "finite", c => { FirstTest(c).Min = -1e308; FirstTest(c).Max = 1e308; });
+        yield return Case("normal spread overflows", "finite", c => { FirstTest(c).Distribution = "normal"; FirstTest(c).Mean = 0; FirstTest(c).StdDev = 1e308; });
+        yield return Case("normal mean overflows", "finite", c => { FirstTest(c).Distribution = "normal"; FirstTest(c).Mean = double.MaxValue; FirstTest(c).StdDev = double.MaxValue; });
+        yield return Case("limit span overflows", "finite", c => { FirstTest(c).UpperLimit = 1e308; FirstTest(c).LowerLimit = -1e308; });
+        yield return Case("date entry without a date", "date", c => { c.TestResults!.Preamble!.Entries[1].Value = "not a date"; });
+    }
+
+    [Theory]
+    [MemberData(nameof(TestResultsInvalidConfigs))]
+    public void GenerateCsv_TestResults_InvalidConfig_ThrowsBeforeWriting(string name, string message, Action<DataGenConfig> mutate)
+    {
+        var config = TestResultsConfig();
+        mutate(config);
+        var outputPath = Path.Combine(_tempDir, "tr-invalid.csv");
+
+        var ex = Assert.Throws<InvalidOperationException>(() => _obfuscator.GenerateCsv(config, outputPath));
+
+        Assert.True(
+            ex.Message.Contains(message, StringComparison.OrdinalIgnoreCase),
+            $"{name}: '{ex.Message}' should mention '{message}'");
+        Assert.False(File.Exists(outputPath));
+        Assert.False(File.Exists(outputPath + ".tmp"));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_EmptyTestResultsObject_Throws()
+    {
+        var configPath = WriteConfig("tr-empty.json", "{ \"rowMode\": \"test-results\", \"nRows\": 3, \"testResults\": {} }");
+
+        var ex = Assert.Throws<InvalidOperationException>(() => _obfuscator.GetDataGenParametersFromConfig(configPath));
+
+        Assert.Contains("test column", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_ValueThatOverflowsToInfinity_FailsAndWritesNothing()
+    {
+        // Passes validation, but just outside a limit near double.MaxValue overflows.
+        var outputPath = Path.Combine(_tempDir, "tr-infinity.csv");
+        var config = TrSingleTestConfig(50, t =>
+        {
+            t.UpperLimit = 1.7e308;
+            t.LowerLimit = null;
+            t.Min = 0;
+            t.Max = 1;
+            t.Format = "%.0f";
+            t.OutOfLimitRate = 100;
+        });
+        config.TestResults!.TestColumnPadding = 400;
+
+        var ex = Assert.Throws<InvalidOperationException>(() => _obfuscator.GenerateCsv(config, outputPath));
+
+        Assert.Contains("not finite", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.False(File.Exists(outputPath));
+        Assert.False(File.Exists(outputPath + ".tmp"));
+    }
+
+    [Fact]
+    public void GenerateCsv_TestResults_RefusesToOverwriteWithoutForce()
+    {
+        var outputPath = Path.Combine(_tempDir, "tr-exists.csv");
+        File.WriteAllText(outputPath, "keep");
+
+        Assert.Throws<InvalidOperationException>(() => _obfuscator.GenerateCsv(TestResultsConfig(), outputPath));
+
+        Assert.Equal("keep", File.ReadAllText(outputPath));
+    }
+
+    [Fact]
+    public void TestResultsGenerator_100kDevicesBy200Columns_StreamsRowsWithoutBuildingTheFile()
+    {
+        const int devices = 100_000;
+        var config = new DataGenConfig
+        {
+            RowMode = "test-results",
+            NRows = devices,
+            Seed = 5,
+            TestResults = new TestResultsSpec
+            {
+                LineEnding = "lf",
+                DeviceColumns = new DeviceColumnsSpec { Serial = new SerialColumnSpec { Name = "SN", Width = 10 } },
+                ConditionSets =
+                [
+                    new ConditionSetSpec
+                    {
+                        Axes = [new ConditionAxisSpec { Key = "c", Values = Enumerable.Range(0, 50).Select(i => i.ToString(CultureInfo.InvariantCulture)).ToList() }],
+                        Tests = Enumerable.Range(0, 4).Select(i => new TestSpec { Name = "T" + i, Min = 0, Max = 1, Format = "%.4f", NullRate = 1 }).ToList()
+                    }
+                ]
+            }
+        };
+        var sink = new CountingStream();
+        var generator = new TestResultsGenerator(config);
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        generator.Write(sink);
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(devices + 1, sink.NewLines);
+        // The output is hundreds of MB; buffering it (for example in a MemoryStream) would allocate at least that much.
+        Assert.True(sink.Bytes > 100_000_000, $"the output is only {sink.Bytes} bytes, too small for the allocation check");
+        Assert.True(allocated < 16_000_000, $"writing allocated {allocated} bytes for {sink.Bytes} bytes of output: rows were buffered");
+        Assert.True(sink.LargestWrite <= 1 << 20, $"largest single write was {sink.LargestWrite} bytes");
+        Assert.True(sink.Writes > 100, $"only {sink.Writes} writes: rows were buffered");
+    }
+
+    private sealed class CountingStream : Stream
+    {
+        public long NewLines { get; private set; }
+        public long Bytes { get; private set; }
+        public int LargestWrite { get; private set; }
+        public int Writes { get; private set; }
+
+        public override void Write(ReadOnlySpan<byte> buffer)
+        {
+            Writes++;
+            Bytes += buffer.Length;
+            LargestWrite = Math.Max(LargestWrite, buffer.Length);
+            NewLines += buffer.Count((byte)'\n');
+        }
+
+        public override void Write(byte[] buffer, int offset, int count) => Write(buffer.AsSpan(offset, count));
+        public override bool CanRead => false;
+        public override bool CanSeek => false;
+        public override bool CanWrite => true;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public override void Flush() { }
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
     }
 
     [SkippableFact]

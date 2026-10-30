@@ -114,6 +114,7 @@ Generation config is explicit via `rowMode`:
 - `fixed`: generate exactly `nRows` independent rows
 - `sweep`: generate every combination defined by `sweepAxes`
 - `max`: generate at least `nRows`; if the sweep expansion is smaller, the sweep pattern repeats
+- `test-results`: generate a wide production test-results file (preamble, annotation rows, one row per device) from a nested `testResults` object; `nRows` is the device count
 
 Generated data is synthetic. The generator builds every value from the JSON config alone and never reads an input CSV. It uses `System.Random`, which is not a cryptographic generator; set `seed` for reproducible output. Use generated datasets as fixtures, demos, and test inputs. They are not a source of secrets or keys, and they say nothing about whether a real dataset is safe to share.
 
@@ -159,6 +160,39 @@ For sweep configs:
 - `generatedIdMode: "outer-group"` creates one ID per outer stimulus group
 - `generatedIdMode: "inner-step"` creates a 1-based counter for the innermost sweep axis
 
+### Test-results mode
+
+`rowMode: "test-results"` writes the shape of a production test-program results file, so parsers can be tested on simulated data instead of real files. It is configured by a nested `testResults` object (see `Obfuscator/ExampleConfigTestResults.json`) and `nRows` is the device count: one data row per device. `columns` and `sweepAxes` stay empty. Output is written as raw bytes, not CSV: nothing is quoted, every field is space-padded (left-aligned) to a fixed width, and every line ends with the configured line ending (`lineEnding`: `crlf` by default, or `lf`), including the last. Rows are streamed to the file, so 100k devices by 200 test columns does not hold the file in memory. The output is deterministic for a `seed`.
+
+The parts, in file order, each optional except the test columns:
+
+- `preamble`: `Key<padding>:,value` lines. `keyWidth` pads every key to that many bytes (a longer key gets no padding). Each `entries` item is `{key, kind, ...}`: `static` (`value`), `date` (`value` as an ISO 8601 date or date-time read as UTC, printed with .NET `format`, default `yyyy-MM-dd HH:mm:ss`) or `counter` (`start + step * the number of counter entries before this one`). `inject` items `{key, offset, bytes}` overwrite bytes of that key's padded text, for example `[255]` (invalid UTF-8) or `[19]` (a control character), to simulate a corrupted key.
+- `annotations`: labelled rows between the preamble and the header, in the listed order, each with `{label, source}`. `source` is `programLine` (`programLineStart + programLineStep * test column index`), `upperLimit`, `lowerLimit` (both in the test's print format; blank when the test has no such limit) or `unit`. The label plus a trailing `:` fills the first device column; the other device columns are blank.
+- `deviceColumns`: `serial` (`name`, `width`, `start`, `step`), `site`, `proberX`, `proberY` (`name`, `width`, `value`, the same text on every row) and `bin` (`name`, `width`, `weights`, a map of bin value to relative weight). Each is optional and they appear in that order. Bins are drawn independently of the test values and of pass or fail.
+- `conditionSets`: the test columns. Each item is either `{conditions: [[key, value], ...], tests}` (one condition set) or `{axes: [{key, values}, ...], keyOrder, tests}` (every combination of the axes, the first axis outermost; `keyOrder` lists the axis keys in bracket order and defaults to the declared order). Columns come in order: condition set, then test. A column is named `[k1=v1|k2=v2]Test(unit)`; with no conditions the bracket is left out, and with no unit so are the parentheses.
+- Each test is `{name, unit, upperLimit, lowerLimit, distribution, format, nullRate, nullToken, outOfLimitRate, quirk}`. `distribution` is `uniform` (`min`, `max`) or `normal` (`mean`, `stdDev`). `format` is printf-style `%.Nf` or `%.Ne` (N from 0 to 20; the exponent has at least two digits, as in C), formatted with the invariant culture. In-limit values are clamped to the limits, so limits should be representable in `format`. `nullRate` is the percent of cells that hold `nullToken` (default `NA.`). `outOfLimitRate` is the percent of the non-null cells drawn just outside the nearer limit. `quirk` is `caseVariant` (the test name in the opposite case) or `repeatUnit` (the header reads `Test(V)(V)`); it changes only the columns of that test entry.
+- Widths: a test column is as wide as its header (in UTF-8 bytes) plus `testColumnPadding` (default 4). A cell longer than its column fails generation, and no output file is written.
+
+Excerpt of the example output (shortened to the first columns; the injected key holds bytes `0xFF 0x13`, shown here as `<FF><13>`):
+
+```text
+Program         :,sqDemoProgram_rev3
+Lot             :,LOT-0042
+Sta<FF><13>on         :,bench-07
+Started         :,2026-02-03 09:30:00
+Run             :,1000
+Operator Notes  :,none
+Line     :,      ,     ,     ,     ,1200                         ,1203                        ,1206 ...
+Upper    :,      ,     ,     ,     ,30.000000000                 ,120.0000                    ,4.500 ...
+Lower    :,      ,     ,     ,     ,22.000000000                 ,60.0000                     ,1.000 ...
+Unit     :,      ,     ,     ,     ,dB                           ,mA                          ,dB ...
+Serial    ,Site  ,X    ,Y    ,Bin  ,[Vdd=3.3|Temp=25]Gain(dB)    ,[Vdd=3.3|Temp=25]Idd(mA)    ,[Mode=low ...
+5000      ,1     ,12   ,7    ,1    ,30.000000000                 ,98.9309                     ,2.430 ...
+5001      ,1     ,12   ,7    ,3    ,23.386917892                 ,62.7220                     ,3.294 ...
+```
+
+Not covered: several sites per file, appended blocks, or reading such files back.
+
 Generation configs are validated before any rows are generated or output is written. A config is rejected when:
 
 - a sweep axis is repeated (names compare case-insensitively), or an axis is also a `generatedIdMode` column
@@ -171,6 +205,15 @@ Generation configs are validated before any rows are generated or output is writ
 - `tracksWith`/`tracksInverselyWith` names a missing, non-numeric, or later column, or the column itself
 - a `generatedIdMode` column is used with `rowMode: "fixed"`
 - a `generatedIdMode` column's `totalRangeMin`..`totalRangeMax` cannot hold the IDs it needs: one per combination of the outer axes' values for `outer-group`, or one per innermost axis value for `inner-step`. IDs start at `totalRangeMin`, and each `outer-group` column counts its groups separately.
+- for `rowMode: "test-results"`: `testResults` is missing, or is set with another `rowMode`, or `columns` or `sweepAxes` is also set; `nRows` (the device count) is below 0 or above `Array.MaxLength`
+- a `testResults` value kind (preamble `kind`, annotation `source`, test `distribution` or `quirk`) or `lineEnding` is unknown, or a `format` is anything but `%.Nf` or `%.Ne`
+- a width or `testColumnPadding` is negative, an annotation label with its colon does not fit the first device column, or annotations are set with no device columns
+- two columns end up with the same name after the condition sets expand (names compare case-sensitively)
+- `conditionSets` expand to no test columns, or a test's limit span, uniform range or normal spread is too large to stay finite
+- a test's `upperLimit` is below its `lowerLimit`, `nullRate` or `outOfLimitRate` is outside 0..100, `outOfLimitRate` is set with no limit, or its distribution parameters are missing or reversed
+- `bin` `weights` is empty, has a negative weight, or adds up to 0
+- an `inject` names a key that is not in `entries`, has a byte outside 0..255, or does not fit inside the padded key
+- a condition set has both or neither of `conditions` and `axes`, repeats an axis key, has an axis with no values, or lists a `keyOrder` that is not each axis key once
 - the sweep expansion (the product of every axis's value count) or `nRows` exceeds `Array.MaxLength` (2,147,483,591) rows. The generator indexes rows with `int` and holds the row plan in memory, so this is the largest size it can represent. It is not a recommended size, and very large sweeps may still exhaust memory.
 
 The example config paths above are repo-relative. If you are using the published packages outside this repo, point to your own config file.

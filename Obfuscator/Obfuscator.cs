@@ -37,6 +37,12 @@ public sealed class Obfuscator
     {
         ValidateConfig(config);
 
+        if (IsTestResultsMode(config))
+        {
+            GenerateTestResults(config, outputCsvPath, force);
+            return;
+        }
+
         var generator = new DataGenerator(config.Seed);
 
         FileWrite.RefuseOverwriteUnlessForce(outputCsvPath, force);
@@ -56,6 +62,22 @@ public sealed class Obfuscator
 
                 csv.NextRecord();
             }
+        });
+    }
+
+    private static bool IsTestResultsMode(DataGenConfig config)
+        => string.Equals(config.RowMode?.Trim(), "test-results", StringComparison.OrdinalIgnoreCase);
+
+    // Rows are streamed to the temp file; a failure while writing (for example a cell wider than its column) leaves no output.
+    private static void GenerateTestResults(DataGenConfig config, string outputPath, bool force)
+    {
+        var generator = new TestResultsGenerator(config);
+
+        FileWrite.RefuseOverwriteUnlessForce(outputPath, force);
+        FileWrite.WriteAtomically(outputPath, tmp =>
+        {
+            using var stream = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None);
+            generator.Write(stream);
         });
     }
 
@@ -110,8 +132,17 @@ public sealed class Obfuscator
     private static void ValidateConfig(DataGenConfig config)
     {
         var rowMode = config.RowMode?.Trim().ToLowerInvariant() ?? "fixed";
-        if (rowMode is not ("fixed" or "sweep" or "max"))
-            throw new InvalidOperationException($"Unsupported rowMode '{config.RowMode}'. Expected one of: fixed, sweep, max.");
+        if (rowMode is not ("fixed" or "sweep" or "max" or "test-results"))
+            throw new InvalidOperationException($"Unsupported rowMode '{config.RowMode}'. Expected one of: fixed, sweep, max, test-results.");
+
+        if (rowMode == "test-results")
+        {
+            TestResultsGenerator.Validate(config);
+            return;
+        }
+
+        if (config.TestResults is not null)
+            throw new InvalidOperationException($"testResults can only be used with rowMode 'test-results', not '{rowMode}'.");
 
         if (rowMode is "fixed" or "max" && config.NRows <= 0)
             throw new InvalidOperationException($"NRows must be > 0 when rowMode is '{rowMode}'.");

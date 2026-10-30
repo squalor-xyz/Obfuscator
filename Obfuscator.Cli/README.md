@@ -114,6 +114,7 @@ Generation config supports:
 - `rowMode: "fixed"` for exact `nRows`
 - `rowMode: "sweep"` for full sweep expansion
 - `rowMode: "max"` for repeating a sweep pattern until `nRows` is reached
+- `rowMode: "test-results"` for a wide production test-results file (preamble, annotation rows, condition-bracket column names, one row per device) from a nested `testResults` object; its options and validation rules are in the [root README](../README.md#test-results-mode)
 - `sweepAxes` to define outer-to-inner sweep order
 - per-column `values` for discrete sweep points
 - `generatedIdMode: "outer-group"` and `generatedIdMode: "inner-step"` for sweep IDs

@@ -1,0 +1,65 @@
+{
+  "rowMode": "test-results",
+  "nRows": 20,
+  "seed": 2026,
+  "testResults": {
+    "lineEnding": "crlf",
+    "preamble": {
+      "keyWidth": 16,
+      "entries": [
+        { "key": "Program", "kind": "static", "value": "sqDemoProgram_rev3" },
+        { "key": "Lot", "kind": "static", "value": "LOT-0042" },
+        { "key": "Station", "kind": "static", "value": "bench-07" },
+        { "key": "Started", "kind": "date", "value": "2026-02-03T09:30:00Z", "format": "yyyy-MM-dd HH:mm:ss" },
+        { "key": "Run", "kind": "counter", "start": 1000, "step": 1 },
+        { "key": "Operator Notes", "kind": "static", "value": "none" }
+      ],
+      "inject": [
+        { "key": "Station", "offset": 3, "bytes": [255, 19] }
+      ]
+    },
+    "annotations": [
+      { "label": "Line", "source": "programLine" },
+      { "label": "Upper", "source": "upperLimit" },
+      { "label": "Lower", "source": "lowerLimit" },
+      { "label": "Unit", "source": "unit" }
+    ],
+    "programLineStart": 1200,
+    "programLineStep": 3,
+    "deviceColumns": {
+      "serial": { "name": "Serial", "width": 10, "start": 5000, "step": 1 },
+      "site": { "name": "Site", "width": 6, "value": "1" },
+      "proberX": { "name": "X", "width": 5, "value": "12" },
+      "proberY": { "name": "Y", "width": 5, "value": "7" },
+      "bin": { "name": "Bin", "width": 5, "weights": { "1": 85, "2": 10, "3": 5 } }
+    },
+    "testColumnPadding": 4,
+    "conditionSets": [
+      {
+        "conditions": [ [ "Vdd", "3.3" ], [ "Temp", "25" ] ],
+        "tests": [
+          { "name": "Gain", "unit": "dB", "upperLimit": 30.0, "lowerLimit": 22.0, "distribution": "uniform", "min": 21.0, "max": 31.0, "format": "%.9f", "nullRate": 8, "outOfLimitRate": 15 },
+          { "name": "Idd", "unit": "mA", "upperLimit": 120.0, "lowerLimit": 60.0, "distribution": "uniform", "min": 55.0, "max": 125.0, "format": "%.4f", "outOfLimitRate": 10 }
+        ]
+      },
+      {
+        "axes": [
+          { "key": "Vdd", "values": [ "3.3", "5.0" ] },
+          { "key": "Mode", "values": [ "low", "high" ] }
+        ],
+        "keyOrder": [ "Mode", "Vdd" ],
+        "tests": [
+          { "name": "Noise", "unit": "dB", "upperLimit": 4.5, "lowerLimit": 1.0, "distribution": "uniform", "min": 1.0, "max": 4.5, "format": "%.3f", "nullRate": 6 },
+          { "name": "Leak", "unit": "uA", "upperLimit": 2.0, "format": "%.3e", "distribution": "uniform", "min": 0.001, "max": 2.0 }
+        ]
+      },
+      {
+        "conditions": [ [ "Vdd", "3.3" ], [ "Temp", "85" ] ],
+        "tests": [
+          { "name": "Gain", "unit": "dB", "upperLimit": 30.0, "lowerLimit": 22.0, "distribution": "uniform", "min": 22.0, "max": 30.0, "format": "%.9f", "quirk": "caseVariant" },
+          { "name": "Idd", "unit": "mA", "upperLimit": 120.0, "lowerLimit": 60.0, "distribution": "uniform", "min": 60.0, "max": 120.0, "format": "%.4f", "quirk": "repeatUnit" }
+        ]
+      }
+    ]
+  }
+}
