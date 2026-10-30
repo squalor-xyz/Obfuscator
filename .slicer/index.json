@@ -1120,7 +1120,7 @@
       "id": "ob-21",
       "title": "Reject invalid test-results configs at validation: width overflow, coarse formats, null lists, separators, keyOrder conflicts, rate-100 floor",
       "short_title": "Test-results config validation hardening",
-      "status": "review",
+      "status": "done",
       "has_slice": true,
       "depends_on": [],
       "note_records": [
