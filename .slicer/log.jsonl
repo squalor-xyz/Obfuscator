@@ -266,3 +266,6 @@
 {"when": "2026-10-30T15:36:25Z", "item": "ob-24", "action": "note", "from": "", "to": "", "note": "Review FAIL: README.md 'A config is rejected when:' list sta", "by": "Jon Robbins"}
 {"when": "2026-10-30T15:38:47Z", "item": "ob-24", "action": "note", "from": "", "to": "", "note": "Outcome: equal limits now draw a random side for out-of-limi", "by": "Jon Robbins"}
 {"when": "2026-10-30T15:38:47Z", "item": "ob-24", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon Robbins cleared", "by": "Jon Robbins"}
+{"when": "2026-10-30T15:40:13Z", "item": "ob-31", "action": "add", "from": "", "to": "open", "note": "Add JSON-level tests for prober range edge cases: range null, empty range, value null with range"}
+{"when": "2026-10-30T15:40:13Z", "item": "ob-32", "action": "add", "from": "", "to": "open", "note": "Test the print-grid inside-limits check with negative limits under %.Ne"}
+{"when": "2026-10-30T15:40:13Z", "item": "ob-33", "action": "add", "from": "", "to": "open", "note": "Document equal-limits out-of-limit behaviour in PackageReadme.md"}
