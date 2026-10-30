@@ -10,13 +10,13 @@ Make CSV obfuscation and restoration safer to use for library and CLI users, whi
 
 Do not claim obfuscation alone provides cryptographic secrecy. Do not require encrypted manifests by default. Do not target a 1.0 release in this roadmap.
 
-28 items · — 3 · done 18 · later 1 · retired 6
+28 items · — 2 · done 18 · later 1 · retired 6 · review 1
 
 ## v0.2.0
 
 | # | Slice | Title | Size | Effort | Trees | Findings | Status |
 |---|---|---|---|---|---|---|---|
-| 1 | [ob-21](slices/ob-21.md) | Test-results config validation hardening | M | 2 |  | Obfuscator/TestResultsGenerator.cs: these are caught only mid-write today (no output is left, but the error comes late). · discovered from ob-20 | — |
+| 1 | [ob-21](slices/ob-21.md) | Test-results config validation hardening | M | 2 |  | Obfuscator/TestResultsGenerator.cs: these are caught only mid-write today (no output is left, but the error comes late). · discovered from ob-20 | review |
 | 2 | [ob-24](slices/ob-24.md) | Test-results generation behaviour fixes | M | 2 |  | Obfuscator/TestResultsGenerator.cs: with equal limits, out-of-limit values always land above. · discovered from ob-20 | — |
 | 3 | [ob-28](slices/ob-28.md) | Test-results redraw tests | S | 1 |  | Obfuscator.Tests/ObfuscatorTests.cs: the redraw-determinism test is weak and no test covers a redraw against a one-sided limit. · discovered from ob-20 | — |
 

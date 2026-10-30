@@ -248,3 +248,8 @@
 {"when": "2026-10-30T14:44:02Z", "item": "ob-28", "action": "edit", "from": "", "to": "", "note": "Git"}
 {"when": "2026-10-30T14:44:02Z", "item": "ob-28", "action": "ready", "from": "", "to": "", "note": "Approved via v0.2.0 relay plan (2026-10-30).", "by": "Jon Robbins"}
 {"when": "2026-10-30T14:44:07Z", "item": "pass.v0.2.0", "action": "prose", "from": "", "to": "v0.2.0", "note": "add-pass"}
+{"when": "2026-10-30T14:45:09Z", "item": "ob-21", "action": "status", "from": "open", "to": "started", "note": "", "by": "Jon Robbins"}
+{"when": "2026-10-30T14:56:59Z", "item": "ob-21", "action": "note", "from": "", "to": "", "note": "Owner decision (autopilot): nullRate or outOfLimitRate 100 a", "by": "Jon Robbins"}
+{"when": "2026-10-30T14:56:59Z", "item": "ob-21", "action": "note", "from": "", "to": "", "note": "Owner decision (autopilot): a JSON null deviceColumns is rej", "by": "Jon Robbins"}
+{"when": "2026-10-30T15:10:24Z", "item": "ob-21", "action": "note", "from": "", "to": "", "note": "Test-results validation now rejects, before any file is crea", "by": "Jon Robbins"}
+{"when": "2026-10-30T15:10:24Z", "item": "ob-21", "action": "handoff", "from": "started", "to": "review", "note": "claim Jon Robbins cleared", "by": "Jon Robbins"}
