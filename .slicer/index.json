@@ -2,7 +2,7 @@
   "version": 10,
   "id_prefix": "ob-",
   "id_width": 2,
-  "next_id": 34,
+  "next_id": 35,
   "preamble": "",
   "passes": [
     {
@@ -1583,6 +1583,34 @@
         "pass": "v0.2.0",
         "group": "",
         "reason": "Folded into ob-28 (v0.2.0 bundle)",
+        "importance": 1,
+        "urgency": 1,
+        "effort": 1,
+        "attempts": 0
+      }
+    },
+    {
+      "id": "ob-34",
+      "title": "Document that a site or prober column with neither value nor range prints empty cells",
+      "short_title": "Document that a site or prober column with neither value nor range prints empty cells",
+      "status": "open",
+      "has_slice": false,
+      "depends_on": [],
+      "note_records": [],
+      "claim": null,
+      "fields": {
+        "size": "S",
+        "flags": [],
+        "trees": [],
+        "trees_literal": false,
+        "findings": "Obfuscator/TestResultsGenerator.cs fixed-column value fallback prints empty cells; README.md and Obfuscator/PackageReadme.md are silent.",
+        "discovered_from": "ob-28",
+        "parent": "",
+        "cites": [],
+        "key": "",
+        "pass": "v0.2.0",
+        "group": "",
+        "reason": "",
         "importance": 1,
         "urgency": 1,
         "effort": 1,
