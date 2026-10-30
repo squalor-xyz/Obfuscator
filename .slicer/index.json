@@ -1001,7 +1001,7 @@
       "id": "ob-20",
       "title": "Generate wide test-result files with a preamble, annotation rows and condition-bracket headers",
       "short_title": "Preamble-annotated wide test-result generator",
-      "status": "review",
+      "status": "done",
       "has_slice": true,
       "depends_on": [],
       "note_records": [

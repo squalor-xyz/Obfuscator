@@ -214,3 +214,4 @@
 {"when": "2026-10-30T14:35:36Z", "item": "ob-27", "action": "add", "from": "", "to": "open", "note": "Skip the 1% inside-limits validation floor when a test's nullRate or outOfLimitRate is 100"}
 {"when": "2026-10-30T14:35:36Z", "item": "ob-28", "action": "add", "from": "", "to": "open", "note": "Strengthen the test-results redraw tests: determinism under redraws and a one-sided limit"}
 {"when": "2026-10-30T14:35:36Z", "item": "ob-20", "action": "note", "from": "", "to": "", "note": "Human check: owner compared the example golden with a real p", "by": "Jon Robbins"}
+{"when": "2026-10-30T14:35:44Z", "item": "ob-20", "action": "status", "from": "review", "to": "done", "note": "Test-results generator mode (rowMode test-results) with example config and clean golden; 304 tests, Release build, dotnet format and test-local.sh pass; owner hand check done. Follow-ups ob-21..ob-28.", "by": "Jon Robbins"}
